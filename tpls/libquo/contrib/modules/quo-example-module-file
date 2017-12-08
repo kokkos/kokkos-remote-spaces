@@ -1,0 +1,78 @@
+#%Module
+# vi:set filetype=tcl:
+
+###############################################################################
+###############################################################################
+# NOTES
+# Rename this file to meet your needs.
+# Update local variables below.
+###############################################################################
+###############################################################################
+
+###############################################################################
+# local variables
+###############################################################################
+
+# example for the following installation prefix
+# /usr/projects/hpcsoft/moonlight/quo/1.0-ompi-1.6-intel-13
+
+# this is the install prefix where machine packages are installed
+set pkgprefix /usr/projects/hpcsoft/moonlight
+# the name of the package
+set name quo
+# package version
+set version 1.0
+# name of the mpi library quo was built against
+set mpilib openmpi
+# mpi major version
+set mpilibmajver 1.6
+
+# conflicts
+conflict openmpi-pgi openmpi-gcc
+
+# Determine what compiler we're using
+if { [info exists ::env(LCOMPILER) ] } {
+    set compiler $::env(LCOMPILER)
+    set compilermajver $::env(LCOMPILERMAJVER)
+} else {
+    set compiler gcc
+    set compilerver [ exec gcc --version | grep GCC | awk {{print $3}} ]
+    set compilermajver [ lindex [ split "$compilerver" "." ] 0 ].[ lindex [ split "$compilerver" "." ] 1 ]
+}
+
+set prefix $pkgprefix/$name/$version-$mpilib-$mpilibmajver-$compiler-$compilermajver
+
+if { ![file exists $prefix] } {
+    puts stderr "\n[module-info name]: $prefix: No such file or directory.\n"
+    break
+    exit 1
+}
+
+# module whatis
+module-whatis "QUO $version"
+
+set bindir    $prefix/bin
+set incdir    $prefix/include
+set libdir    $prefix/lib
+set mandir    $prefix/share/man
+
+# module help
+proc ModulesHelp {  } {
+    global version compiler prefix incdir
+    puts stderr "\tQUO $version"
+}
+
+setenv QUO_VERSION $version
+
+setenv QUO_HOME $prefix
+
+prepend-path LD_LIBRARY_PATH $libdir
+
+# Setting MANPATH is trickier - not every system sets it, nor
+# do a lot of users.  So we set it if it doesn't exist.
+catch {set cur_manpath $env(MANPATH)}
+if { ![info exists cur_manpath] || ($cur_manpath == "") } {
+    setenv MANPATH $mandir:
+} else {
+    prepend-path MANPATH $mandir
+}
