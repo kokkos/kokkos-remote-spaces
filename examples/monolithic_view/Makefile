@@ -16,7 +16,7 @@ KOKKOS_DEVICES = "OpenMP"
 KOKKOS_ARCH = "SNB"
 
 
-CXXFLAGS += -I${QUO_PATH}/include -I../../src/QUO
+CXXFLAGS += -I${QUO_PATH}/include -I../../src/QUO -I../../src
 LDFLAGS += -L${QUO_PATH}/lib -lquo-xpm -lquo
 
 DEPFLAGS = -M
