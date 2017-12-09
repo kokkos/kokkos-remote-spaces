@@ -65,8 +65,20 @@ namespace Impl {
 }
 
 /* Default allocation mechanism */
-QUOSpace::QUOSpace():quo_context(Impl::default_quo_context())
+QUOSpace::QUOSpace():quo_context(Impl::default_quo_context()),rank_list(NULL),allocation_mode(Monolithic)
 {}
+
+void QUOSpace::impl_set_rank_list(int* const rank_list_) {
+  rank_list = rank_list_;
+}
+
+void QUOSpace::impl_set_allocation_mode(const int allocation_mode_) {
+  allocation_mode = allocation_mode_;
+}
+
+void QUOSpace::impl_set_extent(const int64_t extent_) {
+  extent = extent_;
+}
 
 void * QUOSpace::allocate( const size_t arg_alloc_size ) const
 {
@@ -81,43 +93,106 @@ void * QUOSpace::allocate( const size_t arg_alloc_size ) const
 
   void * ptr = 0 ;
 
-  if ( arg_alloc_size ) {
-    int qid = -1;
-    int num_qids = -1;
-    QUO_id(quo_context, &qid);
-    QUO_nqids(quo_context, &num_qids);
-    // TODO make sure everybody requested same size. 
+  if (allocation_mode == Kokkos::Monolithic) {
+    if (arg_alloc_size) {
+	int qid = -1;
+	int num_qids = -1;
+	QUO_id (quo_context, &qid);
+	printf ("Allocation Mode: %i Rank: %i\n", allocation_mode, qid);
+	QUO_nqids (quo_context, &num_qids);
+	// TODO make sure everybody requested same size. 
 
-    QUO_xpm_context xpm;
-    size_t alloc_size_with_header = arg_alloc_size + num_qids * (sizeof(QUO_context) + sizeof(QUO_xpm_context)) + sizeof(uint64_t);
-    QUO_xpm_allocate(quo_context, qid==0?arg_alloc_size:0, &xpm);
-    QUO_xpm_view_t r_view;
-    QUO_xpm_view_by_qid(xpm, 0, &r_view);
+	QUO_xpm_context xpm;
+	size_t alloc_size_with_header =
+	  arg_alloc_size + num_qids * (sizeof (QUO_context) +
+				       sizeof (QUO_xpm_context)) +
+	  sizeof (uint64_t);
+	QUO_xpm_allocate (quo_context, qid == 0 ? arg_alloc_size : 0, &xpm);
+	QUO_xpm_view_t r_view;
+	QUO_xpm_view_by_qid (xpm, 0, &r_view);
 
-    void* base_ptr = r_view.base;
+	void *base_ptr = r_view.base;
 
-    printf("BasePtr: %p\n",base_ptr);
-    // Store my QUO context handle
-    {
-      QUO_context* my_context_ptr = (QUO_context*) (base_ptr + qid*sizeof(QUO_context));
-      *my_context_ptr = quo_context;
+	printf ("BasePtr: %p\n", base_ptr);
+	// Store my QUO context handle
+	{
+	  QUO_context *my_context_ptr =
+	    (QUO_context *) (base_ptr + qid * sizeof (QUO_context));
+	  *my_context_ptr = quo_context;
+	}
+
+	// Store my QUO xpm context handle
+	{
+	  QUO_xpm_context *my_context_ptr =
+	    (QUO_xpm_context *) (base_ptr + num_qids * sizeof (QUO_context) +
+				 qid * sizeof (QUO_xpm_context));
+	  *my_context_ptr = xpm;
+	}
+
+	// Store number of thingies
+	{
+	  uint64_t *count_ptr =
+	    (uint64_t *) (base_ptr +
+			  num_qids * (sizeof (QUO_context) +
+				      sizeof (QUO_xpm_context)));
+	  *count_ptr = num_qids;
+	}
+
+	ptr =
+	  base_ptr + num_qids * (sizeof (QUO_context) +
+				 sizeof (QUO_xpm_context)) +
+	  sizeof (uint64_t);
     }
-
-    // Store my QUO xpm context handle
-    {
-      QUO_xpm_context* my_context_ptr = (QUO_xpm_context*) (base_ptr + num_qids * sizeof(QUO_context) + qid * sizeof(QUO_xpm_context));
-      *my_context_ptr = xpm;
-    }
-    
-    // Store number of thingies
-    {
-      uint64_t* count_ptr = (uint64_t*) (base_ptr + num_qids * (sizeof(QUO_context) + sizeof(QUO_xpm_context)));
-      *count_ptr = num_qids;
-    }
-    
-    ptr = base_ptr + num_qids*(sizeof(QUO_context) + sizeof(QUO_xpm_context)) + sizeof(uint64_t);
   }
+  if( allocation_mode == Kokkos::Symmetric ) {
+    printf("Symmetric %i\n",(int) extent); 
+	int qid = -1;
+	int num_qids = -1;
+	QUO_id (quo_context, &qid);
+	printf ("Allocation Mode: %i Rank: %i\n", allocation_mode, qid);
+	QUO_nqids (quo_context, &num_qids);
+	// TODO make sure everybody requested same size. 
 
+	QUO_xpm_context xpm;
+	size_t header_size = num_qids * (sizeof (QUO_context) +
+				         sizeof (QUO_xpm_context)) +
+	                     sizeof (uint64_t);
+	QUO_xpm_allocate (quo_context, qid == 0 ? extent+header_size : extent, &xpm);
+	QUO_xpm_view_t r_view;
+	QUO_xpm_view_by_qid (xpm, 0, &r_view);
+
+	void *base_ptr = r_view.base;
+
+	printf ("BasePtr: %p\n", base_ptr);
+	// Store my QUO context handle
+	{
+	  QUO_context *my_context_ptr =
+	    (QUO_context *) (base_ptr + qid * sizeof (QUO_context));
+	  *my_context_ptr = quo_context;
+	}
+
+	// Store my QUO xpm context handle
+	{
+	  QUO_xpm_context *my_context_ptr =
+	    (QUO_xpm_context *) (base_ptr + num_qids * sizeof (QUO_context) +
+				 qid * sizeof (QUO_xpm_context));
+	  *my_context_ptr = xpm;
+	}
+
+	// Store number of thingies
+	{
+	  uint64_t *count_ptr =
+	    (uint64_t *) (base_ptr +
+			  num_qids * (sizeof (QUO_context) +
+				      sizeof (QUO_xpm_context)));
+	  *count_ptr = num_qids;
+	}
+
+	ptr =
+	  base_ptr + num_qids * (sizeof (QUO_context) +
+				 sizeof (QUO_xpm_context)) +
+	  sizeof (uint64_t);
+  } 
   return ptr;
 }
 

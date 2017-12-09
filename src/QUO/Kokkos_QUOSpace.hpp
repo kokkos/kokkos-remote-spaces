@@ -57,6 +57,8 @@
 #include <impl/Kokkos_Error.hpp>
 #include <impl/Kokkos_SharedAlloc.hpp>
 
+#include <Kokkos_RemoteSpaces.hpp>
+
 #include <quo.h>
 #include <quo-xpm.h>
 
@@ -64,29 +66,16 @@
 
 namespace Kokkos {
 
-/// \class QUOSpace
-/// \brief Memory management for host memory.
-///
-/// QUOSpace is a memory space that governs host memory.  "Host"
-/// memory means the usual CPU-accessible memory.
 class QUOSpace {
 public:
-  //! Tag this class as a kokkos memory space
+  
   typedef QUOSpace  memory_space;
   typedef size_t     size_type;
 
-  /// \typedef execution_space
-  /// \brief Default execution space for this memory space.
-  ///
-  /// Every memory space has a default execution space.  This is
-  /// useful for things like initializing a View (which happens in
-  /// parallel using the View's default execution space).
 #if defined( KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP )
   typedef Kokkos::OpenMP    execution_space;
 #elif defined( KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS )
   typedef Kokkos::Threads   execution_space;
-//#elif defined( KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_QTHREADS )
-//  typedef Kokkos::Qthreads  execution_space;
 #elif defined( KOKKOS_ENABLE_OPENMP )
   typedef Kokkos::OpenMP    execution_space;
 #elif defined( KOKKOS_ENABLE_THREADS )
@@ -99,10 +88,8 @@ public:
 #  error "At least one of the following host execution spaces must be defined: Kokkos::OpenMP, Kokkos::Threads, Kokkos::Qthreads, or Kokkos::Serial.  You might be seeing this message if you disabled the Kokkos::Serial device explicitly using the Kokkos_ENABLE_Serial:BOOL=OFF CMake option, but did not enable any of the other host execution space devices."
 #endif
 
-  //! This memory space preferred device_type
   typedef Kokkos::Device< execution_space, memory_space > device_type;
 
-  /**\brief  Default memory space instance */
   QUOSpace();
   QUOSpace( QUOSpace && rhs ) = default;
   QUOSpace( const QUOSpace & rhs ) = default;
@@ -113,22 +100,29 @@ public:
   explicit
   QUOSpace( const MPI_Comm & );
 
-  /**\brief  Allocate untracked memory in the space */
   void * allocate( const size_t arg_alloc_size ) const;
 
-  /**\brief  Deallocate untracked memory in the space */
   void deallocate( void * const arg_alloc_ptr
                  , const size_t arg_alloc_size ) const;
 
-  // void * allocate( const int* gids, const int& arg_local_alloc_size ) const;
+  void * allocate( const int* gids, const int& arg_local_alloc_size ) const;
 
-  // void deallocate( const int* gids, void * const arg_alloc_ptr
-  //                , const size_t arg_alloc_size ) const;
+  void deallocate( const int* gids, void * const arg_alloc_ptr
+                 , const size_t arg_alloc_size ) const;
 
   /**\brief Return Name of the MemorySpace */
   static constexpr const char* name() { return m_name; }
 
   void fence();
+
+  int* rank_list;
+  int allocation_mode; 
+  int64_t extent; 
+
+  void impl_set_rank_list(int* const);
+  void impl_set_allocation_mode(const int);
+  void impl_set_extent(int64_t N);
+
 private:
 
   QUO_context quo_context;

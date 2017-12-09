@@ -1,0 +1,4 @@
+mpicxx -I./ -I/ascldap/users/crtrott/Shepard/Kokkos/kokkos/core/src -I/ascldap/users/crtrott/Shepard/Kokkos/kokkos/containers/src -I/ascldap/users/crtrott/Shepard/Kokkos/kokkos/algorithms/src  --std=c++11 -mavx -fopenmp -O0 -g  -I/home/crtrott/Shepard/Kokkos/TPLS/libquo/build/include -I../../src -I../../src/QUO  -c main.cpp -o main.o
+mpicxx -L/home/crtrott/Shepard/Kokkos/kokkos-remote-spaces/examples/symmetric_view -mavx -fopenmp  -L/home/crtrott/Shepard/Kokkos/TPLS/libquo/build/lib -lquo-xpm -lquo  main.o Kokkos_QUOSpace.o -lkokkos -ldl  -o 01_hello_world.host
+echo "Start Build"
+Start Build
