@@ -11,7 +11,7 @@ CXX = mpicxx
 CXXFLAGS = -O0 -g 
 LINK = ${CXX}
 LDFLAGS =  
-EXE = 01_hello_world.host
+EXE = symmetric_view.host
 KOKKOS_DEVICES = "OpenMP"
 KOKKOS_ARCH = "SNB"
 
