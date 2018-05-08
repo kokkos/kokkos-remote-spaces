@@ -1,7 +1,14 @@
-KOKKOS_PATH = ${HOME}/Shepard/Kokkos/kokkos
+KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_SRC_PATH = ${KOKKOS_PATH}
-QUO_PATH = /home/crtrott/Shepard/Kokkos/TPLS/libquo/build
-SRC = main.cpp ../../src/QUO/Kokkos_QUOSpace.cpp
+QUO_PATH = ${HOME}/Kokkos/TPLS/libquo/build
+SRC = main.cpp
+ifeq ($(KOKKOS_INTERNAL_USE_QUOSPACE), 1)
+  SRC += ../../src/QUO/Kokkos_QUOSpace.cpp
+endif
+ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
+  SRC += ../../src/SHMEM/Kokkos_SHMEMSpace.cpp
+endif
+
 vpath %.cpp $(sort $(dir $(SRC)))
 
 default: build
@@ -15,9 +22,18 @@ EXE = symmetric_view.host
 KOKKOS_DEVICES = "OpenMP"
 KOKKOS_ARCH = "SNB"
 
-
-CXXFLAGS += -I${QUO_PATH}/include -I../../src -I../../src/QUO
+CXXFLAGS += -I../../src
+ifeq ($(KOKKOS_INTERNAL_USE_QUOSPACE), 1)
+CXXFLAGS += -I${QUO_PATH}/include -I../../src/QUO
 LDFLAGS += -L${QUO_PATH}/lib -lquo-xpm -lquo
+CXXFLAGS += -DKOKKOS_ENABLE_QUOSPACE
+endif
+ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
+CXXFLAGS += -I../../src/SHMEM
+LDFLAGS += -loshmem
+CXXFLAGS += -DKOKKOS_ENABLE_SHMEMSPACE
+endif
+
 
 DEPFLAGS = -M
 

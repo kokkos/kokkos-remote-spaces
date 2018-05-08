@@ -1,9 +1,23 @@
 #ifndef KOKKOS_REMOTESPACES_HPP_
 #define KOKKOS_REMOTESPACES_HPP_
 
+#ifdef KOKKOS_ENABLE_QUOSPACE
+#include<Kokkos_QUOSpace.hpp>
+#define SPACE Kokkos::QUOSpace
+#endif
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#include<Kokkos_SHMEMSpace.hpp>
+#define SPACE Kokkos::SHMEMSpace
+#endif
+
 namespace Kokkos {
   enum { Monolithic, Symmetric, Asymmetric };
 
+
+  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+  struct SHMEMSpace;
+  #endif
 
   template<typename ViewType>
   ViewType allocate_symmetric_remote_view(const char* const label, int num_ranks, int* rank_list, int N0 = 0) {
