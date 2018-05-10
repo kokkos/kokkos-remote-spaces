@@ -22,6 +22,22 @@ int shmem_type_g(int* ptr, const int pe) {
   #endif
 }
 
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(double* ptr, const double& val, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_double_p(ptr,val,pe);
+  #endif
+}
+
+KOKKOS_INLINE_FUNCTION
+double shmem_type_g(double* ptr, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_double_g(ptr,pe);
+  #else
+  return 0;
+  #endif
+}
+
 struct SHMEMSpaceSpecializeTag {};
 
 template<class T>
@@ -30,7 +46,7 @@ struct SHMEMDataElement {
   typedef T non_const_value_type;
   T* ptr;
   int pe;
-  SHMEMDataElement(int* ptr_, int pe_, int i_ ):ptr(ptr_+i_),pe(pe_) {}
+  SHMEMDataElement(T* ptr_, int pe_, int i_ ):ptr(ptr_+i_),pe(pe_) {}
   KOKKOS_INLINE_FUNCTION
   const_value_type operator = (const_value_type& val) const {
     shmem_type_p(ptr,val,pe);
@@ -290,7 +306,19 @@ struct SHMEMDataElement {
 };
 
 template<class T>
-struct SHMEMDataHandle;
+struct SHMEMDataHandle {
+  T* ptr;
+  KOKKOS_INLINE_FUNCTION
+  SHMEMDataHandle():ptr(NULL){}
+  KOKKOS_INLINE_FUNCTION
+  SHMEMDataHandle(T* ptr_):ptr(ptr_){}
+  template<typename iType>
+  KOKKOS_INLINE_FUNCTION
+  SHMEMDataElement<T> operator() (const int& pe, const iType& i) const {
+    SHMEMDataElement<T> element(ptr,pe,i);
+    return element;
+  }
+};
 
 template<>
 struct SHMEMDataHandle<int> {
@@ -306,6 +334,8 @@ struct SHMEMDataHandle<int> {
     return element;
   }
 };
+
+
 
 template< class Traits >
 struct ViewDataHandle<Traits,typename std::enable_if<std::is_same<typename Traits::specialize,SHMEMSpaceSpecializeTag>::value>::type> {
@@ -436,7 +466,7 @@ public:
   /** \brief  Query raw pointer to memory */
   KOKKOS_INLINE_FUNCTION constexpr pointer_type data() const
     {
-      return m_handle;
+      return m_handle.ptr;
     }
 
   //----------------------------------------
@@ -471,7 +501,9 @@ public:
   template< typename I0 , typename I1 , typename I2 >
   KOKKOS_FORCEINLINE_FUNCTION
   reference_type reference( const I0 & i0 , const I1 & i1 , const I2 & i2 ) const
-    { return m_handle( i0, m_offset(0,i1,i2) ); }
+    { 
+      return m_handle( i0, m_offset(0,i1,i2) ); 
+    }
 
   template< typename I0 , typename I1 , typename I2 , typename I3 >
   KOKKOS_FORCEINLINE_FUNCTION
