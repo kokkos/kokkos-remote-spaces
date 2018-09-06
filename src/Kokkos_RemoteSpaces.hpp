@@ -11,6 +11,11 @@
 #define SPACE Kokkos::SHMEMSpace
 #endif
 
+#ifdef KOKKOS_ENABLE_MPISPACE
+#include<Kokkos_MPISpace.hpp>
+#define SPACE Kokkos::MPISpace
+#endif
+
 namespace Kokkos {
   enum { Monolithic, Symmetric, Asymmetric };
 

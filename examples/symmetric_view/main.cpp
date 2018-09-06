@@ -26,7 +26,14 @@ int main(int argc, char* argv[]) {
     space.fence();
 
     {
+      //view_type b = 
+      //  Kokkos::allocate_symmetric_remote_view<view_type>("B",num_ranks,rank_list,10);
+      MPI_Win win; 
+      int* ptr;
+      MPI_Win_allocate(100, sizeof(int), MPI_INFO_NULL,
+                     MPI_COMM_WORLD, &ptr, &win);
       Kokkos::View<int**, SPACE> a_1 = a;
+      MPI_Win_free(&win);
       printf("Refcount a_1: %i Rank: %i\n",a_1.use_count(),my_rank);
       if(a_1.use_count()!=2) printf("Error RefCount %i %i\n",my_rank,a_1.use_count());
     }
@@ -42,10 +49,9 @@ int main(int argc, char* argv[]) {
         ////if(i==1)
         //  printf("%i %i %i %i %i %i Data\n",my_rank*10000+rank*100+i,my_rank,rank,i,int(a(rank,i)),val);  
         if(val != ((rank+1)*100 + i%10))     
-          printf("Error Data: %i %i %i %i %i\n",my_rank,rank,i,a(rank,i),((rank + 1)*100 + i%10));
+          printf("Error Data: %i %i %i %i %i\n",my_rank,rank,i,int(a(rank,i)),((rank + 1)*100 + i%10));
       }
-      
-   shmem_barrier_all();
+    space.fence();    
   }
   printf("Finalize\n");
   Kokkos::finalize();

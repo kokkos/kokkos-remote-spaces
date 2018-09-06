@@ -8,6 +8,9 @@ endif
 ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
   SRC += ../../src/SHMEM/Kokkos_SHMEMSpace.cpp
 endif
+ifeq ($(KOKKOS_INTERNAL_USE_MPISPACE), 1)
+  SRC += ../../src/MPI/Kokkos_MPISpace.cpp
+endif
 
 vpath %.cpp $(sort $(dir $(SRC)))
 
@@ -32,6 +35,10 @@ ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
 CXXFLAGS += -I../../src/SHMEM
 LDFLAGS += -loshmem
 CXXFLAGS += -DKOKKOS_ENABLE_SHMEMSPACE
+endif
+ifeq ($(KOKKOS_INTERNAL_USE_MPISPACE), 1)
+CXXFLAGS += -I../../src/MPI
+CXXFLAGS += -DKOKKOS_ENABLE_MPISPACE
 endif
 
 
