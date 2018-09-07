@@ -52,6 +52,7 @@
 namespace Kokkos {
 
 MPI_Win MPISpace::current_win;
+std::vector<MPI_Win> MPISpace::mpi_windows;
 
 /* Default allocation mechanism */
 MPISpace::MPISpace():rank_list(NULL),allocation_mode(Symmetric)
@@ -92,6 +93,13 @@ void * MPISpace::allocate( const size_t arg_alloc_size ) const
                      MPI_COMM_WORLD, &ptr, &current_win);
       //ptr = shmalloc(arg_alloc_size);
       printf("Allocate Window B %p %li\n",&current_win,*((long*)&current_win));
+      int i=-1;
+      for(i=0; i<mpi_windows.size();i++)
+        if(mpi_windows[i]==MPI_WIN_NULL) break;
+      if(i==mpi_windows.size())
+        mpi_windows.push_back(current_win);
+      else
+        mpi_windows[i] = current_win;
     } else {
       Kokkos::abort("MPISpace only supports symmetric allocation policy.");
     }
@@ -106,19 +114,30 @@ void MPISpace::deallocate( void * const
 {
       printf("Free Window %p %li\n",&current_win,*((long*)&current_win));
   int assert = 0;
-  MPI_Win win = current_win;
-  current_win = MPI_WIN_NULL;
-  printf("A\n");
-  MPI_Win_fence(assert,win);
+  int last_valid = -1;
+  for(last_valid=0; last_valid<mpi_windows.size(); last_valid++)
+    if(mpi_windows[last_valid]==MPI_WIN_NULL) break;
+  last_valid--;
+  for(int i=0; i<mpi_windows.size(); i++)
+    if(mpi_windows[i]==current_win) {
+      mpi_windows[i] = mpi_windows[last_valid];
+      mpi_windows[last_valid] = MPI_WIN_NULL;
+      break;
+    }
+
   printf("B\n");
-  MPI_Win_free(&win);
+  MPI_Win_free(&current_win);
   printf("C\n");
+  current_win = MPI_WIN_NULL;
 }
 
 void MPISpace::fence() {
   int assert = 0;
-  if(current_win != MPI_WIN_NULL)
-  MPI_Win_fence(assert,current_win);
+  for(int i = 0; i<mpi_windows.size(); i++)
+    if(mpi_windows[i]!=MPI_WIN_NULL)
+      MPI_Win_fence(assert,mpi_windows[i]);
+    else
+      break;
 }
 
 } // namespace Kokkos

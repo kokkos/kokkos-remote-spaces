@@ -59,7 +59,7 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
-
+#include <vector>
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
@@ -116,6 +116,8 @@ public:
   int* rank_list;
   int allocation_mode; 
   int64_t extent; 
+
+  static std::vector<MPI_Win> mpi_windows;
 
   static MPI_Win current_win;
 

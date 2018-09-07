@@ -27,8 +27,8 @@ int main(int argc, char* argv[]) {
     space.fence();
 
     {
-    //  view_type b = 
-   //    Kokkos::allocate_symmetric_remote_view<view_type>("B",num_ranks,rank_list,10);
+      view_type b = 
+       Kokkos::allocate_symmetric_remote_view<view_type>("B",num_ranks,rank_list,10);
       MPI_Win win; 
       int* ptr;
       MPI_Win_allocate(100, sizeof(int), MPI_INFO_NULL,
