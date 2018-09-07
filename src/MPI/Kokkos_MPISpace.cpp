@@ -85,14 +85,9 @@ void * MPISpace::allocate( const size_t arg_alloc_size ) const
   if (arg_alloc_size) {
 
     if( allocation_mode == Kokkos::Symmetric ) {
-      //int num_pes = shmem_n_pes();
-      //int my_id = shmem_my_pe();
       current_win = MPI_WIN_NULL;
-      printf("Allocate Window A %p %li\n",&current_win,*((long*)&current_win));
       MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL,
                      MPI_COMM_WORLD, &ptr, &current_win);
-      //ptr = shmalloc(arg_alloc_size);
-      printf("Allocate Window B %p %li\n",&current_win,*((long*)&current_win));
       int i=-1;
       for(i=0; i<mpi_windows.size();i++)
         if(mpi_windows[i]==MPI_WIN_NULL) break;
@@ -112,7 +107,6 @@ void MPISpace::deallocate( void * const
     , const size_t
     ) const
 {
-      printf("Free Window %p %li\n",&current_win,*((long*)&current_win));
   int assert = 0;
   int last_valid = -1;
   for(last_valid=0; last_valid<mpi_windows.size(); last_valid++)
@@ -125,9 +119,7 @@ void MPISpace::deallocate( void * const
       break;
     }
 
-  printf("B\n");
   MPI_Win_free(&current_win);
-  printf("C\n");
   current_win = MPI_WIN_NULL;
 }
 
@@ -168,7 +160,6 @@ SharedAllocationRecord< Kokkos::MPISpace , void >::
       data(),size());
   }
   #endif
-  printf("~SharedAllocationRecord %p %li\n",this,*((long*)&win));
   m_space.current_win = win;
   m_space.deallocate( SharedAllocationRecord< void , void >::m_alloc_ptr
                     , SharedAllocationRecord< void , void >::m_alloc_size
@@ -201,15 +192,11 @@ SharedAllocationRecord( const Kokkos::MPISpace & arg_space
 #endif
   // Fill in the Header information
   RecordBase::m_alloc_ptr->m_record = static_cast< SharedAllocationRecord< void , void > * >( this );
-  printf("Label: %s\n",RecordBase::m_alloc_ptr->m_label);
   strncpy( RecordBase::m_alloc_ptr->m_label
           , arg_label.c_str()
           , SharedAllocationHeader::maximum_label_length
           );
-  printf("Label: %s\n",RecordBase::m_alloc_ptr->m_label);
   win = m_space.current_win;
-  printf("SharedAllocationRecord(...) %p %li\n",this,*((long*)&win));
-  printf("Label: %s %p\n",RecordBase::m_alloc_ptr->m_label,RecordBase::m_alloc_ptr->m_label);
 
 }
 
@@ -226,7 +213,6 @@ allocate_tracked( const Kokkos::MPISpace & arg_space
     allocate( arg_space , arg_alloc_label , arg_alloc_size );
 
   RecordBase::increment( r );
-printf("A\n");
   return r->data();
 }
 
@@ -238,7 +224,6 @@ deallocate_tracked( void * const arg_alloc_ptr )
 
     RecordBase::decrement( r );
   }
-printf("B\n");
 }
 
 void * SharedAllocationRecord< Kokkos::MPISpace , void >::

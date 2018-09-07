@@ -22,7 +22,6 @@ int main(int argc, char* argv[]) {
     rank_list[1] = 1;
     view_type a = 
       Kokkos::allocate_symmetric_remote_view<view_type>("MyView",num_ranks,rank_list,10);
-    printf("%s %s\n",a.label().c_str(),((char*)a.data())-120);
     a(0,0) = 0;
     space.fence();
 
@@ -54,9 +53,7 @@ int main(int argc, char* argv[]) {
       }
     space.fence();    
   }
-  printf("Finalize\n");
   Kokkos::finalize();
   MPI_Finalize();
-  printf("FinalizeA\n");
 }
 
