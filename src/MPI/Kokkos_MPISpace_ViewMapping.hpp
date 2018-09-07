@@ -8,14 +8,14 @@ namespace Impl {
 KOKKOS_INLINE_FUNCTION
 void mpi_type_p(const int val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Put(&val, 1, MPI_INT, pe, offset, 1, MPI_INT, win);
+  MPI_Put(&val, 1, MPI_INT, pe, sizeof(SharedAllocationHeader)+offset*sizeof(int), 1, MPI_INT, win);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 void mpi_type_g(int& val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Get(&val, 1, MPI_INT, pe, offset, 1, MPI_INT, win);
+  MPI_Get(&val, 1, MPI_INT, pe, sizeof(SharedAllocationHeader)+offset*sizeof(int), 1, MPI_INT, win);
   #endif
 }
 
