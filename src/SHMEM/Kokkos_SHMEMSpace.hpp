@@ -60,7 +60,6 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 #include <shmem.h>
-
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {

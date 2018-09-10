@@ -3,7 +3,11 @@
 
 #include<mpi.h>
 
-typedef Kokkos::View<int**, SPACE> view_type;
+#define SPACE Kokkos::DefaultRemoteMemorySpace
+
+#define SCALAR double
+
+typedef Kokkos::View<SCALAR**, SPACE> view_type;
 int main(int argc, char* argv[]) {
   MPI_Init(&argc,&argv);
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
@@ -22,7 +26,9 @@ int main(int argc, char* argv[]) {
     rank_list[1] = 1;
     view_type a = 
       Kokkos::allocate_symmetric_remote_view<view_type>("MyView",num_ranks,rank_list,10);
-    a(0,0) = 0;
+    Kokkos::parallel_for(1, KOKKOS_LAMBDA(const int) {
+      a(0,0) = 0;
+    });
     space.fence();
 
     {
@@ -32,7 +38,7 @@ int main(int argc, char* argv[]) {
       int* ptr;
       MPI_Win_allocate(100, sizeof(int), MPI_INFO_NULL,
                      MPI_COMM_WORLD, &ptr, &win);
-      Kokkos::View<int**, SPACE> a_1 = a;
+      Kokkos::View<SCALAR**, SPACE> a_1 = a;
       MPI_Win_free(&win);
       printf("Refcount a_1: %i Rank: %i %s\n",a_1.use_count(),my_rank,a_1.label().c_str());
       if(a_1.use_count()!=2) printf("Error RefCount %i %i\n",my_rank,a_1.use_count());
@@ -40,17 +46,20 @@ int main(int argc, char* argv[]) {
     if(a.use_count()!=1) printf("Error RefCount %i %i\n",my_rank,a.use_count());
 
     for(int i = 0; i < 10; i++)
+    Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
       a(my_rank,i) = (my_rank + 1) * 100 + i%10;
+    });
     space.fence();
     printf("Lable after write: %s\n",a.label().c_str());
     for(int rank=0; rank<num_ranks ; rank++)
-      for(int i=0; i<10; i++) {
+    Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
         int val = a(rank,i);
         ////if(i==1)
         //  printf("%i %i %i %i %i %i Data\n",my_rank*10000+rank*100+i,my_rank,rank,i,int(a(rank,i)),val);  
         if(val != ((rank+1)*100 + i%10))     
           printf("Error Data: %i %i %i %i %i\n",my_rank,rank,i,int(a(rank,i)),((rank + 1)*100 + i%10));
       }
+    );
     space.fence();    
   }
   Kokkos::finalize();

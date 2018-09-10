@@ -83,7 +83,6 @@ void * MPISpace::allocate( const size_t arg_alloc_size ) const
 
   void * ptr = 0 ;
   if (arg_alloc_size) {
-
     if( allocation_mode == Kokkos::Symmetric ) {
       current_win = MPI_WIN_NULL;
       MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL,

@@ -22,14 +22,14 @@ void mpi_type_g(int& val, int offset, const int pe, const MPI_Win& win) {
 KOKKOS_INLINE_FUNCTION
 void mpi_type_p(const double val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Put(&val, 1, MPI_DOUBLE, pe, offset, 1, MPI_INT, win);
+  MPI_Put(&val, 1, MPI_DOUBLE, pe, sizeof(SharedAllocationHeader)+offset*sizeof(double), 1, MPI_DOUBLE, win);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 void mpi_type_g(double& val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Get(&val, 1, MPI_DOUBLE, pe, offset, 1, MPI_INT, win);
+  MPI_Get(&val, 1, MPI_DOUBLE, pe, sizeof(SharedAllocationHeader)+offset*sizeof(double), 1, MPI_DOUBLE, win);
   #endif
 }
 

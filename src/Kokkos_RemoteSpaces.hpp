@@ -2,26 +2,39 @@
 #define KOKKOS_REMOTESPACES_HPP_
 
 #ifdef KOKKOS_ENABLE_QUOSPACE
+namespace Kokkos {
+class QUOSpace;
+}
 #include<Kokkos_QUOSpace.hpp>
-#define SPACE Kokkos::QUOSpace
 #endif
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
+namespace Kokkos {
+class SHMEMSpace;
+}
 #include<Kokkos_SHMEMSpace.hpp>
-#define SPACE Kokkos::SHMEMSpace
 #endif
 
 #ifdef KOKKOS_ENABLE_MPISPACE
+namespace Kokkos {
+class MPISpace;
+}
 #include<Kokkos_MPISpace.hpp>
-#define SPACE Kokkos::MPISpace
 #endif
 
 namespace Kokkos {
   enum { Monolithic, Symmetric, Asymmetric };
 
-
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  struct SHMEMSpace;
+  typedef SHMEMSpace DefaultRemoteMemorySpace;
+  #else
+    #ifdef KOKKOS_ENABLE_MPISPACE
+    typedef MPISpace DefaultRemoteMemorySpace;
+    #else
+      #ifdef KOKKOS_ENABLE_QUOSPACE
+        typedef QUOSpace DefaultRemoteMemorySpace;
+      #endif
+    #endif
   #endif
 
   template<typename ViewType>

@@ -1,16 +1,13 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_SRC_PATH = ${KOKKOS_PATH}
+KOKKOS_REMOTE_SPACES_PATH = ${HOME}/Kokkos/kokkos-remote-spaces
+KOKKOS_CUDA_OPTIONS=enable_lambda
+
+KOKKOS_REMOTE_SPACES = MPI
 QUO_PATH = ${HOME}/Kokkos/TPLS/libquo/build
+
 SRC = main.cpp
-ifeq ($(KOKKOS_INTERNAL_USE_QUOSPACE), 1)
-  SRC += ../../src/QUO/Kokkos_QUOSpace.cpp
-endif
-ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
-  SRC += ../../src/SHMEM/Kokkos_SHMEMSpace.cpp
-endif
-ifeq ($(KOKKOS_INTERNAL_USE_MPISPACE), 1)
-  SRC += ../../src/MPI/Kokkos_MPISpace.cpp
-endif
+
 
 vpath %.cpp $(sort $(dir $(SRC)))
 
@@ -25,29 +22,13 @@ EXE = symmetric_view.host
 KOKKOS_DEVICES = "OpenMP"
 KOKKOS_ARCH = "SNB"
 
-CXXFLAGS += -I../../src
-ifeq ($(KOKKOS_INTERNAL_USE_QUOSPACE), 1)
-CXXFLAGS += -I${QUO_PATH}/include -I../../src/QUO
-LDFLAGS += -L${QUO_PATH}/lib -lquo-xpm -lquo
-CXXFLAGS += -DKOKKOS_ENABLE_QUOSPACE
-endif
-ifeq ($(KOKKOS_INTERNAL_USE_SHMEMSPACE), 1)
-CXXFLAGS += -I../../src/SHMEM
-LDFLAGS += -loshmem
-CXXFLAGS += -DKOKKOS_ENABLE_SHMEMSPACE
-endif
-ifeq ($(KOKKOS_INTERNAL_USE_MPISPACE), 1)
-CXXFLAGS += -I../../src/MPI
-CXXFLAGS += -DKOKKOS_ENABLE_MPISPACE
-endif
-
-
 DEPFLAGS = -M
 
 OBJ = $(notdir $(SRC:.cpp=.o))
 LIB =
 
 include $(KOKKOS_PATH)/Makefile.kokkos
+include $(KOKKOS_REMOTE_SPACES_PATH)/Makefile.kokkos-remote-spaces
 
 build: $(EXE)
 
