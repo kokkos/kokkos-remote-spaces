@@ -15,6 +15,13 @@ class SHMEMSpace;
 #include<Kokkos_SHMEMSpace.hpp>
 #endif
 
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+namespace Kokkos {
+class NVSHMEMSpace;
+}
+#include<Kokkos_NVSHMEM_Space.hpp>
+#endif
+
 #ifdef KOKKOS_ENABLE_MPISPACE
 namespace Kokkos {
 class MPISpace;
@@ -25,14 +32,17 @@ class MPISpace;
 namespace Kokkos {
   enum { Monolithic, Symmetric, Asymmetric };
 
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  typedef SHMEMSpace DefaultRemoteMemorySpace;
-  #else
-    #ifdef KOKKOS_ENABLE_MPISPACE
-    typedef MPISpace DefaultRemoteMemorySpace;
+  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+    typedef NVSHMEMSpace DefaultRemoteMemorySpace;
+    #ifdef KOKKOS_ENABLE_SHMEMSPACE
+    typedef SHMEMSpace DefaultRemoteMemorySpace;
     #else
-      #ifdef KOKKOS_ENABLE_QUOSPACE
-        typedef QUOSpace DefaultRemoteMemorySpace;
+      #ifdef KOKKOS_ENABLE_MPISPACE
+      typedef MPISpace DefaultRemoteMemorySpace;
+      #else
+        #ifdef KOKKOS_ENABLE_QUOSPACE
+          typedef QUOSpace DefaultRemoteMemorySpace;
+        #endif
       #endif
     #endif
   #endif

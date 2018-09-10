@@ -5,13 +5,20 @@
 
 #define SPACE Kokkos::DefaultRemoteMemorySpace
 
-#define SCALAR double
+#define SCALAR int
 
 typedef Kokkos::View<SCALAR**, SPACE> view_type;
 int main(int argc, char* argv[]) {
   MPI_Init(&argc,&argv);
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init();
+  #endif
+  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
+  shmemx_init_attr_t attr;
+  mpi_comm = MPI_COMM_WORLD;
+  attr.mpi_comm = &mpi_comm;
+  shmemx_init_attr (SHMEMX_INIT_WITH_MPI_COMM, &attr);
   #endif
   Kokkos::initialize(argc,argv);
   typedef Kokkos::ViewTraits< void , SPACE >  prop ;
@@ -50,7 +57,7 @@ int main(int argc, char* argv[]) {
       a(my_rank,i) = (my_rank + 1) * 100 + i%10;
     });
     space.fence();
-    printf("Lable after write: %s\n",a.label().c_str());
+    printf("Label after write: %s\n",a.label().c_str());
     for(int rank=0; rank<num_ranks ; rank++)
     Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
         int val = a(rank,i);
