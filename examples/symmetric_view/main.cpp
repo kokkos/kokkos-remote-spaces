@@ -5,9 +5,9 @@
 
 #define SPACE Kokkos::DefaultRemoteMemorySpace
 
-#define SCALAR int
+#define SCALAR double
 
-typedef Kokkos::View<SCALAR**, SPACE> view_type;
+typedef Kokkos::View<SCALAR**[3], SPACE> view_type;
 int main(int argc, char* argv[]) {
   MPI_Init(&argc,&argv);
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
@@ -34,10 +34,11 @@ int main(int argc, char* argv[]) {
     view_type a = 
       Kokkos::allocate_symmetric_remote_view<view_type>("MyView",num_ranks,rank_list,10);
     Kokkos::parallel_for(1, KOKKOS_LAMBDA(const int) {
-      a(0,0) = 0;
+      a(0,0,0) = 0;
     });
     space.fence();
-
+    Kokkos::fence();
+shmem_barrier_all();
     {
       view_type b = 
        Kokkos::allocate_symmetric_remote_view<view_type>("B",num_ranks,rank_list,10);
@@ -45,7 +46,7 @@ int main(int argc, char* argv[]) {
       int* ptr;
       MPI_Win_allocate(100, sizeof(int), MPI_INFO_NULL,
                      MPI_COMM_WORLD, &ptr, &win);
-      Kokkos::View<SCALAR**, SPACE> a_1 = a;
+      Kokkos::View<SCALAR**[3], SPACE> a_1 = a;
       MPI_Win_free(&win);
       printf("Refcount a_1: %i Rank: %i %s\n",a_1.use_count(),my_rank,a_1.label().c_str());
       if(a_1.use_count()!=2) printf("Error RefCount %i %i\n",my_rank,a_1.use_count());
@@ -54,20 +55,26 @@ int main(int argc, char* argv[]) {
 
     for(int i = 0; i < 10; i++)
     Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
-      a(my_rank,i) = (my_rank + 1) * 100 + i%10;
+      for(int k=0;k<a.extent(2);k++)
+        a(my_rank,i,k) = (my_rank + 1) * 100 + i%10 + k*10000;
     });
+    Kokkos::fence();
     space.fence();
+shmem_barrier_all();
     printf("Label after write: %s\n",a.label().c_str());
     for(int rank=0; rank<num_ranks ; rank++)
     Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
-        int val = a(rank,i);
+      for(int k=0;k<a.extent(2);k++) {
+        int val = a(rank,i,k);
         ////if(i==1)
         //  printf("%i %i %i %i %i %i Data\n",my_rank*10000+rank*100+i,my_rank,rank,i,int(a(rank,i)),val);  
-        if(val != ((rank+1)*100 + i%10))     
-          printf("Error Data: %i %i %i %i %i\n",my_rank,rank,i,int(a(rank,i)),((rank + 1)*100 + i%10));
+        if(val != ((rank+1)*100 + i%10 + k*10000))     
+          printf("Error Data: %i %i %i %i %i %i\n",my_rank,rank,i,k,int(a(rank,i,k)),((rank + 1)*100 + i%10 + k*10000));
       }
-    );
-    space.fence();    
+    });
+    Kokkos::fence();
+    space.fence();  
+shmem_barrier_all();  
   }
   Kokkos::finalize();
   MPI_Finalize();

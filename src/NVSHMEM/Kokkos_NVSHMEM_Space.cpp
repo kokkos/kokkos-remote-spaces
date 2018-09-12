@@ -75,7 +75,7 @@ void * NVSHMEMSpace::allocate( const size_t arg_alloc_size ) const
 
   constexpr uintptr_t alignment = Kokkos::Impl::MEMORY_ALIGNMENT ;
   constexpr uintptr_t alignment_mask = alignment - 1 ;
-
+  MPI_Barrier(MPI_COMM_WORLD);
   void * ptr = 0 ;
   if (arg_alloc_size) {
 
@@ -99,6 +99,7 @@ void NVSHMEMSpace::deallocate( void * const arg_alloc_ptr
 }
 
 void NVSHMEMSpace::fence() {
+  Kokkos::fence();
   shmem_barrier_all();
 }
 

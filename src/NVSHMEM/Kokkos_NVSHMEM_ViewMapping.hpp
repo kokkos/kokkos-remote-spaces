@@ -8,14 +8,14 @@ namespace Impl {
 #ifndef KOKKOS_ENABLE_SHMEM
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(int* ptr, const int& val, const int pe) {
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   shmem_int_p(ptr,val,pe);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 int shmem_type_g(int* ptr, const int pe) {
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   return shmem_int_g(ptr,pe);
   #else
   return 0;
@@ -24,14 +24,14 @@ int shmem_type_g(int* ptr, const int pe) {
 
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(double* ptr, const double& val, const int pe) {
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   shmem_double_p(ptr,val,pe);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 double shmem_type_g(double* ptr, const int pe) {
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   return shmem_double_g(ptr,pe);
   #else
   return 0;

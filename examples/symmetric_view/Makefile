@@ -1,9 +1,14 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_SRC_PATH = ${KOKKOS_PATH}
 KOKKOS_REMOTE_SPACES_PATH = ${HOME}/Kokkos/kokkos-remote-spaces
-KOKKOS_CUDA_OPTIONS=enable_lambda
+KOKKOS_CUDA_OPTIONS=enable_lambda,rdc
+NVSHMEM_PATH=${HOME}/Software/nvshmem/0.1.0
+CUDA_PATH=/usr/local/cuda
 
-KOKKOS_REMOTE_SPACES = MPI
+KOKKOS_REMOTE_SPACES = NVSHMEM
+KOKKOS_DEVICES = "Cuda"
+KOKKOS_ARCH = "SNB,Volta70"
+
 QUO_PATH = ${HOME}/Kokkos/TPLS/libquo/build
 
 SRC = main.cpp
@@ -15,12 +20,10 @@ default: build
 	echo "Start Build"
 
 CXX = mpicxx
-CXXFLAGS = -O0 -g 
+CXXFLAGS = -O0 -g -I${CUDA_PATH}
 LINK = ${CXX}
 LDFLAGS =  
 EXE = symmetric_view.host
-KOKKOS_DEVICES = "OpenMP"
-KOKKOS_ARCH = "SNB"
 
 DEPFLAGS = -M
 
