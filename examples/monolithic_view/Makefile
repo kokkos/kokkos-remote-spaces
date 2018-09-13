@@ -1,23 +1,29 @@
-KOKKOS_PATH = ${HOME}/Shepard/Kokkos/kokkos
+KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_SRC_PATH = ${KOKKOS_PATH}
-QUO_PATH = /home/crtrott/Shepard/Kokkos/TPLS/libquo/build
-SRC = main.cpp ../../src/QUO/Kokkos_QUOSpace.cpp
+KOKKOS_REMOTE_SPACES_PATH = ${HOME}/Kokkos/kokkos-remote-spaces
+KOKKOS_CUDA_OPTIONS=enable_lambda,rdc
+NVSHMEM_PATH=${HOME}/Software/nvshmem/0.1.0
+CUDA_PATH=/usr/local/cuda
+
+KOKKOS_REMOTE_SPACES = NVSHMEM
+KOKKOS_DEVICES = "Cuda"
+KOKKOS_ARCH = "SNB,Volta70"
+
+QUO_PATH = ${HOME}/Kokkos/TPLS/libquo/build
+
+SRC = main.cpp
+
+
 vpath %.cpp $(sort $(dir $(SRC)))
 
 default: build
 	echo "Start Build"
 
 CXX = mpicxx
-CXXFLAGS = -O0 -g 
+CXXFLAGS = -O0 -g -I${CUDA_PATH}
 LINK = ${CXX}
 LDFLAGS =  
-EXE = monolithic_view.host
-KOKKOS_DEVICES = "OpenMP"
-KOKKOS_ARCH = "SNB"
-
-
-CXXFLAGS += -I${QUO_PATH}/include -I../../src/QUO -I../../src
-LDFLAGS += -L${QUO_PATH}/lib -lquo-xpm -lquo
+EXE = symmetric_view.host
 
 DEPFLAGS = -M
 
@@ -25,6 +31,7 @@ OBJ = $(notdir $(SRC:.cpp=.o))
 LIB =
 
 include $(KOKKOS_PATH)/Makefile.kokkos
+include $(KOKKOS_REMOTE_SPACES_PATH)/Makefile.kokkos-remote-spaces
 
 build: $(EXE)
 

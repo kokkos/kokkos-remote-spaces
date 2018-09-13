@@ -32,13 +32,12 @@ int main(int argc, char* argv[]) {
     rank_list[0] = 0;
     rank_list[1] = 1;
     view_type a = 
-      Kokkos::allocate_symmetric_remote_view<view_type>("MyView",num_ranks,rank_list,10);
+      Kokkos::allocate_symmetric_remote_view<view_type>("MyView",num_ranks,rank_list,10000);
     Kokkos::parallel_for(1, KOKKOS_LAMBDA(const int) {
       a(0,0,0) = 0;
     });
     space.fence();
     Kokkos::fence();
-shmem_barrier_all();
     {
       view_type b = 
        Kokkos::allocate_symmetric_remote_view<view_type>("B",num_ranks,rank_list,10);
@@ -60,7 +59,6 @@ shmem_barrier_all();
     });
     Kokkos::fence();
     space.fence();
-shmem_barrier_all();
     printf("Label after write: %s\n",a.label().c_str());
     for(int rank=0; rank<num_ranks ; rank++)
     Kokkos::parallel_for(10, KOKKOS_LAMBDA(const int& i) {
@@ -74,7 +72,6 @@ shmem_barrier_all();
     });
     Kokkos::fence();
     space.fence();  
-shmem_barrier_all();  
   }
   Kokkos::finalize();
   MPI_Finalize();

@@ -97,7 +97,6 @@ void * QUOSpace::allocate( const size_t arg_alloc_size ) const
 	int qid = -1;
 	int num_qids = -1;
 	QUO_id (quo_context, &qid);
-	printf ("Allocation Mode: %i Rank: %i\n", allocation_mode, qid);
 	QUO_nqids (quo_context, &num_qids);
 	// TODO make sure everybody requested same size. 
 
@@ -110,9 +109,8 @@ void * QUOSpace::allocate( const size_t arg_alloc_size ) const
 	QUO_xpm_view_t r_view;
 	QUO_xpm_view_by_qid (xpm, 0, &r_view);
 
-	void *base_ptr = r_view.base;
+	char *base_ptr = (char*)r_view.base;
 
-	printf ("BasePtr: %p\n", base_ptr);
 	// Store my QUO context handle
 	{
 	  QUO_context *my_context_ptr =
@@ -144,11 +142,9 @@ void * QUOSpace::allocate( const size_t arg_alloc_size ) const
     }
   }
   if( allocation_mode == Kokkos::Symmetric ) {
-    printf("Symmetric %i\n",(int) extent); 
 	int qid = -1;
 	int num_qids = -1;
 	QUO_id (quo_context, &qid);
-	printf ("Allocation Mode: %i Rank: %i\n", allocation_mode, qid);
 	QUO_nqids (quo_context, &num_qids);
 	// TODO make sure everybody requested same size. 
 
@@ -160,9 +156,8 @@ void * QUOSpace::allocate( const size_t arg_alloc_size ) const
 	QUO_xpm_view_t r_view;
 	QUO_xpm_view_by_qid (xpm, 0, &r_view);
 
-	void *base_ptr = r_view.base;
+	char *base_ptr = (char*)r_view.base;
 
-	printf ("BasePtr: %p\n", base_ptr);
 	// Store my QUO context handle
 	{
 	  QUO_context *my_context_ptr =
@@ -208,11 +203,10 @@ void QUOSpace::deallocate( void * const arg_alloc_ptr
   
   QUO_xpm_context xpm = *xpm_ptr;
 
-    QUO_xpm_view_t r_view;
-    QUO_xpm_view_by_qid(xpm, 0, &r_view);
+  QUO_xpm_view_t r_view;
+  QUO_xpm_view_by_qid(xpm, 0, &r_view);
 
-    void* base_ptr = r_view.base;
-    printf("Dealloc BasePtr: %p\n",base_ptr);
+  void* base_ptr = r_view.base;
   QUO_xpm_free(xpm);
 }
 
@@ -285,6 +279,8 @@ SharedAllocationRecord( const Kokkos::QUOSpace & arg_space
           , arg_label.c_str()
           , SharedAllocationHeader::maximum_label_length
           );
+  RecordBase::m_alloc_ptr->m_label[SharedAllocationHeader::maximum_label_length - 1] = (char) 0;
+
 }
 
 //----------------------------------------------------------------------------

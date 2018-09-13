@@ -54,10 +54,10 @@ namespace Kokkos {
     typedef typename ViewType::array_layout t_layout;
 
     t_mem_space space;
+    int64_t size = ViewType::required_allocation_size(1,N0);
     space.impl_set_allocation_mode(Kokkos::Symmetric);
     space.impl_set_rank_list(rank_list);
-    space.impl_set_extent(N0*sizeof(typename ViewType::value_type));  
-    
+    space.impl_set_extent(size);
     t_layout layout(num_ranks,N0);
     return ViewType(Kokkos::view_alloc(std::string(label),space),num_ranks,N0);
   }
