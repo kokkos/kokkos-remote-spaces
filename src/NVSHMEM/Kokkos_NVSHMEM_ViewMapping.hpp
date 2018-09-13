@@ -23,6 +23,24 @@ int shmem_type_g(int* ptr, const int pe) {
 }
 
 KOKKOS_INLINE_FUNCTION
+void shmem_type_p(double3* ptr, const double3& val, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  shmem_double_put((double*)ptr,(double*)&val,3,pe);
+  #endif
+}
+
+KOKKOS_INLINE_FUNCTION
+double3 shmem_type_g(double3* ptr, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  double3 val;
+  shmem_double_get((double*)&val,(double*)ptr,3,pe);
+  return val;
+  #else
+  return double3();
+  #endif
+}
+
+KOKKOS_INLINE_FUNCTION
 void shmem_type_p(double* ptr, const double& val, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   shmem_double_p(ptr,val,pe);
