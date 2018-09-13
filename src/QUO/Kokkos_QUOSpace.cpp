@@ -43,7 +43,6 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_QUOSpace.hpp>
-#include <quo-xpm.h>
 
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
@@ -264,8 +263,11 @@ SharedAllocationRecord( const Kokkos::QUOSpace & arg_space
   // Pass through allocated [ SharedAllocationHeader , user_memory ]
   // Pass through deallocation function
   : SharedAllocationRecord< void , void >
-      ( & SharedAllocationRecord< Kokkos::QUOSpace , void >::s_root_record
-      , reinterpret_cast<SharedAllocationHeader*>( arg_space.allocate( sizeof(SharedAllocationHeader) + arg_alloc_size ) )
+      (
+#ifdef KOKKOS_DEBUG 
+       & SharedAllocationRecord< Kokkos::QUOSpace , void >::s_root_record ,
+#endif
+        reinterpret_cast<SharedAllocationHeader*>( arg_space.allocate( sizeof(SharedAllocationHeader) + arg_alloc_size ) )
       , sizeof(SharedAllocationHeader) + arg_alloc_size
       , arg_dealloc
       )

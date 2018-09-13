@@ -34,6 +34,7 @@ namespace Kokkos {
 
   #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
     typedef NVSHMEMSpace DefaultRemoteMemorySpace;
+  #else
     #ifdef KOKKOS_ENABLE_SHMEMSPACE
     typedef SHMEMSpace DefaultRemoteMemorySpace;
     #else
