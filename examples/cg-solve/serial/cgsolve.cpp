@@ -50,10 +50,8 @@ void axpby(ZType z, double alpha, XType x, double beta,  YType y) {
 
 
 template<class VType,class AType>
-void cg_solve(VType y, AType A, VType b) {
-  int max_iter = 200;
+int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
   int myproc = 0;
-  double tolerance = 1e-6;
   int num_iters = 0;
 
   double normr = 0;
@@ -69,7 +67,7 @@ void cg_solve(VType y, AType A, VType b) {
   VType Ap("r",x.extent(0));
   double one = 1.0;
   double zero = 0.0;
-
+  Kokkos::deep_copy(x,1.0);
   axpby(p, one, x, zero, x);
 
   spmv(Ap, A, p);
@@ -113,7 +111,7 @@ void cg_solve(VType y, AType A, VType b) {
     if (p_ap_dot < brkdown_tol) {
       if (p_ap_dot < 0 ) {
         std::cerr << "miniFE::cg_solve ERROR, numerical breakdown!"<<std::endl;
-        return;
+        return num_iters;
       }
       else brkdown_tol = 0.1 * p_ap_dot;
     }
@@ -123,25 +121,54 @@ void cg_solve(VType y, AType A, VType b) {
     axpby(r, one, r, -alpha, Ap);
     num_iters = k;
   }
-
+  return num_iters;
 }
 
 int main(int argc, char* argv[]) {
   Kokkos::initialize(argc,argv);
   {
-    int N = atoi(argv[1]);
-    CrsMatrix<Kokkos::HostSpace> A = Impl::generate_miniFE_matrix(N);
-    Kokkos::View<double*,Kokkos::HostSpace> x = Impl::generate_miniFE_vector(N);
-    Kokkos::View<double*,Kokkos::HostSpace> y("Y",x.extent(0));
-    /*for(int i=0; i<N*N*N; i++) {
-      printf("%i ",i);
-      for(int j=m.row_ptr(i);j<m.row_ptr(i+1);j++)
-        printf("(%i %li,%lf) ",j,m.col_idx(j),m.values(j));
-      printf(" = %lf\n",v(i));
-    }*/
+    int N = argc>1?atoi(argv[1]):100;
+    int max_iter = argc>2?atoi(argv[2]):200;
+    double tolerance = argc>3?atoi(argv[3]):1e-7;
+    CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
+    Kokkos::View<double*,Kokkos::HostSpace> h_x = Impl::generate_miniFE_vector(N);
 
+    Kokkos::View<int64_t*> row_ptr("row_ptr",h_A.row_ptr.extent(0));
+    Kokkos::View<int64_t*> col_idx("col_idx",h_A.col_idx.extent(0));
+    Kokkos::View<double*> values("values",h_A.values.extent(0));
+    CrsMatrix<Kokkos::DefaultExecutionSpace::memory_space> A(row_ptr,col_idx,values,h_A.num_cols());
+    Kokkos::View<double*> x("X",h_x.extent(0));
+    Kokkos::View<double*> y("Y",h_x.extent(0));
 
-    cg_solve(y,A,x);
+    Kokkos::deep_copy(x,h_x);
+    Kokkos::deep_copy(A.row_ptr,h_A.row_ptr);
+    Kokkos::deep_copy(A.col_idx,h_A.col_idx);
+    Kokkos::deep_copy(A.values,h_A.values);
+
+    Kokkos::Timer timer;
+    int num_iters = cg_solve(y,A,x,max_iter,tolerance);
+    double time = timer.seconds();
+
+    // Compute Bytes and Flops
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) + A.nnz() * sizeof(int64_t) + A.nnz() * sizeof(double) + 
+                        A.nnz() * sizeof(double) + A.num_rows() * sizeof(double);
+
+    double dot_bytes = x.extent(0) * sizeof(double) * 2;
+    double axpby_bytes = x.extent(0) * sizeof(double) * 3;
+
+    double spmv_flops = A.nnz() * 2;
+    double dot_flops = x.extent(0) * 2;
+    double axpby_flops = x.extent(0) * 3;
+
+    int spmv_calls = 1 + num_iters;
+    int dot_calls = num_iters;
+    int axpby_calls = 2 + num_iters * 3; 
+
+    printf("CGSolve for 3D (%i %i %i); %i iterations; %lf time\n",N,N,N,num_iters,time);
+    printf("Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i AXPBY: %i\n",
+       1e-9 * (spmv_flops*spmv_calls + dot_flops*dot_calls + axpby_flops*axpby_calls)/time ,
+       (1.0/1024/1024/1024) * (spmv_bytes*spmv_calls + dot_bytes*dot_calls + axpby_bytes*axpby_calls)/time ,
+       spmv_calls, dot_calls, axpby_calls);
 
   }
   Kokkos::finalize();

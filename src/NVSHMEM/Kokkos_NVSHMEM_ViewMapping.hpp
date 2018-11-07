@@ -323,7 +323,7 @@ struct NVSHMEMDataElement {
     return shmem_type_g(ptr,pe);
   }
 };
-
+#ifndef KOKKOS_ENABLE_NVSHMEM_PTR
 template<class T>
 struct NVSHMEMDataHandle {
   T* ptr;
@@ -354,14 +354,53 @@ struct NVSHMEMDataHandle<int> {
   }
 };
 
-
+#else
+template<class T>
+struct NVSHMEMDataHandle {
+  T* ptr;
+  T* remote_ptrs[16];
+  //T* remote_ptrs0;
+  //T* remote_ptrs1;
+  //T* remote_ptrs2;
+  //T* remote_ptrs3;
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataHandle():ptr(NULL){}
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataHandle(T* ptr_):ptr(ptr_){
+    for(int i=0;i<4;i++)
+      remote_ptrs[i] = (T*)shmem_ptr(ptr,i);    
+//    remote_ptrs0 = (T*)shmem_ptr(ptr,0);
+//    remote_ptrs1 = (T*)shmem_ptr(ptr,1);
+//    remote_ptrs2 = (T*)shmem_ptr(ptr,2);
+//    remote_ptrs3 = (T*)shmem_ptr(ptr,3);
+  }
+  template<typename iType>
+  KOKKOS_INLINE_FUNCTION
+  T& operator() (const int& pe, const iType& i) const {
+  /*  switch(pe) {
+      case 0: return remote_ptrs0[i];
+      case 1: return remote_ptrs1[i];
+      case 2: return remote_ptrs2[i];
+      case 3: return remote_ptrs3[i];
+    }
+    return remote_ptrs3[i];
+  */
+    //return ptr[i];
+    return remote_ptrs[pe][i];
+  }
+};
+#endif
 
 template< class Traits >
 struct ViewDataHandle<Traits,typename std::enable_if<std::is_same<typename Traits::specialize,NVSHMEMSpaceSpecializeTag>::value>::type> {
 
   typedef typename Traits::value_type   value_type  ;
   typedef NVSHMEMDataHandle<value_type> handle_type ;
+  #ifndef KOKKOS_ENABLE_NVSHMEM_PTR
   typedef NVSHMEMDataElement<value_type> return_type ;
+  #else
+  typedef value_type& return_type;
+  #endif
   typedef Kokkos::Impl::SharedAllocationTracker  track_type  ;
 
   KOKKOS_INLINE_FUNCTION

@@ -49,13 +49,7 @@
 #include <iosfwd>
 #include <typeinfo>
 
-#include <Kokkos_Core_fwd.hpp>
-#include <Kokkos_Concepts.hpp>
-#include <Kokkos_MemoryTraits.hpp>
-
-#include <impl/Kokkos_Traits.hpp>
-#include <impl/Kokkos_Error.hpp>
-#include <impl/Kokkos_SharedAlloc.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>

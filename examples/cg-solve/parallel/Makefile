@@ -7,11 +7,11 @@ CUDA_PATH=/usr/local/cuda
 
 KOKKOS_REMOTE_SPACES = NVSHMEM
 KOKKOS_DEVICES = "Cuda"
-KOKKOS_ARCH = "SNB,Volta70"
+KOKKOS_ARCH = "Volta70"
 
 QUO_PATH = ${HOME}/Kokkos/TPLS/libquo/build
 
-SRC = main.cpp
+SRC = cgsolve.cpp
 
 
 vpath %.cpp $(sort $(dir $(SRC)))
@@ -20,7 +20,8 @@ default: build
 	echo "Start Build"
 
 CXX = mpicxx
-CXXFLAGS = -O0 -g -I${CUDA_PATH}
+CXXFLAGS = -O3 -g -I${CUDA_PATH} -I./
+CXXFLAGS += -DKOKKOS_ENABLE_NVSHMEM_PTR
 LINK = ${CXX}
 LDFLAGS =  
 EXE = symmetric_view.host

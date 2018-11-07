@@ -1,4 +1,7 @@
+#include<Kokkos_RemoteSpaces.hpp>
 #include<GenerateMatrix.hpp>
+typedef Kokkos::DefaultRemoteMemorySpace remote_space;
+typedef Kokkos::View<double**, Kokkos::DefaultRemoteMemorySpace> remote_view_type;
 
 template<class YType,class AType,class XType>
 void spmv(YType y, AType A, XType x) {
@@ -24,7 +27,22 @@ void spmv(YType y, AType A, XType x) {
       double y_row;
       Kokkos::parallel_reduce(Kokkos::ThreadVectorRange(team,row_length),
         [=] (const int64_t i,double& sum) {
-        sum += A.values(i+row_start)*x(A.col_idx(i+row_start));
+        int64_t idx = A.col_idx(i+row_start);
+        //165GB/s
+        //int64_t divider = x.extent(1);
+        //sum += A.values(i+row_start)*x(idx/divider,idx%divider);
+        //760GB/s
+        //sum += A.values(i+row_start)*x(0,idx);
+        //165GB/s
+        //int64_t divider = x.extent(1);
+        //sum += A.values(i+row_start)*x(idx/divider,idx);
+        //786GB/s
+        //int64_t divider = x.extent(1);
+        //if(idx<divider)
+        //sum += A.values(i+row_start)*x(idx<divider?0:1,idx);
+        //574GB/s
+        int64_t divider = x.extent(1);
+        sum += A.values(i+row_start)*x(0,idx%divider);
       },y_row);
       y(row) = y_row;
     });
@@ -48,12 +66,28 @@ void axpby(ZType z, double alpha, XType x, double beta,  YType y) {
   });
 }
 
+template<class VType> 
+void print_vector(int label, VType v) {
+  printf("\n\nPRINT %s\n\n",v.label().c_str());
+  
+  int myRank,numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+  MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
+  MPI_Barrier(MPI_COMM_WORLD);
+  for(int r = 0; r<numRanks; r++) {
+    if(r==myRank)
+    Kokkos::parallel_for(v.extent(0), KOKKOS_LAMBDA(const int i) {
+      printf("%i %i %i %lf\n",label,myRank,i,v(i));
+    });
+    Kokkos::fence();
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  printf("\n\nPRINT DONE: %s\n\n",v.label().c_str());
+}
 
-template<class VType,class AType>
-void cg_solve(VType y, AType A, VType b) {
-  int max_iter = 200;
+template<class VType,class AType, class PType>
+int cg_solve(VType y, AType A, VType b, PType p_global,int max_iter, double tolerance) {
   int myproc = 0;
-  double tolerance = 1e-6;
   int num_iters = 0;
 
   double normr = 0;
@@ -64,24 +98,30 @@ void cg_solve(VType y, AType A, VType b) {
   if (print_freq>50) print_freq = 50;
   if (print_freq<1)  print_freq = 1;
   VType x("x",b.extent(0));
+  Kokkos::deep_copy(x,1.0);
   VType r("r",x.extent(0));
-  VType p("r",x.extent(0)); // Needs to be global
+  VType p(p_global.data(),x.extent(0)); // Needs to be global
   VType Ap("r",x.extent(0));
   double one = 1.0;
   double zero = 0.0;
 
   axpby(p, one, x, zero, x);
-
-  spmv(Ap, A, p);
+  remote_space().fence();
+  spmv(Ap, A, p_global);
+  remote_space().fence();
+  //print_vector(300000000,Ap);
+  //print_vector(400000000,p);
+  //print_vector(500000000,b);
 
   axpby(r, one, b, -one, Ap);
 
   rtrans = dot(r, r);
+  MPI_Allreduce(MPI_IN_PLACE,&rtrans,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
   normr = std::sqrt(rtrans);
 
   if (myproc == 0) {
-    std::cout << "Initial Residual = "<< normr << std::endl;
+    std::cout << "Initial Residual = "<< normr << "( " << myproc << " " << " " << x.extent(0) << " )" << std::endl;
   }
 
   double brkdown_tol = std::numeric_limits<double>::epsilon();
@@ -89,31 +129,37 @@ void cg_solve(VType y, AType A, VType b) {
   for(int64_t k=1; k <= max_iter && normr > tolerance; ++k) {
     if (k == 1) {
       axpby(p, one, r, zero, r);
+      remote_space().fence();
     }
     else {
       oldrtrans = rtrans;
       rtrans = dot(r, r);
+      MPI_Allreduce(MPI_IN_PLACE,&rtrans,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
       double beta = rtrans/oldrtrans;
       axpby(p, one, r, beta, p);
+      remote_space().fence();
     }
-
+//  print_vector(100000000+k,p);
     normr = std::sqrt(rtrans);
 
     if (myproc == 0 && (k%print_freq==0 || k==max_iter)) {
-      std::cout << "Iteration = "<<k<<"   Residual = "<<normr<<std::endl;
+      std::cout << "Iteration = "<<k<<"   Residual = "<<normr<< " " << rtrans/oldrtrans << std::endl;
     }
 
     double alpha = 0;
     double p_ap_dot = 0;
 
-    spmv(Ap, A, p);
+    spmv(Ap, A, p_global);
+//  print_vector(200000000+k,Ap);
 
     p_ap_dot = dot(Ap, p);
-
+    //p_ap_dot = dot(p, p);
+    MPI_Allreduce(MPI_IN_PLACE,&p_ap_dot,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    
     if (p_ap_dot < brkdown_tol) {
       if (p_ap_dot < 0 ) {
         std::cerr << "miniFE::cg_solve ERROR, numerical breakdown!"<<std::endl;
-        return;
+        return num_iters;
       }
       else brkdown_tol = 0.1 * p_ap_dot;
     }
@@ -123,26 +169,111 @@ void cg_solve(VType y, AType A, VType b) {
     axpby(r, one, r, -alpha, Ap);
     num_iters = k;
   }
-
+  return num_iters;
 }
 
 int main(int argc, char* argv[]) {
+
+  MPI_Init(&argc,&argv);
+  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_init();
+  #endif
+  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
+  shmemx_init_attr_t attr;
+  mpi_comm = MPI_COMM_WORLD;
+  attr.mpi_comm = &mpi_comm;
+  shmemx_init_attr (SHMEMX_INIT_WITH_MPI_COMM, &attr);
+  #endif
+
+  int myRank,numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+  MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
+
   Kokkos::initialize(argc,argv);
+
+
   {
-    int N = atoi(argv[1]);
-    CrsMatrix<Kokkos::HostSpace> A = Impl::generate_miniFE_matrix(N);
-    Kokkos::View<double*,Kokkos::HostSpace> x = Impl::generate_miniFE_vector(N);
-    Kokkos::View<double*,Kokkos::HostSpace> y("Y",x.extent(0));
-    /*for(int i=0; i<N*N*N; i++) {
+    int N = argc>1?atoi(argv[1]):100;
+    int max_iter = argc>2?atoi(argv[2]):200;
+    double tolerance = argc>3?atoi(argv[3]):1e-7;
+    CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
+    Kokkos::View<double*,Kokkos::HostSpace> h_x = Impl::generate_miniFE_vector(N);
+
+    Kokkos::View<int64_t*> row_ptr("row_ptr",h_A.row_ptr.extent(0));
+    Kokkos::View<int64_t*> col_idx("col_idx",h_A.col_idx.extent(0));
+    Kokkos::View<double*> values("values",h_A.values.extent(0));
+    CrsMatrix<Kokkos::DefaultExecutionSpace::memory_space> A(row_ptr,col_idx,values,h_A.num_cols());
+    Kokkos::View<double*> x("X",h_x.extent(0));
+    Kokkos::View<double*> y("Y",h_x.extent(0));
+
+    int* rank_list = new int[numRanks];
+    for(int r=0; r<numRanks; r++)
+      rank_list[r] = r; 
+    remote_view_type p =
+      Kokkos::allocate_symmetric_remote_view<remote_view_type>("MyView",numRanks,rank_list,(h_x.extent(0)+numRanks-1)/numRanks);
+    /*Kokkos::parallel_for(1, KOKKOS_LAMBDA(const int) {
+      a(0,0,0) = 0;
+    });*/
+
+    Kokkos::deep_copy(x,h_x);
+    Kokkos::deep_copy(A.row_ptr,h_A.row_ptr);
+    Kokkos::deep_copy(A.col_idx,h_A.col_idx);
+    Kokkos::deep_copy(A.values,h_A.values);
+
+    if(false)
+    for(int r=0; r<numRanks;r++) {
+    if(r==myRank) {
+    printf("Extents: %i %i %i\n",r,h_A.nnz(),h_x.extent(0));
+
+    for(int i=0; i<h_A.num_rows(); i++) {
       printf("%i ",i);
-      for(int j=m.row_ptr(i);j<m.row_ptr(i+1);j++)
-        printf("(%i %li,%lf) ",j,m.col_idx(j),m.values(j));
-      printf(" = %lf\n",v(i));
-    }*/
+      for(int j=h_A.row_ptr(i);j<h_A.row_ptr(i+1);j++)
+        //printf("(%i , %li , %lf) ",j,h_A.col_idx(j),h_A.values(j));
+        printf("(%i , %li) ",j,h_A.col_idx(j));
+      printf(" = %lf\n",h_x(i));
+    }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    }
 
+    int64_t start_row = myRank * p.extent(1);
+    int64_t end_row = (myRank + 1)* p.extent(1);
+    if(end_row > h_x.extent(0)) end_row = h_x.extent(0);
+    Kokkos::pair<int64_t,int64_t> bounds(start_row,end_row);
+    Kokkos::Timer timer;
+    
+    int num_iters = cg_solve(y,A,Kokkos::View<double*>(Kokkos::subview(x,bounds)),p,max_iter,tolerance);
+    double time = timer.seconds();
 
-    cg_solve(y,A,x);
+    // Compute Bytes and Flops
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) + A.nnz() * sizeof(int64_t) + A.nnz() * sizeof(double) + 
+                        A.nnz() * sizeof(double) + A.num_rows() * sizeof(double);
+
+    double dot_bytes = x.extent(0) * sizeof(double) * 2;
+    double axpby_bytes = x.extent(0) * sizeof(double) * 3;
+
+    double spmv_flops = A.nnz() * 2;
+    double dot_flops = x.extent(0) * 2;
+    double axpby_flops = x.extent(0) * 3;
+
+    int spmv_calls = 1 + num_iters;
+    int dot_calls = num_iters;
+    int axpby_calls = 2 + num_iters * 3; 
+
+    double GFlops = 1e-9 * (spmv_flops*spmv_calls + dot_flops*dot_calls + axpby_flops*axpby_calls)/time;
+    double GBs = (1.0/1024/1024/1024) * (spmv_bytes*spmv_calls + dot_bytes*dot_calls + axpby_bytes*axpby_calls)/time;
+
+    MPI_Allreduce(MPI_IN_PLACE,&GFlops,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE,&GBs,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    if(myRank == 0) {
+      printf("CGSolve for 3D (%i %i %i); %i iterations; %li nnz/rank; %lf time\n",N,N,N,num_iters,A.nnz(),time);
+      printf("Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i AXPBY: %i\n",
+        GFlops, GBs , spmv_calls, dot_calls, axpby_calls);
+    }
 
   }
   Kokkos::finalize();
+
+  MPI_Finalize();
 }

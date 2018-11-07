@@ -45,6 +45,7 @@
 #define GENERATE_MATRIX_HPP
 
 #include<Kokkos_Core.hpp>
+#include<mpi.h>
 
 template<class MemSpace>
 struct CrsMatrix {
@@ -150,8 +151,10 @@ namespace Impl {
         int64_t miniFE_b = 0;
         int64_t miniFE_c = 0;
 
-        const int myRank = 0;
-        const int numRanks = 1;
+        int myRank = 0;
+        int numRanks = 1;
+        MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+        MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
         const int rootRank = 0;
 
         int64_t nx1 = nx+1;
@@ -220,8 +223,10 @@ namespace Impl {
        Kokkos::View<double*, Kokkos::HostSpace>
        generate_miniFE_vector( int64_t nx) {
 
-         int my_rank = 0;
-         int num_ranks = 1;
+         int my_rank=0;
+         int num_ranks=1;
+         //MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
+         //MPI_Comm_size(MPI_COMM_WORLD,&num_ranks);
 
          const int64_t numRows = (nx+1)*(nx+1)*(nx+1);
 
