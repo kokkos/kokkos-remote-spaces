@@ -3,18 +3,22 @@
 typedef Kokkos::DefaultRemoteMemorySpace remote_space;
 typedef Kokkos::View<double**, Kokkos::DefaultRemoteMemorySpace> remote_view_type;
 
+int rows_per_team_set = 0;
+int team_size_set = 0;
+int vector_length = 8;
+
 template<class YType,class AType,class XType>
 void spmv(YType y, AType A, XType x) {
 #ifdef KOKKOS_ENABLE_CUDA
-  int rows_per_team = 64;
-  int team_size = 64;
+  int rows_per_team = rows_per_team_set?rows_per_team_set:16;
+  int team_size = team_size_set?team_size_set:16;
 #else
   int rows_per_team = 512;
   int team_size = 1;
 #endif
   int64_t nrows = y.extent(0);
   Kokkos::parallel_for("SPMV", Kokkos::TeamPolicy<>
-       ((nrows+rows_per_team-1)/rows_per_team,team_size,8),
+       ((nrows+rows_per_team-1)/rows_per_team,team_size,vector_length),
     KOKKOS_LAMBDA (const Kokkos::TeamPolicy<>::member_type& team) {
     const int64_t first_row = team.league_rank()*rows_per_team;
     const int64_t last_row = first_row+rows_per_team<nrows?
@@ -26,23 +30,9 @@ void spmv(YType y, AType A, XType x) {
 
       double y_row;
       Kokkos::parallel_reduce(Kokkos::ThreadVectorRange(team,row_length),
-        [=] (const int64_t i,double& sum) {
+        [&] (const int64_t i,double& sum) {
         int64_t idx = A.col_idx(i+row_start);
-        //165GB/s
-        //int64_t divider = x.extent(1);
-        //sum += A.values(i+row_start)*x(idx/divider,idx%divider);
-        //760GB/s
-        //sum += A.values(i+row_start)*x(0,idx);
-        //165GB/s
-        //int64_t divider = x.extent(1);
-        //sum += A.values(i+row_start)*x(idx/divider,idx);
-        //786GB/s
-        //int64_t divider = x.extent(1);
-        //if(idx<divider)
-        //sum += A.values(i+row_start)*x(idx<divider?0:1,idx);
-        //574GB/s
-        int64_t divider = x.extent(1);
-        sum += A.values(i+row_start)*x(0,idx%divider);
+        sum += A.values(i+row_start)*x(idx/MASK,idx%MASK);
       },y_row);
       y(row) = y_row;
     });
@@ -98,7 +88,6 @@ int cg_solve(VType y, AType A, VType b, PType p_global,int max_iter, double tole
   if (print_freq>50) print_freq = 50;
   if (print_freq<1)  print_freq = 1;
   VType x("x",b.extent(0));
-  Kokkos::deep_copy(x,1.0);
   VType r("r",x.extent(0));
   VType p(p_global.data(),x.extent(0)); // Needs to be global
   VType Ap("r",x.extent(0));
@@ -125,7 +114,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global,int max_iter, double tole
   }
 
   double brkdown_tol = std::numeric_limits<double>::epsilon();
-
+  Kokkos::Timer timer;
   for(int64_t k=1; k <= max_iter && normr > tolerance; ++k) {
     if (k == 1) {
       axpby(p, one, r, zero, r);
@@ -169,6 +158,8 @@ int cg_solve(VType y, AType A, VType b, PType p_global,int max_iter, double tole
     axpby(r, one, r, -alpha, Ap);
     num_iters = k;
   }
+  double time = timer.seconds();
+  printf("Seconds: %lf\n",time);
   return num_iters;
 }
 
@@ -197,11 +188,18 @@ int main(int argc, char* argv[]) {
     int N = argc>1?atoi(argv[1]):100;
     int max_iter = argc>2?atoi(argv[2]):200;
     double tolerance = argc>3?atoi(argv[3]):1e-7;
+    if(argc>4)
+      rows_per_team_set = atoi(argv[4]);
+    if(argc>5)
+      team_size_set = atoi(argv[5]);
+    if(argc>6)
+      vector_length = atoi(argv[6]);
+
     CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
     Kokkos::View<double*,Kokkos::HostSpace> h_x = Impl::generate_miniFE_vector(N);
 
     Kokkos::View<int64_t*> row_ptr("row_ptr",h_A.row_ptr.extent(0));
-    Kokkos::View<int64_t*> col_idx("col_idx",h_A.col_idx.extent(0));
+    Kokkos::View<LOCAL_ORDINAL*> col_idx("col_idx",h_A.col_idx.extent(0));
     Kokkos::View<double*> values("values",h_A.values.extent(0));
     CrsMatrix<Kokkos::DefaultExecutionSpace::memory_space> A(row_ptr,col_idx,values,h_A.num_cols());
     Kokkos::View<double*> x("X",h_x.extent(0));
@@ -247,7 +245,7 @@ int main(int argc, char* argv[]) {
     double time = timer.seconds();
 
     // Compute Bytes and Flops
-    double spmv_bytes = A.num_rows() * sizeof(int64_t) + A.nnz() * sizeof(int64_t) + A.nnz() * sizeof(double) + 
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) + A.nnz() * sizeof(LOCAL_ORDINAL) + A.nnz() * sizeof(double) + 
                         A.nnz() * sizeof(double) + A.num_rows() * sizeof(double);
 
     double dot_bytes = x.extent(0) * sizeof(double) * 2;

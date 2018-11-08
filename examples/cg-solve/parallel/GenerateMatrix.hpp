@@ -47,10 +47,14 @@
 #include<Kokkos_Core.hpp>
 #include<mpi.h>
 
+#define LOCAL_ORDINAL int
+
+//#define MASK 1099511627776
+#define MASK 268435456
 template<class MemSpace>
 struct CrsMatrix {
   Kokkos::View<int64_t*,MemSpace> row_ptr;
-  Kokkos::View<int64_t*,MemSpace> col_idx;
+  Kokkos::View<LOCAL_ORDINAL*,MemSpace> col_idx;
   Kokkos::View<double*,MemSpace> values;
 
   int64_t _num_cols;
@@ -62,7 +66,7 @@ struct CrsMatrix {
   int64_t nnz() const { return values.extent(0); }
 
   CrsMatrix(Kokkos::View<int64_t*,MemSpace> row_ptr_,
-            Kokkos::View<int64_t*,MemSpace> col_idx_,
+            Kokkos::View<LOCAL_ORDINAL*,MemSpace> col_idx_,
             Kokkos::View<double*,MemSpace> values_,
             int64_t num_cols_):row_ptr(row_ptr_),col_idx(col_idx_),values(values_),_num_cols(num_cols_) {}
 };
@@ -70,7 +74,8 @@ struct CrsMatrix {
 namespace Impl {
       template<class GO, class S>
       static void
-      miniFE_get_row (int64_t* rows, S* vals, GO* cols, int64_t startrow,
+      miniFE_get_row (int64_t* rows, S* vals, GO* cols, 
+                      int64_t rows_per_proc, int64_t startrow,
                       int64_t endrow, int64_t& row,int64_t o,int64_t nx1,
                       int64_t c1,int64_t c2, int64_t c3,int64_t val,
                       int64_t &miniFE_a,int64_t &miniFE_b,int64_t &miniFE_c)
@@ -90,7 +95,8 @@ namespace Impl {
            for(int64_t j=0;j<c2; j++)
              for(int64_t k=0;k<c3;k++) {
                int64_t m = i*c2*c3+j*c2+k;
-               cols[offset+m] = o+i*nx1*nx1+j*nx1+k;
+               int64_t col_idx = o+i*nx1*nx1+j*nx1+k;
+               cols[offset+m] = (col_idx/rows_per_proc)*MASK + col_idx%rows_per_proc;
                  if(val27) {
                     bool doa = ((miniFE_a>0)&&(miniFE_a<nx1-3)) || ((miniFE_a==0)&&(m/9>=1)) || ((miniFE_a==nx1-3)&&(m/9<2));
                     bool dob = ((miniFE_b>0)&&(miniFE_b<nx1-3)) || ((miniFE_b==0)&&((m%9)/3>=1)) || ((miniFE_b==nx1-3)&&((m%9)/3<2));
@@ -127,21 +133,32 @@ namespace Impl {
        }
 
        template<class GO, class S>
-       static void miniFE_get_block(int64_t* rows, S* vals, GO* cols,int64_t startrow, int64_t endrow,int64_t& row , int64_t o, int64_t nx1, int64_t c1, int64_t c2,int64_t val1,int64_t val2,int64_t val3,int64_t &miniFE_a,int64_t &miniFE_b,int64_t &miniFE_c) {
-         miniFE_get_row(rows,vals,cols,startrow,endrow,row,o,nx1,c1,c2,2,val1,miniFE_a,miniFE_b,miniFE_c);
+       static void miniFE_get_block(int64_t* rows, S* vals, GO* cols,int64_t rows_per_proc,
+                                    int64_t startrow, int64_t endrow,int64_t& row , 
+                                    int64_t o, int64_t nx1, int64_t c1, int64_t c2,
+                                    int64_t val1,int64_t val2,int64_t val3,
+                                    int64_t &miniFE_a,int64_t &miniFE_b,int64_t &miniFE_c) {
+         miniFE_get_row(rows,vals,cols,rows_per_proc,startrow,endrow,row,o,nx1,c1,c2,2,val1,miniFE_a,miniFE_b,miniFE_c);
          for(int64_t i=0;i<nx1-2;i++)
-           miniFE_get_row(rows,vals,cols,startrow,endrow,row,o++,nx1,c1,c2,3,val2,miniFE_a,miniFE_b,miniFE_c);
-         miniFE_get_row(rows,vals,cols,startrow,endrow,row,o++,nx1,c1,c2,2,val3,miniFE_a,miniFE_b,miniFE_c);
+           miniFE_get_row(rows,vals,cols,rows_per_proc,startrow,endrow,row,o++,nx1,c1,c2,3,val2,miniFE_a,miniFE_b,miniFE_c);
+         miniFE_get_row(rows,vals,cols,rows_per_proc,startrow,endrow,row,o++,nx1,c1,c2,2,val3,miniFE_a,miniFE_b,miniFE_c);
        }
 
        template<class GO, class S>
-       static void miniFE_get_superblock(int64_t* rows, S* vals, GO* cols,int64_t startrow, int64_t endrow,int64_t& row , int64_t o, int64_t nx1, int64_t c1,int64_t val1,int64_t val2,int64_t val3,int64_t &miniFE_a,int64_t &miniFE_b,int64_t &miniFE_c) {
-         miniFE_get_block(rows,vals,cols,startrow,endrow,row,o,nx1,c1,2,val1+0,val1+val2+1,val1+1,miniFE_a,miniFE_b,miniFE_c);
+       static void miniFE_get_superblock(int64_t* rows, S* vals, GO* cols,int64_t rows_per_proc, 
+                                         int64_t startrow, int64_t endrow,int64_t& row , 
+                                         int64_t o, int64_t nx1, int64_t c1,
+                                         int64_t val1,int64_t val2,int64_t val3,
+                                         int64_t &miniFE_a,int64_t &miniFE_b,int64_t &miniFE_c) {
+         miniFE_get_block(rows,vals,cols,rows_per_proc,startrow,endrow,row,
+                          o,nx1,c1,2,val1+0,val1+val2+1,val1+1,miniFE_a,miniFE_b,miniFE_c);
          for(int64_t i=0;i<nx1-2;i++){
-           miniFE_get_block(rows,vals,cols,startrow,endrow,row,o,nx1,c1,3,val1+val2+3,val1+val2+val2+val3+4,val1+val2+4,miniFE_a,miniFE_b,miniFE_c);
+           miniFE_get_block(rows,vals,cols,rows_per_proc,startrow,endrow,row,
+                          o,nx1,c1,3,val1+val2+3,val1+val2+val2+val3+4,val1+val2+4,miniFE_a,miniFE_b,miniFE_c);
            o+=nx1;
          }
-         miniFE_get_block(rows,vals,cols,startrow,endrow,row,o,nx1,c1,2,val1+2,val1+val2+3,val1+3,miniFE_a,miniFE_b,miniFE_c);
+         miniFE_get_block(rows,vals,cols,rows_per_proc,startrow,endrow,row,
+                          o,nx1,c1,2,val1+2,val1+val2+3,val1+3,miniFE_a,miniFE_b,miniFE_c);
        }
 
       static CrsMatrix<Kokkos::HostSpace>
@@ -173,25 +190,26 @@ namespace Impl {
         dims[1] = nrows;
         dims[2] = nnz;
 
-        int64_t startrow = (nrows/numRanks) * myRank;
-        int64_t endrow = startrow + (nrows/numRanks);
+        int64_t rows_per_proc = (nrows+numRanks-1)/numRanks;
+        int64_t startrow = rows_per_proc * myRank;
+        int64_t endrow = startrow + rows_per_proc;
         if(endrow > nrows) endrow = nrows;
 
         Kokkos::View<int64_t*,Kokkos::HostSpace> rowPtr("generate_MiniFE_Matrix::rowPtr",endrow-startrow+1);
-        Kokkos::View<int64_t*,Kokkos::HostSpace> colInd("generate_MiniFE_Matrix::colInd",(endrow-startrow)*27);
+        Kokkos::View<LOCAL_ORDINAL*,Kokkos::HostSpace> colInd("generate_MiniFE_Matrix::colInd",(endrow-startrow)*27);
         Kokkos::View<double*,Kokkos::HostSpace> values("generate_MiniFE_Matrix::values",(endrow-startrow)*27);
 
         int64_t* rows = &rowPtr[0];
         double* vals = &values[0];
-        int64_t* cols = &colInd[0];
+        LOCAL_ORDINAL* cols = &colInd[0];
 
 
         int64_t row = 0;
-        miniFE_get_superblock(rows,vals,cols,startrow,endrow,row,0,nx1,2,0,0,0,miniFE_a,miniFE_b,miniFE_c);
+        miniFE_get_superblock(rows,vals,cols,rows_per_proc,startrow,endrow,row,0,nx1,2,0,0,0,miniFE_a,miniFE_b,miniFE_c);
         for(int64_t i=0;i<nx1-2;i++){
-          miniFE_get_superblock(rows,vals,cols,startrow,endrow,row,i*nx1*nx1,nx1,3,4,2,1,miniFE_a,miniFE_b,miniFE_c);
+          miniFE_get_superblock(rows,vals,cols,rows_per_proc,startrow,endrow,row,i*nx1*nx1,nx1,3,4,2,1,miniFE_a,miniFE_b,miniFE_c);
         }
-        miniFE_get_superblock(rows,vals,cols,startrow,endrow,row,(nx1-2)*nx1*nx1,nx1,2,4,2,1,miniFE_a,miniFE_b,miniFE_c);
+        miniFE_get_superblock(rows,vals,cols,rows_per_proc,startrow,endrow,row,(nx1-2)*nx1*nx1,nx1,2,4,2,1,miniFE_a,miniFE_b,miniFE_c);
 
         CrsMatrix<Kokkos::HostSpace> matrix(rowPtr,colInd,values,nx);
         return matrix;

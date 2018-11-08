@@ -3,8 +3,8 @@
 template<class YType,class AType,class XType>
 void spmv(YType y, AType A, XType x) {
 #ifdef KOKKOS_ENABLE_CUDA
-  int rows_per_team = 64;
-  int team_size = 64;
+  int rows_per_team = 16;
+  int team_size = 16;
 #else
   int rows_per_team = 512;
   int team_size = 1;
@@ -48,6 +48,18 @@ void axpby(ZType z, double alpha, XType x, double beta,  YType y) {
   });
 }
 
+template<class VType> 
+void print_vector(int label, VType v) {
+  std::cout<<"\n\nPRINT " << v.label() << std::endl << std::endl;
+  
+  int myRank = 0;
+  Kokkos::parallel_for(v.extent(0), KOKKOS_LAMBDA(const int i) {
+    printf("%i %i %i %lf\n",label,myRank,i,v(i));
+  });
+  Kokkos::fence();
+  std::cout<<"\n\nPRINT DONE " << v.label() << std::endl << std::endl;
+}
+
 
 template<class VType,class AType>
 int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
@@ -67,11 +79,9 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
   VType Ap("r",x.extent(0));
   double one = 1.0;
   double zero = 0.0;
-  Kokkos::deep_copy(x,1.0);
   axpby(p, one, x, zero, x);
 
   spmv(Ap, A, p);
-
   axpby(r, one, b, -one, Ap);
 
   rtrans = dot(r, r);
