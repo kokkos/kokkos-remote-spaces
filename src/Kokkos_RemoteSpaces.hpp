@@ -1,6 +1,6 @@
 #ifndef KOKKOS_REMOTESPACES_HPP_
 #define KOKKOS_REMOTESPACES_HPP_
-
+#include<Kokkos_Core.hpp>
 #ifdef KOKKOS_ENABLE_QUOSPACE
 namespace Kokkos {
 class QUOSpace;

@@ -47,7 +47,7 @@
 #include<Kokkos_Core.hpp>
 #include<mpi.h>
 
-#define LOCAL_ORDINAL int
+#define LOCAL_ORDINAL int64_t
 
 //#define MASK 1099511627776
 #define MASK 268435456

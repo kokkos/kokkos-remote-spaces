@@ -1,7 +1,6 @@
 #include<type_traits>
 //----------------------------------------------------------------------------
 /** \brief  View mapping for non-specialized data type and standard layout */
-
 namespace Kokkos {
 namespace Impl {
 
