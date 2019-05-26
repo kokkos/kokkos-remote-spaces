@@ -2,7 +2,7 @@ KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_SRC_PATH = ${KOKKOS_PATH}
 KOKKOS_REMOTE_SPACES_PATH = ${HOME}/Kokkos/kokkos-remote-spaces
 KOKKOS_CUDA_OPTIONS=enable_lambda,rdc
-NVSHMEM_PATH=${HOME}/Software/nvshmem/0.1.0
+NVSHMEM_PATH=${NVSHMEM_HOME}
 #CUDA_PATH=/usr/local/cuda
 
 KOKKOS_REMOTE_SPACES = NVSHMEM
