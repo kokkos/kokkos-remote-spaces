@@ -82,7 +82,7 @@ void * SHMEMSpace::allocate( const size_t arg_alloc_size ) const
     if( allocation_mode == Kokkos::Symmetric ) {
       int num_pes = shmem_n_pes();
       int my_id = shmem_my_pe();
-    	ptr = shmalloc(arg_alloc_size);
+    	ptr = shmem_malloc(arg_alloc_size);
     } else {
       Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
     }
@@ -95,7 +95,7 @@ void SHMEMSpace::deallocate( void * const arg_alloc_ptr
     , const size_t
     ) const
 {
-  shfree(arg_alloc_ptr);
+  shmem_free(arg_alloc_ptr);
 }
 
 void SHMEMSpace::fence() {
