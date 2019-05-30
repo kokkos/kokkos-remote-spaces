@@ -58,6 +58,7 @@ void check_extents(ViewType view, int r) {
 
 template<class ViewType, class ... Args>
 void check_extents(ViewType view, int r, int N, Args...args) {
+  if(r!=0)
   ASSERT_EQ(view.extent(r),N);
   check_extents(view,r+1,args...);
 }
