@@ -17,8 +17,10 @@ void spmv(YType y, AType A, XType x) {
   int team_size = 1;
 #endif
   int64_t nrows = y.extent(0);
-  Kokkos::parallel_for("SPMV", Kokkos::TeamPolicy<>
+  auto policy = require(Kokkos::TeamPolicy<>
        ((nrows+rows_per_team-1)/rows_per_team,team_size,vector_length),
+    Kokkos::Experimental::WorkItemProperty::HintHeavyWeight);
+  Kokkos::parallel_for("SPMV", policy, 
     KOKKOS_LAMBDA (const Kokkos::TeamPolicy<>::member_type& team) {
     const int64_t first_row = team.league_rank()*rows_per_team;
     const int64_t last_row = first_row+rows_per_team<nrows?
