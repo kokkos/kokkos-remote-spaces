@@ -1,0 +1,31 @@
+################################################################################
+
+# random, useful? notes
+
+################################################################################
+
+cpusets - http://man7.org/linux/man-pages/man7/cpuset.7.html
+
+o Use hwloc_get_proc_membind_nodeset for mem stuff?
+o hwloc_cpuset_to_nodeset may be useful for NUMA things.
+o maybe use hwloc_distribute to distribute processes over the machine.
+
+################################################################################
+# git
+################################################################################
+# create tag
+git tag -a v0.1-rc0 -m '0.1 RC0'
+# push tags
+git push --tags
+# checkout tag
+git co [tag name]
+# delete tag
+git tag -d v1.1
+# delete remote tag
+push --delete origin 'TAGNAME'
+
+################################################################################
+# valgrind
+################################################################################
+valgrind --leak-check=full --trace-children=yes --track-origins=yes \
+--log-file=OUT.valgrind.%q{OMPI_COMM_WORLD_RANK}

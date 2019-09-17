@@ -1,0 +1,21 @@
+################################################################################
+
+How to Build QUO on a Cray XE6
+
+################################################################################
+
+########################################
+## Cray XE6
+########################################
+o Load appropriate programming environment (Intel, PGI, etc.).
+o export QUO_PREFIX=[prefix]
+
+o Build static libnuma and install to QUO's install prefix.
+o make CC=icc && make prefix=$QUO_PREFIX install # don't use the wrapper compiler cc
+o Rename install libdir to lib if lib64 (why do you do this install script?)
+o Delete bin dir (we don't need those utilities -- only need libs and includes).
+
+o Build QUO and link against the installed version of libnuma.
+  ./configure CC=cc FC=ftn \
+  LDFLAGS="-dynamic -Wl,-rpath=/usr/lib/alps -L${QUO_PREFIX}/lib" \
+  --prefix=$QUO_PREFIX --enable-static
