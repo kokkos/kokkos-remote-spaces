@@ -173,10 +173,10 @@ int main(int argc, char* argv[]) {
   #endif
   #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
-  shmemx_init_attr_t attr;
+  nvshmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
-  shmemx_init_attr (SHMEMX_INIT_WITH_MPI_COMM, &attr);
+  nvshmemx_init_attr (NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
   #endif
 
   int myRank,numRanks;

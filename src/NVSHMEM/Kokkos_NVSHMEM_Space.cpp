@@ -43,7 +43,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_NVSHMEM_Space.hpp>
-#include <shmem.h>
+#include <nvshmem.h>
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
@@ -80,9 +80,9 @@ void * NVSHMEMSpace::allocate( const size_t arg_alloc_size ) const
   if (arg_alloc_size) {
 
     if( allocation_mode == Kokkos::Symmetric ) {
-      int num_pes = shmem_n_pes();
-      int my_id = shmem_my_pe();
-    	ptr = shmem_malloc(arg_alloc_size);
+      int num_pes = nvshmem_n_pes();
+      int my_id = nvshmem_my_pe();
+    	ptr = nvshmem_malloc(arg_alloc_size);
     } else {
       Kokkos::abort("NVSHMEMSpace only supports symmetric allocation policy.");
     }
@@ -95,12 +95,12 @@ void NVSHMEMSpace::deallocate( void * const arg_alloc_ptr
     , const size_t
     ) const
 {
-  shmem_free(arg_alloc_ptr);
+  nvshmem_free(arg_alloc_ptr);
 }
 
 void NVSHMEMSpace::fence() {
   Kokkos::fence();
-  shmem_barrier_all();
+  nvshmem_barrier_all();
 }
 
 } // namespace Kokkos
