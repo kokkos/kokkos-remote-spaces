@@ -108,7 +108,7 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
     normr = std::sqrt(rtrans);
 
     if (myproc == 0 && (k%print_freq==0 || k==max_iter)) {
-      std::cout << "Iteration = "<<k<<"   Residual = "<<normr<<std::endl;
+     // std::cout << "Iteration = "<<k<<"   Residual = "<<normr<<std::endl;
     }
 
     double alpha = 0;
@@ -174,11 +174,17 @@ int main(int argc, char* argv[]) {
     int dot_calls = num_iters;
     int axpby_calls = 2 + num_iters * 3; 
 
-    printf("CGSolve for 3D (%i %i %i); %i iterations; %lf time\n",N,N,N,num_iters,time);
-    printf("Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i AXPBY: %i\n",
-       1e-9 * (spmv_flops*spmv_calls + dot_flops*dot_calls + axpby_flops*axpby_calls)/time ,
-       (1.0/1024/1024/1024) * (spmv_bytes*spmv_calls + dot_bytes*dot_calls + axpby_bytes*axpby_calls)/time ,
-       spmv_calls, dot_calls, axpby_calls);
+    printf("%i, %i, %lf,",
+      N,
+      num_iters,
+      time);
+
+    printf("%lf, %lf, %i, %i, %i\n",
+      1e-9 * (spmv_flops*spmv_calls + dot_flops*dot_calls + axpby_flops*axpby_calls)/time ,
+      (1.0/1024/1024/1024) * (spmv_bytes*spmv_calls + dot_bytes*dot_calls + axpby_bytes*axpby_calls)/time ,
+      spmv_calls,
+      dot_calls,
+      axpby_calls);
 
   }
   Kokkos::finalize();

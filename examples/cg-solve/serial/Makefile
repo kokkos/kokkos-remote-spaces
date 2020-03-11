@@ -2,7 +2,7 @@ KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 SRC = $(wildcard *.cpp)
 KOKKOS_DEVICES=OpenMP
 KOKKOS_CUDA_OPTIONS=enable_lambda
-KOKKOS_ARCH = SNB,Volta70
+KOKKOS_ARCH = Power9,Volta70
 
 default: build
 	echo "Start Build"

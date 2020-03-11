@@ -58,7 +58,7 @@ namespace Kokkos {
     space.impl_set_allocation_mode(Kokkos::Symmetric);
     space.impl_set_rank_list(rank_list);
     space.impl_set_extent(size);
-    t_layout layout(num_ranks,args...);
+    //t_layout layout(num_ranks,args...);
     return ViewType(Kokkos::view_alloc(std::string(label),space),num_ranks,args...);
   }
 }

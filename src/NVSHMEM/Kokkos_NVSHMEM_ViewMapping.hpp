@@ -323,6 +323,8 @@ struct NVSHMEMDataElement {
     return shmem_type_g(ptr,pe);
   }
 };
+
+
 #ifndef KOKKOS_ENABLE_NVSHMEM_PTR
 template<class T>
 struct NVSHMEMDataHandle {
