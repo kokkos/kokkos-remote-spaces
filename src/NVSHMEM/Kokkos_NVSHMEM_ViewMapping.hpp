@@ -1,4 +1,4 @@
-#include<nvshmem.h>
+#include<shmem.h>
 #include<type_traits>
 //----------------------------------------------------------------------------
 /** \brief  View mapping for non-specialized data type and standard layout */
@@ -9,14 +9,14 @@ namespace Impl {
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(int* ptr, const int& val, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_int_p(ptr,val,pe);
+  shmem_int_p(ptr,val,pe);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 int shmem_type_g(int* ptr, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_int_g(ptr,pe);
+  return shmem_int_g(ptr,pe);
   #else
   return 0;
   #endif
@@ -25,7 +25,7 @@ int shmem_type_g(int* ptr, const int pe) {
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(double3* ptr, const double3& val, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_double_put((double*)ptr,(double*)&val,3,pe);
+  shmem_double_put((double*)ptr,(double*)&val,3,pe);
   #endif
 }
 
@@ -33,7 +33,7 @@ KOKKOS_INLINE_FUNCTION
 double3 shmem_type_g(double3* ptr, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   double3 val;
-  nvshmem_double_get((double*)&val,(double*)ptr,3,pe);
+  shmem_double_get((double*)&val,(double*)ptr,3,pe);
   return val;
   #else
   return double3();
@@ -43,14 +43,14 @@ double3 shmem_type_g(double3* ptr, const int pe) {
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(double* ptr, const double& val, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_double_p(ptr,val,pe);
+  shmem_double_p(ptr,val,pe);
   #endif
 }
 
 KOKKOS_INLINE_FUNCTION
 double shmem_type_g(double* ptr, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_double_g(ptr,pe);
+  return shmem_double_g(ptr,pe);
   #else
   return 0;
   #endif
@@ -367,7 +367,7 @@ struct NVSHMEMDataHandle {
   
   NVSHMEMDataHandle(T* ptr_):ptr(ptr_){
     for(int i=0;i<16;i++) {
-      remote_ptrs[i] = (T*)nvshmem_ptr(ptr,i);   
+      remote_ptrs[i] = (T*)shmem_ptr(ptr,i);   
     } 
   }
   template<typename iType>
@@ -641,7 +641,7 @@ public:
         layout.dimension[i] = arg_layout.dimension[i];
       layout.dimension[0] = 1;
       m_offset = offset_type( padding(), layout );
-      m_num_pes = nvshmem_n_pes();
+      m_num_pes = shmem_n_pes();
     }
 
   /**\brief  Assign data */
@@ -681,7 +681,7 @@ public:
       layout.dimension[i] = arg_layout.dimension[i];
     layout.dimension[0] = 1;
     m_offset = offset_type( padding(), layout );
-    m_num_pes = nvshmem_n_pes();
+    m_num_pes = shmem_n_pes();
 
     const size_t alloc_size =
       ( m_offset.span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);

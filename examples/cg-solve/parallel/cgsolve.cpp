@@ -277,11 +277,20 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
+  shmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
+<<<<<<< HEAD
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
+=======
+  shmemx_init_attr (SHMEMX_INIT_WITH_MPI_COMM, &attr);
+  #endif
+
+  int myRank,numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+  MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
+>>>>>>> parent of 1a9bbfe... Use nv prefixed API for NVSHMEM
 
   int myRank, numRanks;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);

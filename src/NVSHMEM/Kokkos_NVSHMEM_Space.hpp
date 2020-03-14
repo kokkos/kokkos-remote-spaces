@@ -53,8 +53,8 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
-#include <nvshmem.h>
-#include <nvshmemx.h>
+#include <shmem.h>
+#include <shmemx.h>
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
