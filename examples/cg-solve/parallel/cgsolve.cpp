@@ -9,7 +9,9 @@ typedef Kokkos::View<double **, Kokkos::DefaultRemoteMemorySpace>
 #ifdef stats
 #define HISTO_BINS 64
 typedef Kokkos::View<int64_t [HISTO_BINS], Kokkos::HostSpace> G_histo_host;
-typedef Kokkos::View<int64_t [HISTO_BINS]> G_histo;
+typedef Kokkos::View<int64_t [HISTO_BINS], Kokkos::CudaSpace> G_histo;
+G_histo_host g_histo_host("G_HISTO_HOST");
+G_histo g_histo("G_HISTO");
 //typedef Kokkos::View<int64_t [HISTO_BINS], Kokkos::MemoryUnmanaged> Tl_histo;
 #endif
 
@@ -17,9 +19,10 @@ int rows_per_team_set = 0;
 int team_size_set = 0;
 int vector_length = 8;
 
+bool IS_FIRST_RUN = true;
 
 template <class YType, class AType, class XType>
-void mv(YType y, AType A, XType x, int rank) {
+void mv_trace(YType y, AType A, XType x) {
 #ifdef KOKKOS_ENABLE_CUDA
   int rows_per_team = rows_per_team_set ? rows_per_team_set : 16;
   int team_size = team_size_set ? team_size_set : 16;
@@ -33,13 +36,65 @@ void mv(YType y, AType A, XType x, int rank) {
                                    team_size, vector_length),
               Kokkos::Experimental::WorkItemProperty::HintHeavyWeight);
 
-  #ifdef stats
-  G_histo_host g_histo_host("G_HISTO_HOST");
-  G_histo g_histo("G_HISTO");
   for(int i = 0; i< HISTO_BINS; ++i)
         g_histo_host(i) = 0;
   Kokkos::deep_copy(g_histo, g_histo_host);
-  #endif
+
+  Kokkos::parallel_for(
+      "mv", policy,
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+        const int64_t first_row = team.league_rank() * rows_per_team;
+        const int64_t last_row = first_row + rows_per_team < nrows
+                                     ? first_row + rows_per_team
+                                     : nrows;
+          
+
+        int64_t tl_histo[HISTO_BINS] = {0};   
+
+        Kokkos::parallel_for(
+            Kokkos::TeamThreadRange(team, first_row, last_row),
+            [&](const int64_t row) {
+              const int64_t row_start = A.row_ptr(row);
+              const int64_t row_length = A.row_ptr(row + 1) - row_start;
+
+              double y_row;
+
+              Kokkos::parallel_reduce(
+                  Kokkos::ThreadVectorRange(team, row_length),
+                  [&](const int64_t i, double &sum) {
+                    int64_t idx = A.col_idx(i + row_start);
+                    int64_t pid = idx/MASK;
+                    int64_t offset = idx % MASK;
+                    sum += A.values(i + row_start) * x(pid, offset);
+                    #ifdef stats
+                    if(IS_FIRST_RUN)
+                      tl_histo[pid]++;
+                    #endif
+                  },
+                  y_row);
+                
+              y(row) = y_row;         
+            });
+            for(int i = 0; i< HISTO_BINS; ++i)
+            //Kokkos::atomic_add(&g_histo(i), tl_histo[i]);
+            g_histo(i)+=tl_histo[i];    
+      });
+}
+
+template <class YType, class AType, class XType>
+void mv(YType y, AType A, XType x) {
+#ifdef KOKKOS_ENABLE_CUDA
+  int rows_per_team = rows_per_team_set ? rows_per_team_set : 16;
+  int team_size = team_size_set ? team_size_set : 16;
+#else
+  int rows_per_team = 512;
+  int team_size = 1;
+#endif
+  int64_t nrows = y.extent(0);
+  auto policy =
+      require(Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
+                                   team_size, vector_length),
+              Kokkos::Experimental::WorkItemProperty::HintHeavyWeight);
 
   Kokkos::parallel_for(
       "mv", policy,
@@ -57,10 +112,6 @@ void mv(YType y, AType A, XType x, int rank) {
 
               double y_row;
 
-              #ifdef stats
-              int64_t tl_histo[HISTO_BINS] = {0};
-              #endif
-
               Kokkos::parallel_reduce(
                   Kokkos::ThreadVectorRange(team, row_length),
                   [&](const int64_t i, double &sum) {
@@ -68,20 +119,10 @@ void mv(YType y, AType A, XType x, int rank) {
                     int64_t pid = idx/MASK;
                     int64_t offset = idx % MASK;
                     sum += A.values(i + row_start) * x(pid, offset);
-                    #ifdef stats
-                      tl_histo[pid]++;
-                    #endif
                   },
                   y_row);
                 
-              y(row) = y_row;
-
-              #ifdef stats
-              for(int i = 0; i< HISTO_BINS; ++i)
-                Kokkos::atomic_add(&g_histo(i), tl_histo[i]);
-                //g_histo(i)+=tl_histo[i];
-              #endif
-              
+              y(row) = y_row;            
             });
       });
 }
@@ -124,7 +165,7 @@ template <class VType> void print_vector(int label, VType v) {
 
 template <class VType, class AType, class PType>
 int cg_solve(VType y, AType A, VType b, PType p_global, const int max_iter,
-             const double tolerance, const int rank) {
+             const double tolerance, const int rank, const int num_ranks) {
   int myproc = 0;
   int num_iters = 0;
 
@@ -148,12 +189,24 @@ int cg_solve(VType y, AType A, VType b, PType p_global, const int max_iter,
 
   axpby(p, one, x, zero, x);
   remote_space().fence();
-  mv(Ap, A, p_global, rank);
+  if (IS_FIRST_RUN) mv_trace(Ap, A, p_global);
+  else mv(Ap, A, p_global);
+  IS_FIRST_RUN = false;
   remote_space().fence();
   axpby(r, one, b, -one, Ap);
 
   rtrans = dot(r, r);
   MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  #ifdef stats
+  if(IS_FIRST_RUN)
+  if(rank == 0)
+    Kokkos::deep_copy(g_histo_host, g_histo);
+    //MPI_Reduce(MPI_IN_PLACE, g_histo_host.data(), 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);   
+    printf("[%i]", rank);
+    for(int i = 0; i< num_ranks; ++i)
+      printf("%i ", g_histo_host);
+  #endif
 
   normr = std::sqrt(rtrans);
 
@@ -192,7 +245,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, const int max_iter,
     double alpha = 0;
     double p_ap_dot = 0;
 
-    mv(Ap, A, p_global, rank);
+    mv(Ap, A, p_global);
 
     p_ap_dot = dot(Ap, p);
     MPI_Allreduce(MPI_IN_PLACE, &p_ap_dot, 1, MPI_DOUBLE, MPI_SUM,
@@ -299,7 +352,7 @@ int main(int argc, char *argv[]) {
 
     int num_iters =
         cg_solve(y, A, Kokkos::View<double *>(Kokkos::subview(x, bounds)), p,
-                 max_iter, tolerance, myRank);
+                 max_iter, tolerance, myRank, numRanks);
     double time = timer.seconds();
 
     // Compute Bytes and Flops
