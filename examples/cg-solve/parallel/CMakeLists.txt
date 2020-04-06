@@ -1,0 +1,6 @@
+add_executable(cgsolve cgsolve.cpp)
+target_link_libraries(cgsolve PRIVATE Kokkos::kokkosremote)
+target_include_directories(cgsolve PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(cgsolve PRIVATE KOKKOS_ENABLE_NVSHMEM_PTR)
+target_compile_options(cgsolve PRIVATE -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored)
+target_include_directories(cgsolve PRIVATE /usr/tce/packages/cuda/cuda-10.1.243)
