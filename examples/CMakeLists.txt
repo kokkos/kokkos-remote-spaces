@@ -1,1 +1,7 @@
 add_subdirectory(cg-solve)
+if(Kokkos_ENABLE_QUO)
+add_subdirectory(monolithic_view)
+endif()
+if(Kokkos_ENABLE_SHMEM)
+add_subdirectory(symmetric_view)
+endif()
