@@ -47,7 +47,7 @@ int main(int argc, char** argv)
   bool help = false;
   bool keepParsingOpts = true;
   optind = 1;
-  while ((ch = getopt_long(argc, argv, "hzl:T:n:L:r:f:", gopt, NULL)) != -1 && keepParsingOpts){
+  while ((ch = getopt_long(argc, argv, "hl:T:n:L:r:f:", gopt, NULL)) != -1 && keepParsingOpts){
       switch (ch) {
       case 0:
         //this set an input flag
@@ -77,6 +77,16 @@ int main(int argc, char** argv)
   }
 
   if (help){
+    std::cout << "poisson <optional_args>"
+	"\n-n/--nx:               The dimension of the problem (total array size is nXnX)"
+        "\n-l/--lambda:           The possion parameter controlling the gap between misses."
+	"\n                       Lambda is the average gap"
+        "\n-T/--team_size:        The team size (default: 32)"
+        "\n-L/--league_size:      The league size (default: array_size/team_size)"
+        "\n-r/--repeat: 	  The number of iterations (default: 5)" 
+        "\n-f/--fraction:         The number of warps doing only local accesses for every"
+	"\n			  remote warp. The remote fraction is 1/f"
+    ;
     return 0;
   }
 
@@ -169,21 +179,6 @@ int main(int argc, char** argv)
         indices[miss_idx] = MISS_INDEX;
       }
     });
-
-    /**
-    auto h_misses = Kokkos::create_mirror_view(misses);
-    auto h_gaps = Kokkos::create_mirror_view(gaps);
-    auto h_indices = Kokkos::create_mirror_view(indices);
-    Kokkos::deep_copy(h_misses, misses);
-    Kokkos::deep_copy(h_gaps, gaps);
-    Kokkos::deep_copy(h_indices, indices);
-    for (int i=0; i < 20; ++i){
-      printf("G[%d][%d] = %llu\n", rank, i, h_gaps(i));
-      printf("M[%d][%d] = %llu\n", rank, i, h_misses(i));
-      printf("I[%d][%d] = %llu -> %d\n",
-        rank, i, h_indices(h_misses(i)), h_indices(h_misses(i)) == MISS_INDEX);
-    }
-    */
 
     Kokkos::fence();
 
