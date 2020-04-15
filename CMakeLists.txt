@@ -1,13 +1,14 @@
 cmake_minimum_required (VERSION 3.12)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
-
 project(KokkosRemote 
   LANGUAGES CXX 
   VERSION 0.1.0)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
+
 find_package(Kokkos REQUIRED)
-#make sure kokkos has RDC and lambda support
+
+# Make sure kokkos has RDC and lambda support
 kokkos_check(
   OPTIONS CUDA_LAMBDA CUDA_RELOCATABLE_DEVICE_CODE
   DEVICES CUDA
@@ -23,7 +24,7 @@ set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
 set(PRIVATE_DEPS)
 
-#we always need MPI
+# We always need MPI
 find_package(MPI REQUIRED)
 list(APPEND SOURCE_DIRS MPI)
 add_library(MPI INTERFACE)

@@ -42,31 +42,44 @@
 //@HEADER
 */
 
-#include <gtest/gtest.h>
-#include <cstdlib>
+#ifndef TEST_REFCOUNTING_HPP_
+#define TEST_REFCOUNTING_HPP_
 
-#include <Kokkos_Core.hpp>
-#include <Kokkos_RemoteSpaces.hpp>
-#include <mpi.h>
+#include<gtest/gtest.h>
+#include<mpi.h>
+#include<Kokkos_Core.hpp>
+#include<Kokkos_RemoteSpaces.hpp>
 
-int main( int argc, char *argv[] ) {
-  MPI_Init(&argc,&argv);
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
-  #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-  #endif
+template<class DataType, class RemoteSpace, class ... Args>
+void test_reference_counting (Args...args) {
+  
+  int my_rank, num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&num_ranks);
 
-  Kokkos::initialize(argc,argv);
-  ::testing::InitGoogleTest( &argc, argv );
+  Kokkos::View<DataType*, RemoteSpace> outer("outer", num_ranks * 10 * sizeof(DataType)); 
+  {
+    Kokkos::View<DataType*, RemoteSpace> inner = outer;
+    ASSERT_EQ(inner.use_count(),2);
+  }
+  ASSERT_EQ(outer.use_count(),1);
+  
+  for(int i = my_rank * 10; i < (my_rank+1) * 10; i++)
+    outer(i,0) = (my_rank + 1) * 100 + i%10;
 
-  int result =  RUN_ALL_TESTS();
+  RemoteSpace().fence();
+
+  for(int i=0; i<num_ranks * 10; i++) {
+     ASSERT_EQ(outer(i,0),(i/10 + 1)*100 + i%10);
+  }
+  
   Kokkos::finalize();
   MPI_Finalize();
-  return result;
 }
+
+TEST( TEST_CATEGORY, test_reference_counting ) {
+  test_reference_counting<int*,Kokkos::DefaultRemoteMemorySpace> ();
+  test_reference_counting<double*,Kokkos::DefaultRemoteMemorySpace> ();
+}
+
+#endif /* TEST_REFCOUNTING_HPP_ */

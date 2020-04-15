@@ -6,6 +6,23 @@
 namespace Kokkos {
 namespace Impl {
 #ifndef KOKKOS_ENABLE_SHMEM
+
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(int64_t * ptr, const int& val, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_long_p(ptr,val,pe);
+  #endif
+}
+
+KOKKOS_INLINE_FUNCTION
+int shmem_type_g(int64_t* ptr, const int pe) {
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_long_g(ptr,pe);
+  #else
+  return 0;
+  #endif
+}
+
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(int* ptr, const int& val, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
@@ -402,9 +419,7 @@ struct ViewDataHandle<Traits,typename std::enable_if<std::is_same<typename Trait
     return handle_type( arg_data_ptr + offset );
   }
 };
-
 }
-
 
 template< class ... Prop >
 struct ViewTraits< void, NVSHMEMSpace , Prop ... >

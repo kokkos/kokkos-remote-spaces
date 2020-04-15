@@ -237,9 +237,12 @@ SharedAllocationRecord< Kokkos::QUOSpace , void >::
 {
   #if defined(KOKKOS_ENABLE_PROFILING)
   if(Kokkos::Profiling::profileLibraryLoaded()) {
+   SharedAllocationHeader header ;
+    Kokkos::Impl::DeepCopy<CudaSpace,HostSpace>( & header , RecordBase::m_alloc_ptr , sizeof(SharedAllocationHeader) );
+
     Kokkos::Profiling::deallocateData(
-      Kokkos::Profiling::SpaceHandle(Kokkos::QUOSpace::name()),RecordBase::m_alloc_ptr->m_label,
-      data(),size());
+      Kokkos::Profiling::make_space_handle(Kokkos::QUOSpace::name()),
+      RecordBase::m_alloc_ptr->m_label, data(), size());
   }
   #endif
 
@@ -269,7 +272,7 @@ SharedAllocationRecord( const Kokkos::QUOSpace & arg_space
 {
 #if defined(KOKKOS_ENABLE_PROFILING)
   if(Kokkos::Profiling::profileLibraryLoaded()) {
-    Kokkos::Profiling::allocateData(Kokkos::Profiling::SpaceHandle(arg_space.name()),arg_label,data(),arg_alloc_size);
+    Kokkos::Profiling::allocateData(Kokkos::Profiling::make_space_handle(arg_space.name()),arg_label,data(),arg_alloc_size);
    }
 #endif
   // Fill in the Header information

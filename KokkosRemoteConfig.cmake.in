@@ -9,3 +9,4 @@ find_dependency(Kokkos REQUIRED)
 GET_FILENAME_COMPONENT(Kokkos_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 INCLUDE("${Kokkos_CMAKE_DIR}/KokkosRemoteTargets.cmake")
 UNSET(Kokkos_CMAKE_DIR)
+

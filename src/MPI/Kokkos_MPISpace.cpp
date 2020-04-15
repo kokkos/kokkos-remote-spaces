@@ -45,7 +45,6 @@
 #include <Kokkos_MPISpace.hpp>
 #include <mpi.h>
 
-
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 
@@ -106,7 +105,6 @@ void MPISpace::deallocate( void * const
     , const size_t
     ) const
 {
-  int assert = 0;
   int last_valid = -1;
   for(last_valid=0; last_valid<mpi_windows.size(); last_valid++)
     if(mpi_windows[last_valid]==MPI_WIN_NULL) break;
@@ -123,10 +121,10 @@ void MPISpace::deallocate( void * const
 }
 
 void MPISpace::fence() {
-  int assert = 0;
+  
   for(int i = 0; i<mpi_windows.size(); i++)
     if(mpi_windows[i]!=MPI_WIN_NULL)
-      MPI_Win_fence(assert,mpi_windows[i]);
+      MPI_Win_fence(MPI_MODE_NOPRECEDE,mpi_windows[i]);
     else
       break;
 }
@@ -154,9 +152,12 @@ SharedAllocationRecord< Kokkos::MPISpace , void >::
 {
   #if defined(KOKKOS_ENABLE_PROFILING)
   if(Kokkos::Profiling::profileLibraryLoaded()) {
+    SharedAllocationHeader header ;
+    Kokkos::Impl::DeepCopy<CudaSpace,HostSpace>( & header , RecordBase::m_alloc_ptr , sizeof(SharedAllocationHeader) );
+
     Kokkos::Profiling::deallocateData(
-      Kokkos::Profiling::SpaceHandle(Kokkos::MPISpace::name()),RecordBase::m_alloc_ptr->m_label,
-      data(),size());
+      Kokkos::Profiling::make_space_handle(Kokkos::MPISpace::name()),
+      RecordBase::m_alloc_ptr->m_label, data(), size());
   }
   #endif
   m_space.current_win = win;
@@ -186,7 +187,7 @@ SharedAllocationRecord( const Kokkos::MPISpace & arg_space
 {
 #if defined(KOKKOS_ENABLE_PROFILING)
   if(Kokkos::Profiling::profileLibraryLoaded()) {
-    Kokkos::Profiling::allocateData(Kokkos::Profiling::SpaceHandle(arg_space.name()),arg_label,data(),arg_alloc_size);
+    Kokkos::Profiling::allocateData(Kokkos::Profiling::make_space_handle(arg_space.name()),arg_label,data(),arg_alloc_size);
    }
 #endif
   // Fill in the Header information

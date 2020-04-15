@@ -1,4 +1,4 @@
-Kokkos Remote Spaces
+== Kokkos Remote Spaces ==
 
-Remote Memory Spaces for shared memory operations accross processes.
+Remote Remote Spaces adds support for remote memory address spaces in the Kokkos parallel programming model.
 
