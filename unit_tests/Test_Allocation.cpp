@@ -45,47 +45,52 @@
 #ifndef TEST_ALLOCATION_HPP_
 #define TEST_ALLOCATION_HPP_
 
-#include<gtest/gtest.h>
-#include<mpi.h>
-#include<Kokkos_Core.hpp>
-#include<Kokkos_RemoteSpaces.hpp>
+#include <Kokkos_Core.hpp>
+#include <Kokkos_RemoteSpaces.hpp>
+#include <gtest/gtest.h>
+#include <mpi.h>
 
-template<class ViewType>
-void check_extents(ViewType view, int r) {
+template <class ViewType> void check_extents(ViewType view, int r) {
   int rank = view.rank;
-  ASSERT_EQ(r,rank);
+  ASSERT_EQ(r, rank);
 }
 
-template<class ViewType, class ... Args>
-void check_extents(ViewType view, int r, int N, Args...args) {
-  if(r!=0)
-  ASSERT_EQ(view.extent(r),N);
-  check_extents(view,r+1,args...);
+template <class ViewType, class... Args>
+void check_extents(ViewType view, int r, int N, Args... args) {
+  if (r != 0)
+    ASSERT_EQ(view.extent(r), N);
+  check_extents(view, r + 1, args...);
 }
 
-template<class DataType, class RemoteSpace, class ... Args>
-void test_allocate_symmetric_remote_view_by_rank (Args...args) {
+template <class DataType, class RemoteSpace, class... Args>
+void test_allocate_symmetric_remote_view_by_rank(Args... args) {
 
   int myRank, numRanks;
-  MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-  MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-  int* rank_list = new int[numRanks];
-  for(int r=0; r<0; r++)
+  int *rank_list = new int[numRanks];
+  for (int r = 0; r < 0; r++)
     rank_list[r] = r;
   typedef Kokkos::View<DataType, RemoteSpace> remote_view_type;
   remote_view_type view =
-    Kokkos::allocate_symmetric_remote_view<remote_view_type>("MyView",numRanks,rank_list,args...);
-  check_extents(view,0,numRanks,args...);
+      Kokkos::allocate_symmetric_remote_view<remote_view_type>(
+          "MyView", numRanks, rank_list, args...);
+  check_extents(view, 0, numRanks, args...);
 }
 
-TEST( TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank ) {
-  test_allocate_symmetric_remote_view_by_rank<double*,Kokkos::DefaultRemoteMemorySpace> ();
-  test_allocate_symmetric_remote_view_by_rank<double**,Kokkos::DefaultRemoteMemorySpace> (113);
-  test_allocate_symmetric_remote_view_by_rank<double***,Kokkos::DefaultRemoteMemorySpace> (7,5);
-  test_allocate_symmetric_remote_view_by_rank<double****,Kokkos::DefaultRemoteMemorySpace> (9,10,7);
+TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
+  test_allocate_symmetric_remote_view_by_rank<
+      double *, Kokkos::DefaultRemoteMemorySpace>();
+  test_allocate_symmetric_remote_view_by_rank<double **,
+                                              Kokkos::DefaultRemoteMemorySpace>(
+      113);
+  test_allocate_symmetric_remote_view_by_rank<double ***,
+                                              Kokkos::DefaultRemoteMemorySpace>(
+      7, 5);
+  test_allocate_symmetric_remote_view_by_rank<double ****,
+                                              Kokkos::DefaultRemoteMemorySpace>(
+      9, 10, 7);
 }
-
-
 
 #endif /* TEST_ALLOCATION_HPP_ */

@@ -42,30 +42,30 @@
 //@HEADER
 */
 
-#include <gtest/gtest.h>
 #include <cstdlib>
+#include <gtest/gtest.h>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 
-int main( int argc, char *argv[] ) {
-  MPI_Init(&argc,&argv);
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+int main(int argc, char *argv[]) {
+  MPI_Init(&argc, &argv);
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init();
-  #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-MPI_Comm mpi_comm;
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-  #endif
+#endif
 
-  Kokkos::initialize(argc,argv);
-  ::testing::InitGoogleTest( &argc, argv );
+  Kokkos::initialize(argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
 
-  int result =  RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
   Kokkos::finalize();
   MPI_Finalize();
   return result;

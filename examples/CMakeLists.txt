@@ -1,2 +1,2 @@
-add_subdirectory(cg)
-add_subdirectory(benchmarks)
+add_subdirectory(cgsolve)
+add_subdirectory(randomaccess)

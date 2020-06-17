@@ -8,25 +8,16 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
 
 find_package(Kokkos REQUIRED)
 
-# Make sure kokkos has RDC and lambda support
-kokkos_check(
-  OPTIONS CUDA_LAMBDA CUDA_RELOCATABLE_DEVICE_CODE
-  DEVICES CUDA
-)
-
-option(Kokkos_ENABLE_NVSHMEM "Whether to build with NVSHMEM" OFF)
-option(Kokkos_ENABLE_SHMEM   "Whether to build with SHMEM" OFF)
-option(Kokkos_ENABLE_QUO     "Whether to build with QUO" OFF)
-option(Kokkos_ENABLE_MPI     "Whether to build with MPI" OFF)
+option(Kokkos_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
+option(Kokkos_ENABLE_SHMEMSPACE   "Whether to build with SHMEMS space" OFF)
+option(Kokkos_ENABLE_MPISPACE     "Whether to build with MPI space" OFF)
 option(Kokkos_ENABLE_TESTS   "Whether to enable tests" OFF)
 
 set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
 set(PRIVATE_DEPS)
 
-# We always need MPI
 find_package(MPI REQUIRED)
-list(APPEND SOURCE_DIRS MPI)
 add_library(MPI INTERFACE)
 list(APPEND MPI_CXX_LINK_FLAGS ${MPI_CXX_LIBRARIES})
 set_target_properties(MPI PROPERTIES
@@ -35,20 +26,27 @@ set_target_properties(MPI PROPERTIES
   INTERFACE_LINK_LIBRARIES "${MPI_CXX_LINK_FLAGS}"
 )
 list(APPEND PUBLIC_DEPS MPI)
-if (Kokkos_ENABLE_NVSHMEM)
+
+if (Kokkos_ENABLE_NVSHMEMSPACE)
+# Make sure kokkos has RDC and lambda support
+  kokkos_check(
+    OPTIONS CUDA_LAMBDA CUDA_RELOCATABLE_DEVICE_CODE
+    DEVICES CUDA
+  )
   find_package(NVSHMEM REQUIRED)
-  list(APPEND SOURCE_DIRS NVSHMEM)
-  list(APPEND PUBLIC_DEPS NVSHMEM)
+  list(APPEND SOURCE_DIRS NVSHMEMSPACE)
+  list(APPEND PUBLIC_DEPS NVSHMEMSPACE)
 endif()
-if (Kokkos_ENABLE_SHMEM)
+if (Kokkos_ENABLE_SHMEMSPACE)
   find_package(SHMEM REQUIRED)
-  list(APPEND SOURCE_DIRS SHMEM)
-  list(APPEND PUBLIC_DEPS SHMEM)
+  list(APPEND SOURCE_DIRS SHMEMSPACE)
+  list(APPEND PUBLIC_DEPS SHMEMSPACE)
 endif()
-if (Kokkos_ENABLE_QUO)
-  find_package(QUO REQUIRED)
-  list(APPEND SOURCE_DIRS QUO)
-  list(APPEND PUBLIC_DEPS QUO)
+if (Kokkos_ENABLE_MPISPACE)
+  add_library(MPISPACE INTERFACE)
+  add_library(Kokkos::MPISPACE ALIAS MPISPACE)
+  list(APPEND SOURCE_DIRS MPISPACE)
+  list(APPEND PUBLIC_DEPS MPISPACE)
 endif()
 
 if (NOT SOURCE_DIRS)
@@ -71,7 +69,7 @@ target_link_libraries(kokkosremote PUBLIC Kokkos::kokkos)
 
 foreach(DIR ${SOURCE_DIRS})
   target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/${DIR}>)
-  target_compile_definitions(kokkosremote PUBLIC KOKKOS_ENABLE_${DIR}SPACE)
+  target_compile_definitions(kokkosremote PUBLIC KOKKOS_ENABLE_${DIR})
 endforeach()
 target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
 target_include_directories(kokkosremote PUBLIC $<INSTALL_INTERFACE:include>)
