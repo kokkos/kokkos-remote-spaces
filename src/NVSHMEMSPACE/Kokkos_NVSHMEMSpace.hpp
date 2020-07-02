@@ -111,11 +111,9 @@ public:
 
   void fence();
 
-  int* rank_list;
   int allocation_mode; 
   int64_t extent; 
 
-  void impl_set_rank_list(int* const);
   void impl_set_allocation_mode(const int);
   void impl_set_extent(int64_t N);
 

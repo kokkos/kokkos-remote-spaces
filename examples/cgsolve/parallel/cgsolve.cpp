@@ -256,13 +256,9 @@ int main(int argc, char *argv[]) {
     Kokkos::deep_copy(A.col_idx, h_A.col_idx);
     Kokkos::deep_copy(A.values, h_A.values);
 
-    int *rank_list = new int[numRanks];
-    for (int r = 0; r < numRanks; r++)
-      rank_list[r] = r;
-
     // Remote View
     RemoteView_t p = Kokkos::Experimental::allocate_symmetric_remote_view<RemoteView_t>(
-        "MyView", (h_x.extent(0) + numRanks - 1) / numRanks);
+        "MyView", numRanks, (h_x.extent(0) + numRanks - 1) / numRanks);
 
     int64_t start_row = myRank * p.extent(1);
     int64_t end_row = (myRank + 1) * p.extent(1);
@@ -309,7 +305,7 @@ int main(int argc, char *argv[]) {
     MPI_Allreduce(MPI_IN_PLACE, &GBs, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if (myRank == 0) {
-      printf("%i, %i, %0.1f, %lf, ", N, num_iters, total_flops, time, GFlops,
+      printf("%i, %i, %0.1f, %lf\n", N, num_iters, total_flops, time, GFlops,
              GBs);
     }
   }
@@ -318,7 +314,8 @@ int main(int argc, char *argv[]) {
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_finalize();
   #endif
-  #ifdef KOKKOS_ENABLE_MPISPACE
-  MPI_Finalize();
+  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  nvshmem_finalize();
   #endif
+  MPI_Finalize();
 }

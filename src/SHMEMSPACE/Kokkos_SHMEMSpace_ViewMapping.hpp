@@ -414,8 +414,6 @@ struct SHMEMDataHandle<int> {
   }
 };
 
-
-
 template< class Traits >
 struct ViewDataHandle<Traits,typename std::enable_if<std::is_same<typename Traits::specialize,SHMEMSpaceSpecializeTag>::value>::type> {
 
@@ -440,7 +438,6 @@ struct ViewDataHandle<Traits,typename std::enable_if<std::is_same<typename Trait
 };
 
 }
-
 
 template< class ... Prop >
 struct ViewTraits< void, Experimental::SHMEMSpace , Prop ... >
@@ -574,8 +571,10 @@ public:
   template< typename I0 , typename I1 >
   KOKKOS_FORCEINLINE_FUNCTION
   const reference_type reference( const I0 & i0 , const I1 & i1 ) const
-    { const reference_type element = m_handle( i0, m_offset(0,i1) );
-       return element; }
+    { 
+      const reference_type element = m_handle( i0, m_offset(0,i1) );
+       return element; 
+    }
 
   template< typename I0 , typename I1 , typename I2 >
   KOKKOS_FORCEINLINE_FUNCTION
@@ -628,11 +627,17 @@ public:
 
   /** \brief  Span, in bytes, of the referenced memory */
   KOKKOS_INLINE_FUNCTION constexpr size_t memory_span() const
-    {
-      return ( m_offset.span() * sizeof(typename Traits::value_type) + MemorySpanMask ) & ~size_t(MemorySpanMask);
-    }
+  {
+    return ( m_offset.span() * sizeof(typename Traits::value_type) + MemorySpanMask ) & ~size_t(MemorySpanMask);
+  }
 
-  //----------------------------------------
+  /**\brief  Span, in bytes, of the required memory */
+  KOKKOS_INLINE_FUNCTION
+  static constexpr size_t memory_span( typename Traits::array_layout const & arg_layout )
+  {
+    typedef std::integral_constant< unsigned , 0 >  padding ;
+    return ( offset_type( padding(), arg_layout ).span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);
+  }
 
   KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
   KOKKOS_INLINE_FUNCTION ViewMapping() : m_handle(), m_offset(), m_num_pes(0) {}
@@ -646,15 +651,6 @@ public:
   KOKKOS_INLINE_FUNCTION ViewMapping & operator = ( ViewMapping && rhs )
     { m_handle = rhs.m_handle ; m_offset = rhs.m_offset ; m_num_pes = rhs.m_num_pes; return *this ; }
 
-  //----------------------------------------
-
-  /**\brief  Span, in bytes, of the required memory */
-  KOKKOS_INLINE_FUNCTION
-  static constexpr size_t memory_span( typename Traits::array_layout const & arg_layout )
-    {
-      typedef std::integral_constant< unsigned , 0 >  padding ;
-      return ( offset_type( padding(), arg_layout ).span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);
-    }
 
   /**\brief  Wrap a span of memory */
   template< class ... P >
@@ -709,16 +705,14 @@ public:
       , alloc_prop::allow_padding ? sizeof(value_type) : 0
       > padding ;
 
-
     typename Traits::array_layout layout;
     for(int i=0; i<Traits::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
     layout.dimension[0] = 1;
-    m_offset = offset_type( padding(), layout );
-    m_num_pes = shmem_n_pes();
+      m_offset = offset_type( padding(), layout );
+      m_num_pes = shmem_n_pes();
 
-    const size_t alloc_size =
-      ( m_offset.span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);
+    const size_t alloc_size = memory_span();
 
     // Create shared memory tracking record with allocate memory from the memory space
     record_type * const record =
@@ -752,5 +746,6 @@ public:
   }
 };
 
-}
-}
+} // namespace Impl
+
+} // namespace Kokkos

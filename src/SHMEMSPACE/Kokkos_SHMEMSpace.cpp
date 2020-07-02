@@ -76,9 +76,6 @@ void * SHMEMSpace::allocate( const size_t arg_alloc_size ) const
   static_assert( Kokkos::Impl::is_integral_power_of_two( Kokkos::Impl::MEMORY_ALIGNMENT )
                , "Memory alignment must be power of two" );
 
-  constexpr uintptr_t alignment = Kokkos::Impl::MEMORY_ALIGNMENT ;
-  constexpr uintptr_t alignment_mask = alignment - 1 ;
-
   void * ptr = 0 ;
   if (arg_alloc_size) {
 

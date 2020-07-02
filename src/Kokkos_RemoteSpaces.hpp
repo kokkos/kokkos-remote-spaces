@@ -92,13 +92,13 @@ enum { Monolithic, Symmetric, Asymmetric };
 #endif
 
 template<typename ViewType, class ... Args>
-ViewType allocate_symmetric_remote_view(const char* const label, Args ... args) {
+ViewType allocate_symmetric_remote_view(const char* const label, const int num_ranks, Args ... args) {
   typedef typename ViewType::memory_space t_mem_space;
   t_mem_space space;
   int64_t size = ViewType::required_allocation_size(1,args...);
   space.impl_set_allocation_mode(Symmetric);
   space.impl_set_extent(size);
-  return ViewType(Kokkos::view_alloc(std::string(label),space),args...);
+  return ViewType(Kokkos::view_alloc(std::string(label),space), num_ranks, args...);
 }
 
 } // namespace Expermental

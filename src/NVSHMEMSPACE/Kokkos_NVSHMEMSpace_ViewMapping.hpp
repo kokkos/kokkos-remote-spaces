@@ -92,6 +92,7 @@ void shmem_type_p(double3* ptr, const double3& val, const int pe) {
 KOKKOS_INLINE_FUNCTION
 double3 shmem_type_g(double3* ptr, const int pe) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  
   double3 val;
   nvshmem_double_get((double*)&val,(double*)ptr,3,pe);
   return val;
@@ -109,7 +110,7 @@ void shmem_type_p(double* ptr, const double& val, const int pe) {
 
 KOKKOS_INLINE_FUNCTION
 double shmem_type_g(double* ptr, const int pe) {
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA 
   return nvshmem_double_g(ptr,pe);
   #else
   return 0;
@@ -124,7 +125,9 @@ struct NVSHMEMDataElement {
   typedef T non_const_value_type;
   T* ptr;
   int pe;
+
   NVSHMEMDataElement(T* ptr_, int pe_, int i_ ):ptr(ptr_+i_),pe(pe_) {}
+
   KOKKOS_INLINE_FUNCTION
   const_value_type operator = (const_value_type& val) const {
     shmem_type_p(ptr,val,pe);
@@ -737,9 +740,8 @@ public:
     layout.dimension[0] = 1;
     m_offset = offset_type( padding(), layout );
     m_num_pes = nvshmem_n_pes();
-
-    const size_t alloc_size =
-      ( m_offset.span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);
+  
+    const size_t alloc_size = memory_span();
 
     // Create shared memory tracking record with allocate memory from the memory space
     record_type * const record =

@@ -58,12 +58,8 @@ namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-NVSHMEMSpace::NVSHMEMSpace():rank_list(NULL),allocation_mode(Symmetric)
+NVSHMEMSpace::NVSHMEMSpace():allocation_mode(Symmetric)
 {}
-
-void NVSHMEMSpace::impl_set_rank_list(int* const rank_list_) {
-  rank_list = rank_list_;
-}
 
 void NVSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;
@@ -83,14 +79,15 @@ void * NVSHMEMSpace::allocate( const size_t arg_alloc_size ) const
 
   constexpr uintptr_t alignment = Kokkos::Impl::MEMORY_ALIGNMENT ;
   constexpr uintptr_t alignment_mask = alignment - 1 ;
-  MPI_Barrier(MPI_COMM_WORLD);
+  
+  //MPI_Barrier(MPI_COMM_WORLD);
+  
   void * ptr = 0 ;
   if (arg_alloc_size) {
-
     if( allocation_mode == Kokkos::Experimental::Symmetric ) {
       int num_pes = nvshmem_n_pes();
       int my_id = nvshmem_my_pe();
-    	ptr = nvshmem_malloc(arg_alloc_size);
+    	ptr = nvshmem_malloc(arg_alloc_size);      
     } else {
       Kokkos::abort("NVSHMEMSpace only supports symmetric allocation policy.");
     }
@@ -137,6 +134,8 @@ SharedAllocationRecord< Kokkos::Experimental::NVSHMEMSpace , void >::
   #if defined(KOKKOS_ENABLE_PROFILING)
   if(Kokkos::Profiling::profileLibraryLoaded()) {
    
+
+   printf("LIBRARY LOADED\n");
     SharedAllocationHeader header;
     Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
     &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));

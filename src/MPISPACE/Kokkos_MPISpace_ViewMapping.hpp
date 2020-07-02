@@ -71,7 +71,6 @@ KOKKOS_INLINE_FUNCTION
 void mpi_type_p(const double val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   MPI_Win_lock(MPI_LOCK_SHARED,0,pe,win);
-  printf("XXX\n");
   MPI_Put(&val, 1, MPI_DOUBLE, pe, sizeof(SharedAllocationHeader)+offset*sizeof(double), 1, MPI_DOUBLE, win);
   MPI_Win_unlock(0,win);
   #endif
@@ -98,7 +97,6 @@ void mpi_type_p(const int64_t val, int offset, const int pe, const MPI_Win& win)
 KOKKOS_INLINE_FUNCTION
 void mpi_type_g(int64_t& val, int offset, const int pe, const MPI_Win& win) {
   #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  printf("BUH HU\n");
   MPI_Win_lock(MPI_LOCK_SHARED,0,pe,win);
   MPI_Get(&val, 1, MPI_INT64_T, pe, sizeof(SharedAllocationHeader)+offset*sizeof(int64_t), 1, MPI_INT64_T, win);
   MPI_Win_unlock(0,win);
@@ -699,8 +697,8 @@ public:
     layout.dimension[0] = 1;
     m_offset = offset_type( padding(), layout );
     MPI_Comm_size(MPI_COMM_WORLD, &m_num_pes);
-    const size_t alloc_size =
-      ( m_offset.span() * MemorySpanSize + MemorySpanMask ) & ~size_t(MemorySpanMask);
+    
+    const size_t alloc_size = memory_span();
 
     // Create shared memory tracking record with allocate memory from the memory space
     record_type * const record =
