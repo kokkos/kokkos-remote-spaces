@@ -69,27 +69,24 @@ void test_allocate_symmetric_remote_view_by_rank(Args... args) {
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-  int *rank_list = new int[numRanks];
-  for (int r = 0; r < 0; r++)
-    rank_list[r] = r;
   typedef Kokkos::View<DataType, RemoteSpace> remote_view_type;
   remote_view_type view =
-      Kokkos::allocate_symmetric_remote_view<remote_view_type>(
-          "MyView", numRanks, rank_list, args...);
+      Kokkos::Experimental::allocate_symmetric_remote_view<remote_view_type>(
+          "MyView", numRanks);
   check_extents(view, 0, numRanks, args...);
 }
 
 TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
   test_allocate_symmetric_remote_view_by_rank<
-      double *, Kokkos::DefaultRemoteMemorySpace>();
+      double *, Kokkos::Experimental::DefaultRemoteMemorySpace>();
   test_allocate_symmetric_remote_view_by_rank<double **,
-                                              Kokkos::DefaultRemoteMemorySpace>(
+                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
       113);
   test_allocate_symmetric_remote_view_by_rank<double ***,
-                                              Kokkos::DefaultRemoteMemorySpace>(
+                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
       7, 5);
   test_allocate_symmetric_remote_view_by_rank<double ****,
-                                              Kokkos::DefaultRemoteMemorySpace>(
+                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
       9, 10, 7);
 }
 

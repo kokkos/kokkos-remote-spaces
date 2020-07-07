@@ -64,9 +64,15 @@ int main(int argc, char *argv[]) {
 
   Kokkos::initialize(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
-
   int result = RUN_ALL_TESTS();
+
   Kokkos::finalize();
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_finalize();
+  #endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  nvshmem_finalize();
+#endif
   MPI_Finalize();
   return result;
 }

@@ -73,14 +73,11 @@ void test_reference_counting(Args... args) {
   for (int i = 0; i < num_ranks * 10; i++) {
     ASSERT_EQ(outer(i, 0), (i / 10 + 1) * 100 + i % 10);
   }
-
-  Kokkos::finalize();
-  MPI_Finalize();
 }
 
 TEST(TEST_CATEGORY, test_reference_counting) {
-  test_reference_counting<int *, Kokkos::DefaultRemoteMemorySpace>();
-  test_reference_counting<double *, Kokkos::DefaultRemoteMemorySpace>();
+  test_reference_counting<int *, Kokkos::Experimental::DefaultRemoteMemorySpace>();
+  test_reference_counting<double *, Kokkos::Experimental::DefaultRemoteMemorySpace>();
 }
 
 #endif /* TEST_REFCOUNTING_HPP_ */

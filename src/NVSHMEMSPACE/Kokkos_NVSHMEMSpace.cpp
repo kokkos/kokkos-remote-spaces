@@ -95,7 +95,6 @@ void * NVSHMEMSpace::allocate( const size_t arg_alloc_size ) const
   return ptr;
 }
 
-
 void NVSHMEMSpace::deallocate( void * const arg_alloc_ptr
     , const size_t
     ) const

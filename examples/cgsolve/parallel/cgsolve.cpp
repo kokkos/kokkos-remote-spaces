@@ -318,4 +318,6 @@ int main(int argc, char *argv[]) {
   nvshmem_finalize();
   #endif
   MPI_Finalize();
+  
+  return 0;
 }

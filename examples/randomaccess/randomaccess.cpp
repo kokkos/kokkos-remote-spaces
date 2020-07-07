@@ -162,7 +162,6 @@ int main(int argc, char *argv[]) {
 
       RemoteSpace().fence();
       time = timer.seconds();
- 
 
       // Increase iteration space to reach a 2 second execution time.
       if (next_iters * 4 > std::numeric_limits<ORDINAL_T>::max() / 4)
@@ -188,5 +187,6 @@ int main(int argc, char *argv[]) {
   nvshmem_finalize();
   #endif
   MPI_Finalize();
-  
+
+  return 0;
 }

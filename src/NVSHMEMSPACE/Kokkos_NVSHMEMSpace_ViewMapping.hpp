@@ -420,14 +420,15 @@ struct NVSHMEMDataHandle<int> {
 template<class T>
 struct NVSHMEMDataHandle {
   T* ptr;
-  T* remote_ptrs[16];
+  T** remote_ptrs = new T*[nvshmem_n_pes()];
   
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle():ptr(NULL){}
   
   NVSHMEMDataHandle(T* ptr_):ptr(ptr_){
-    for(int i=0;i<16;i++) {
+    for(int i=0;i<nvshmem_n_pes();i++) {
       remote_ptrs[i] = (T*)nvshmem_ptr(ptr,i);   
+      printf("PTR:%p,%p\n",remote_ptrs[i], ptr);
     } 
   }
   template<typename iType>

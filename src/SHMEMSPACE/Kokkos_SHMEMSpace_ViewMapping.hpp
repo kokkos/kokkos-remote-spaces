@@ -733,10 +733,10 @@ public:
     if ( alloc_size && alloc_prop::initialize ) {
       // Assume destruction is only required when construction is requested.
       // The ViewValueFunctor has both value construction and destruction operators.
-      /*record->m_destroy = functor_type( ( (Kokkos::Impl::ViewCtorProp<void,execution_space> const &) arg_prop).value
+      record->m_destroy = functor_type( ( (Kokkos::Impl::ViewCtorProp<void,execution_space> const &) arg_prop).value
                                       , (value_type *) m_handle
                                       , m_offset.span()
-                                      );*/
+                                      );
 
       // Construct values
       record->m_destroy.construct_shared_allocation();
