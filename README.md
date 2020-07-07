@@ -36,7 +36,7 @@ using RemoteSpace = DefaultRemoteMemorySpace;
 using RemoteView = Kokkos::View<int **, RemoteSpace>;
 ...
 RemoteView v = allocate_symmetric_remote_view<RemoteView>(
-        "RemoteView", size_per_rank);
+        "RemoteView", num_ranks, size_per_rank);
 v(pe,index)+=1;
 printf("%i\n", v(pe,index));
 ```
