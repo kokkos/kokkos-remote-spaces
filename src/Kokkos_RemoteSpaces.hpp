@@ -43,15 +43,15 @@
 */
 #ifndef KOKKOS_REMOTESPACES_HPP_
 #define KOKKOS_REMOTESPACES_HPP_
-#include<Kokkos_Core.hpp>
+#include <Kokkos_Core.hpp>
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
 class SHMEMSpace;
 }
-}
-#include<Kokkos_SHMEMSpace.hpp>
+} // namespace Kokkos
+#include <Kokkos_SHMEMSpace.hpp>
 #endif
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
@@ -59,8 +59,8 @@ namespace Kokkos {
 namespace Experimental {
 class NVSHMEMSpace;
 }
-}
-#include<Kokkos_NVSHMEMSpace.hpp>
+} // namespace Kokkos
+#include <Kokkos_NVSHMEMSpace.hpp>
 #endif
 
 #ifdef KOKKOS_ENABLE_MPISPACE
@@ -68,8 +68,8 @@ namespace Kokkos {
 namespace Experimental {
 class MPISpace;
 }
-}
-#include<Kokkos_MPISpace.hpp>
+} // namespace Kokkos
+#include <Kokkos_MPISpace.hpp>
 #endif
 
 namespace Kokkos {
@@ -78,30 +78,32 @@ namespace Experimental {
 enum { Monolithic, Symmetric, Asymmetric };
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  typedef NVSHMEMSpace DefaultRemoteMemorySpace;
+typedef NVSHMEMSpace DefaultRemoteMemorySpace;
 #else
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  typedef SHMEMSpace DefaultRemoteMemorySpace;
-  #else
-    #ifdef KOKKOS_ENABLE_MPISPACE
-    typedef MPISpace DefaultRemoteMemorySpace;
-    #else
-      error "At least one remote space must be selected."
-    #endif
-  #endif
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+typedef SHMEMSpace DefaultRemoteMemorySpace;
+#else
+#ifdef KOKKOS_ENABLE_MPISPACE
+typedef MPISpace DefaultRemoteMemorySpace;
+#else
+error "At least one remote space must be selected."
+#endif
+#endif
 #endif
 
-template<typename ViewType, class ... Args>
-ViewType allocate_symmetric_remote_view(const char* const label, const int num_ranks, Args ... args) {
+template <typename ViewType, class... Args>
+ViewType allocate_symmetric_remote_view(const char *const label,
+                                        const int num_ranks, Args... args) {
   typedef typename ViewType::memory_space t_mem_space;
   t_mem_space space;
-  int64_t size = ViewType::required_allocation_size(1,args...);
+  int64_t size = ViewType::required_allocation_size(1, args...);
   space.impl_set_allocation_mode(Symmetric);
   space.impl_set_extent(size);
-  return ViewType(Kokkos::view_alloc(std::string(label),space), num_ranks, args...);
+  return ViewType(Kokkos::view_alloc(std::string(label), space), num_ranks,
+                  args...);
 }
 
-} // namespace Expermental
+} // namespace Experimental
 
 } // namespace Kokkos
 

@@ -50,7 +50,10 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-template <class ViewType> void check_extents(ViewType view, int r) {
+using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
+
+template <class ViewType> 
+void check_extents(ViewType view, int r) {
   int rank = view.rank;
   ASSERT_EQ(r, rank);
 }
@@ -69,25 +72,24 @@ void test_allocate_symmetric_remote_view_by_rank(Args... args) {
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-  typedef Kokkos::View<DataType, RemoteSpace> remote_view_type;
-  remote_view_type view =
-      Kokkos::Experimental::allocate_symmetric_remote_view<remote_view_type>(
-          "MyView", numRanks);
+  using RemoteViewType = Kokkos::View<DataType, RemoteSpace>;
+
+  //Check explicit mem space allocation through API call
+  RemoteViewType view =
+      Kokkos::Experimental::allocate_symmetric_remote_view<RemoteViewType>(
+          "MyRemoteView", numRanks, args...);
+  check_extents(view, 0, numRanks, args...);
+
+  //Check implicit memort space allocaton 
+  view = RemoteViewType("MyRemoteView", numRanks, args...);
   check_extents(view, 0, numRanks, args...);
 }
 
 TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
-  test_allocate_symmetric_remote_view_by_rank<
-      double *, Kokkos::Experimental::DefaultRemoteMemorySpace>();
-  test_allocate_symmetric_remote_view_by_rank<double **,
-                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
-      113);
-  test_allocate_symmetric_remote_view_by_rank<double ***,
-                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
-      7, 5);
-  test_allocate_symmetric_remote_view_by_rank<double ****,
-                                              Kokkos::Experimental::DefaultRemoteMemorySpace>(
-      9, 10, 7);
+  test_allocate_symmetric_remote_view_by_rank<double *, RemoteMemSpace>();
+  test_allocate_symmetric_remote_view_by_rank<double **, RemoteMemSpace>(113);
+  test_allocate_symmetric_remote_view_by_rank<double ***, RemoteMemSpace>(7, 5);
+  test_allocate_symmetric_remote_view_by_rank<double ****, RemoteMemSpace>(9, 10, 7);
 }
 
 #endif /* TEST_ALLOCATION_HPP_ */
