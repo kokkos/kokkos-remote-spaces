@@ -45,10 +45,10 @@
 #ifndef TEST_REFCOUNTING_HPP_
 #define TEST_REFCOUNTING_HPP_
 
-#include <Kokkos_Core.hpp>
-#include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 #include <mpi.h>
+#include <Kokkos_Core.hpp>
+#include <Kokkos_RemoteSpaces.hpp>
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 

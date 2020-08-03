@@ -50,11 +50,7 @@
 #include <impl/Kokkos_Profiling_Interface.hpp>
 #endif
 
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
-
 namespace Kokkos {
-
 namespace Experimental {
 
 /* Default allocation mechanism */
@@ -73,11 +69,6 @@ void *NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
   static_assert(
       Kokkos::Impl::is_integral_power_of_two(Kokkos::Impl::MEMORY_ALIGNMENT),
       "Memory alignment must be power of two");
-
-  constexpr uintptr_t alignment = Kokkos::Impl::MEMORY_ALIGNMENT;
-  constexpr uintptr_t alignment_mask = alignment - 1;
-
-  // MPI_Barrier(MPI_COMM_WORLD);
 
   void *ptr = 0;
   if (arg_alloc_size) {
@@ -103,41 +94,23 @@ void NVSHMEMSpace::fence() {
 
 } // namespace Experimental
 
-} // namespace Kokkos
+namespace Impl
+{
+  Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      cudaMemcpy(dst, src, n, cudaMemcpyDefault);
+  }
 
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
+  Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      cudaMemcpy(dst, src, n, cudaMemcpyDefault);
+  }
+}
+
+} // namespace Kokkos
 
 namespace Kokkos {
 namespace Impl {
-
-SharedAllocationRecord<void, void> SharedAllocationRecord<
-    Kokkos::Experimental::NVSHMEMSpace, void>::s_root_record;
-
-void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
-                            void>::deallocate(SharedAllocationRecord<void, void>
-                                                  *arg_rec) {
-  delete static_cast<SharedAllocationRecord *>(arg_rec);
-}
-
-SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
-                       void>::~SharedAllocationRecord() {
-#if defined(KOKKOS_ENABLE_PROFILING)
-  if (Kokkos::Profiling::profileLibraryLoaded()) {
-    SharedAllocationHeader header;
-    Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
-        &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));
-
-    Kokkos::Profiling::deallocateData(
-        Kokkos::Profiling::SpaceHandle(
-            Kokkos::Experimental::NVSHMEMSpace::name()),
-        header.m_label, data(), size());
-  }
-#endif
-
-  m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
-                     SharedAllocationRecord<void, void>::m_alloc_size);
-}
 
 SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
     SharedAllocationRecord(
@@ -177,7 +150,33 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
                                                sizeof(SharedAllocationHeader));
 }
 
-//----------------------------------------------------------------------------
+SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
+                       void>::~SharedAllocationRecord() {
+#if defined(KOKKOS_ENABLE_PROFILING)
+  if (Kokkos::Profiling::profileLibraryLoaded()) {
+    SharedAllocationHeader header;
+    Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
+        &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));
+
+    Kokkos::Profiling::deallocateData(
+        Kokkos::Profiling::SpaceHandle(
+            Kokkos::Experimental::NVSHMEMSpace::name()),
+        header.m_label, data(), size());
+  }
+#endif
+
+  m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
+                     SharedAllocationRecord<void, void>::m_alloc_size);
+}
+
+SharedAllocationRecord<void, void> SharedAllocationRecord<
+    Kokkos::Experimental::NVSHMEMSpace, void>::s_root_record;
+
+void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
+                            void>::deallocate(SharedAllocationRecord<void, void>
+                                                  *arg_rec) {
+  delete static_cast<SharedAllocationRecord *>(arg_rec);
+}
 
 void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
     allocate_tracked(const Kokkos::Experimental::NVSHMEMSpace &arg_space,
@@ -188,9 +187,7 @@ void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
 
   SharedAllocationRecord *const r =
       allocate(arg_space, arg_alloc_label, arg_alloc_size);
-
   RecordBase::increment(r);
-
   return r->data();
 }
 
@@ -199,7 +196,6 @@ void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
                                                           arg_alloc_ptr) {
   if (arg_alloc_ptr != 0) {
     SharedAllocationRecord *const r = get_record(arg_alloc_ptr);
-
     RecordBase::decrement(r);
   }
 }
@@ -217,7 +213,6 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
 
   RecordBase::increment(r_new);
   RecordBase::decrement(r_old);
-
   return r_new->data();
 }
 

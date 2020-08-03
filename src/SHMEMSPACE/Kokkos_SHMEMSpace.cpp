@@ -49,15 +49,11 @@
 //----------------------------------------------------------------------------
 
 namespace Kokkos {
-
 namespace Experimental {
 
 /* Default allocation mechanism */
-SHMEMSpace::SHMEMSpace() : rank_list(NULL), allocation_mode(Symmetric) {}
+SHMEMSpace::SHMEMSpace() : allocation_mode(Symmetric) {}
 
-void SHMEMSpace::impl_set_rank_list(int *const rank_list_) {
-  rank_list = rank_list_;
-}
 
 void SHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;
@@ -95,10 +91,20 @@ void SHMEMSpace::fence() { shmem_barrier_all(); }
 
 } // namespace Experimental
 
-} // namespace Kokkos
+namespace Impl
+{
+  Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      memcpy(dst, src, n);
+  }
 
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
+  Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      memcpy(dst, src, n);
+  }
+}
+
+} // namespace Kokkos
 
 namespace Kokkos {
 namespace Impl {

@@ -42,37 +42,60 @@
 //@HEADER
 */
 
-#include <cstdlib>
-#include <gtest/gtest.h>
+#ifndef TEST_REMOTE_ACCESS_HPP_
+#define TEST_REMOTE_ACCESS_HPP_
 
+#include <gtest/gtest.h>
+#include <mpi.h>
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
-#include <mpi.h>
 
-int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
-#endif
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
+using RemoteSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-  Kokkos::initialize(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  int result = RUN_ALL_TESTS();
 
-  Kokkos::finalize();
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
-  return result;
+template <class Data_t, class Space_t >
+void test_remote_accesses(int size)
+{
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+
+  using TeamPolicy = Kokkos::TeamPolicy<>;
+  TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
+
+  using RemoteView_t = Kokkos::View<Data_t**, Space_t>;
+  using HostSpace_t = Kokkos::View<Data_t**, Kokkos::HostSpace> ;
+
+  // Allocate remote view
+  RemoteView_t v_R = RemoteView_t("RemoteView", num_ranks, size);
+
+  Kokkos::parallel_for(
+  policy, KOKKOS_LAMBDA(const TeamPolicy::member_type &team) {
+    Kokkos::parallel_for(
+      Kokkos::TeamThreadRange(team, size),
+      [&](const int i) {
+        v_R(num_ranks-my_rank-1, i) = (Data_t) my_rank * size + i;
+      });
+  });
+
+  RemoteSpace().fence();
+
+  HostSpace_t v_H ("HostView",1,size);
+  Kokkos::Experimental::deep_copy(v_H, v_R); 
+
+  Data_t check (0), ref(0);
+  for (int i=0; i<size; i++) {
+    check += v_H(0,i);
+    ref += (num_ranks - my_rank - 1) * size + i;
+  }
+  ASSERT_EQ(check, ref);
 }
+
+TEST(TEST_CATEGORY, test_remote_accesses) {
+  test_remote_accesses<int, RemoteSpace>(12345);
+  test_remote_accesses<int64_t, RemoteSpace>(4567);
+  test_remote_accesses<double, RemoteSpace>(89);
+}
+
+#endif /* TEST_REMOTE_ACCESS_HPP_ */

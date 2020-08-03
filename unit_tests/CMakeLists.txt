@@ -1,12 +1,5 @@
 include(CTest)
 
-function(kokkos_add_test NAME SOURCE)
-  add_executable(${NAME} ${SOURCE})
-  target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
-  target_link_libraries(${NAME} PRIVATE gtest_main)
-  add_test(NAME ${NAME} COMMAND ${NAME} ${ARGN})
-endfunction()
-
 include(FetchContent)
 FetchContent_Declare(googletest
   GIT_REPOSITORY    https://github.com/google/googletest.git
@@ -19,9 +12,7 @@ if(NOT googletest_POPULATED)
 endif()
 
 SET(NAME KokkosRemote_TestAll)
-SET(NAME KokkosRemote_TestAll)
 FILE(GLOB TEST_SRCS *.cpp) 
 add_executable(${NAME} ${TEST_SRCS})
-target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
-target_link_libraries(${NAME} PRIVATE gtest_main)
-add_test(NAME ${NAME} COMMAND ${NAME} ${ARGN})
+target_link_libraries(${NAME} PUBLIC Kokkos::kokkosremote)
+target_link_libraries(${NAME} PUBLIC gtest_main)

@@ -50,13 +50,7 @@
 #include <string>
 #include <typeinfo>
 
-#include <Kokkos_Concepts.hpp>
-#include <Kokkos_Core_fwd.hpp>
-#include <Kokkos_MemoryTraits.hpp>
-
-#include <impl/Kokkos_Error.hpp>
-#include <impl/Kokkos_SharedAlloc.hpp>
-#include <impl/Kokkos_Traits.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
@@ -66,6 +60,8 @@
 namespace Kokkos {
 
 namespace Experimental {
+
+struct RemoteSpaceSpecializeTag {};
 
 class SHMEMSpace {
 public:
@@ -127,14 +123,23 @@ private:
 };
 
 } // namespace Experimental
-
 } // namespace Kokkos
 
-//----------------------------------------------------------------------------
 
 namespace Kokkos {
 
 namespace Impl {
+
+template <>
+struct DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+  DeepCopy(void* dst, const void* src, size_t);
+};
+
+template <>
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+  DeepCopy(void* dst, const void* src, size_t);
+};
+
 
 static_assert(Kokkos::Impl::MemorySpaceAccess<
                   Kokkos::Experimental::SHMEMSpace,
@@ -142,10 +147,8 @@ static_assert(Kokkos::Impl::MemorySpaceAccess<
               "");
 
 } // namespace Impl
-
 } // namespace Kokkos
 
-//----------------------------------------------------------------------------
 
 namespace Kokkos {
 
@@ -214,10 +217,8 @@ public:
 };
 
 } // namespace Impl
-
 } // namespace Kokkos
 
-//----------------------------------------------------------------------------
 
 namespace Kokkos {
 
@@ -250,9 +251,9 @@ struct DeepCopy<Kokkos::Experimental::SHMEMSpace,
 };
 
 } // namespace Impl
-
 } // namespace Kokkos
 
 #include <Kokkos_SHMEMSpace_ViewMapping.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 
 #endif // #define KOKKOS_SHMEMSPACE_HPP

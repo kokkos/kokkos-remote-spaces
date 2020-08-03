@@ -46,68 +46,285 @@
 //----------------------------------------------------------------------------
 /** \brief  View mapping for non-specialized data type and standard layout */
 namespace Kokkos {
-
 namespace Impl {
 
-KOKKOS_INLINE_FUNCTION
-void mpi_type_p(const int val, int offset, const int pe, const MPI_Win &win) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_SIGNED_CHAR, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(char), 1, MPI_SIGNED_CHAR,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_UNSIGNED_CHAR, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned char), 1, MPI_UNSIGNED_CHAR,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_SHORT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(short), 1, MPI_SHORT,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_UNSIGNED_SHORT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned short), 1, MPI_UNSIGNED_SHORT,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_INT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(int), 1, MPI_INT,
-          win);
+          win);        
   MPI_Win_unlock(0, win);
 #endif
+  return;
 }
 
-KOKKOS_INLINE_FUNCTION
-void mpi_type_g(int &val, int offset, const int pe, const MPI_Win &win) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
-  MPI_Get(&val, 1, MPI_INT, pe,
-          sizeof(SharedAllocationHeader) + offset * sizeof(int), 1, MPI_INT,
-          win);
+  MPI_Put(&val, 1, MPI_UNSIGNED, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned int), 1, MPI_UNSIGNED,
+          win);        
   MPI_Win_unlock(0, win);
 #endif
+  return;
 }
 
-KOKKOS_INLINE_FUNCTION
-void mpi_type_p(const double val, int offset, const int pe,
-                const MPI_Win &win) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
-  MPI_Put(&val, 1, MPI_DOUBLE, pe,
-          sizeof(SharedAllocationHeader) + offset * sizeof(double), 1,
-          MPI_DOUBLE, win);
-  MPI_Win_unlock(0, win);
-#endif
-}
-
-KOKKOS_INLINE_FUNCTION
-void mpi_type_g(double &val, int offset, const int pe, const MPI_Win &win) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
-  MPI_Get(&val, 1, MPI_DOUBLE, pe,
-          sizeof(SharedAllocationHeader) + offset * sizeof(double), 1,
-          MPI_DOUBLE, win);
-  MPI_Win_unlock(0, win);
-#endif
-}
-
-KOKKOS_INLINE_FUNCTION
-void mpi_type_p(const int64_t val, int offset, const int pe,
-                const MPI_Win &win) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_INT64_T, pe,
-          sizeof(SharedAllocationHeader) + offset * sizeof(int64_t), 1,
-          MPI_INT64_T, win);
+          sizeof(SharedAllocationHeader) + offset * sizeof(int64_t), 1, MPI_INT64_T,
+          win);        
   MPI_Win_unlock(0, win);
 #endif
+  return;
 }
 
-KOKKOS_INLINE_FUNCTION
-void mpi_type_g(int64_t &val, int offset, const int pe, const MPI_Win &win) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_UNSIGNED_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long), 1, MPI_UNSIGNED_LONG,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_FLOAT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(float), 1, MPI_FLOAT,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_DOUBLE, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(double), 1, MPI_DOUBLE,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_LONG_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(long long), 1, MPI_LONG_LONG,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Put(&val, 1, MPI_UNSIGNED_LONG_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long long), 1, MPI_UNSIGNED_LONG_LONG,
+          win);        
+  MPI_Win_unlock(0, win);
+#endif
+  return;
+}
+
+// Get operations
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_SIGNED_CHAR, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(char), 1,
+          MPI_SIGNED_CHAR, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T&val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_UNSIGNED_CHAR, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned char), 1,
+          MPI_UNSIGNED_CHAR, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_SHORT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(short), 1,
+          MPI_SHORT, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_UNSIGNED_SHORT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned short), 1,
+          MPI_UNSIGNED_SHORT, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_INT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(int), 1,
+          MPI_INT, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_UNSIGNED, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned int), 1,
+          MPI_UNSIGNED, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_INT64_T, pe,
@@ -115,338 +332,404 @@ void mpi_type_g(int64_t &val, int offset, const int pe, const MPI_Win &win) {
           MPI_INT64_T, win);
   MPI_Win_unlock(0, win);
 #endif
+  return 0;
 }
 
-struct MPISpaceSpecializeTag {};
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_UNSIGNED_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long), 1,
+          MPI_UNSIGNED_LONG, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
 
-template <class T> struct MPIDataElement {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_FLOAT, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(float), 1,
+          MPI_FLOAT, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_DOUBLE, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(double), 1,
+          MPI_DOUBLE, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_LONG_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(long long), 1,
+          MPI_LONG_LONG, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
+  MPI_Get(&val, 1, MPI_UNSIGNED_LONG_LONG, pe,
+          sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long long), 1,
+          MPI_UNSIGNED_LONG_LONG, win);
+  MPI_Win_unlock(0, win);
+#endif
+  return 0;
+}
+
+
+template <class T> 
+struct MPIDataElement {
   typedef const T const_value_type;
   typedef T non_const_value_type;
-  const MPI_Win &win;
+  const MPI_Win * win;
   int offset;
   int pe;
-  MPIDataElement(const MPI_Win &win_, int pe_, int i_)
+  MPIDataElement(MPI_Win * win_, int pe_, int i_)
       : win(win_), offset(i_), pe(pe_) {}
+
   KOKKOS_INLINE_FUNCTION
   const_value_type operator=(const_value_type &val) const {
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p<T>(val, offset, pe, *win);
     return val;
   }
 
   KOKKOS_INLINE_FUNCTION
   void inc() const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val++;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
   }
 
   KOKKOS_INLINE_FUNCTION
   void dec() const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val--;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator++() const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val++;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
     return val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val--;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
     return val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator++(int) const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val++;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
     return val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--(int) const {
     T val = T();
-    mpi_type_g(val, offset, pe, win);
+    mpi_type_g(val, offset, pe, *win);
     val--;
-    mpi_type_p(val, offset, pe, win);
+    mpi_type_p(val, offset, pe, *win);
     return val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp += val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp -= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp *= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp /= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp %= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp &= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp ^= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp |= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp <<= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     tmp >>= val;
-    mpi_type_p(tmp, offset, pe, win);
+    mpi_type_p(tmp, offset, pe, *win);
     return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp + val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp - val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp * val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp / val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp % val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator!() const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return !tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&&(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp && val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator||(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp || val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp & val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp | val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp ^ val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator~() const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return ~tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp << val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>(const unsigned int &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp >> val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator==(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp == val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator!=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp != val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp >= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<=(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp <= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp < val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>(const_value_type &val) const {
     T tmp = T();
-    mpi_type_g(tmp, offset, pe, win);
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp > val;
   }
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp;
-    mpi_type_g(tmp, offset, pe, win);
+    T tmp = T();
+    mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }
 };
 
-template <class T> struct MPIDataHandle {
+template <class T> 
+struct MPIDataHandle {
   T *ptr;
-  MPI_Win win;
+  mutable MPI_Win win;
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle() : ptr(NULL) {}
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle(T *ptr_, MPI_Win &win_) : ptr(ptr_), win(win_) {}
+
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION MPIDataElement<T> operator()(const int &pe,
-                                                      const iType &i) const {
-    MPIDataElement<T> element(win, pe, i);
-    return element;
-  }
-};
-template <> struct MPIDataHandle<int> {
-  int *ptr;
-  KOKKOS_INLINE_FUNCTION
-  MPIDataHandle() : ptr(NULL) {}
-  KOKKOS_INLINE_FUNCTION
-  MPIDataHandle(int *ptr_) : ptr(ptr_) {}
-  template <typename iType>
-  KOKKOS_INLINE_FUNCTION MPIDataElement<int> operator()(const int &pe,
-                                                        const iType &i) const {
-    MPIDataElement<int> element(ptr, pe, i);
+  KOKKOS_INLINE_FUNCTION MPIDataElement<T> 
+  operator()(const int &pe, const iType &i) const {
+    MPIDataElement<T> element(&win, pe, i);
     return element;
   }
 };
@@ -455,7 +738,7 @@ template <class Traits>
 struct ViewDataHandle<
     Traits,
     typename std::enable_if<std::is_same<typename Traits::specialize,
-                                         MPISpaceSpecializeTag>::value>::type> {
+                                         Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
 
   typedef typename Traits::value_type value_type;
   typedef MPIDataHandle<value_type> handle_type;
@@ -496,12 +779,12 @@ struct ViewTraits<void, Kokkos::Experimental::MPISpace, Prop...> {
           HostMirrorSpace;
   typedef typename execution_space::array_layout array_layout;
   typedef typename ViewTraits<void, Prop...>::memory_traits memory_traits;
-  typedef typename Impl::MPISpaceSpecializeTag specialize;
+  typedef typename Kokkos::Experimental::RemoteSpaceSpecializeTag specialize;
 };
 
 namespace Impl {
 
-template <class Traits> class ViewMapping<Traits, MPISpaceSpecializeTag> {
+template <class Traits> class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 private:
   template <class, class...> friend class ViewMapping;
   template <class, class...> friend class Kokkos::View;
@@ -829,14 +1112,6 @@ public:
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
     if (alloc_size && alloc_prop::initialize) {
-      // Assume destruction is only required when construction is requested.
-      // The ViewValueFunctor has both value construction and destruction
-      // operators.
-      /*record->m_destroy = functor_type( (
-         (Kokkos::Impl::ViewCtorProp<void,execution_space> const &)
-         arg_prop).value , (value_type *) m_handle , m_offset.span()
-                                      );*/
-
       // Construct values
       record->m_destroy.construct_shared_allocation();
     }

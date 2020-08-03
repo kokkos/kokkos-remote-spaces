@@ -50,46 +50,297 @@
 namespace Kokkos {
 namespace Impl {
 
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(int64_t *ptr, const int &val, const int pe) {
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_char_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_uchar_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_short_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_ushort_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
+  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_int_p(ptr, val, pe);
+  return;
+  #endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_uint_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   shmem_long_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
-KOKKOS_INLINE_FUNCTION
-int shmem_type_g(int64_t *ptr, const int pe) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_long_g(ptr, pe);
-#else
-  return 0;
+  shmem_ulong_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(int *ptr, const int &val, const int pe) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_int_p(ptr, val, pe);
+  shmem_float_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
-KOKKOS_INLINE_FUNCTION
-int shmem_type_g(int *ptr, const int pe) {
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_double_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_longlong_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  shmem_ulonglong_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+// Get operations
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_char_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_uchar_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_short_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_ushort_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   return shmem_int_g(ptr, pe);
-#else
-  return 0;
 #endif
+  return *ptr;
 }
 
-KOKKOS_INLINE_FUNCTION
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_uint_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_long_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_ulong_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_float_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_double_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_longlong_g(ptr, pe);
+#endif
+  return *ptr;
+  
+}
+
+template <typename T>
+KOKKOS_DEFAULTED_FUNCTION
+T shmem_type_g(T *ptr,  const int pe,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
+  return shmem_ulonglong_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+// Aggregrate types
+
+
+KOKKOS_DEFAULTED_FUNCTION
 void shmem_type_p(double3 *ptr, const double3 &val, const int pe) {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   shmem_double_put((double *)ptr, (double *)&val, 3, pe);
 #endif
 }
 
-KOKKOS_INLINE_FUNCTION
+KOKKOS_DEFAULTED_FUNCTION
 double3 shmem_type_g(double3 *ptr, const int pe) {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
   double3 val;
@@ -100,51 +351,35 @@ double3 shmem_type_g(double3 *ptr, const int pe) {
 #endif
 }
 
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(double *ptr, const double &val, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_double_p(ptr, val, pe);
-#endif
-}
-
-KOKKOS_INLINE_FUNCTION
-double shmem_type_g(double *ptr, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_double_g(ptr, pe);
-#else
-  return 0;
-#endif
-}
-
-struct SHMEMSpaceSpecializeTag {};
-
-template <class T> struct SHMEMDataElement {
+template <class T> 
+struct SHMEMDataElement {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
   int pe;
   SHMEMDataElement(T *ptr_, int pe_, int i_) : ptr(ptr_ + i_), pe(pe_) {}
-  KOKKOS_INLINE_FUNCTION
+
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator=(const_value_type &val) const {
     shmem_type_p(ptr, val, pe);
     return val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   void inc() const {
     T val = shmem_type_g(ptr, pe);
     val++;
     shmem_type_p(ptr, val, pe);
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   void dec() const {
     T val = shmem_type_g(ptr, pe);
     val--;
     shmem_type_p(ptr, val, pe);
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator++() const {
     T val = shmem_type_g(ptr, pe);
     val++;
@@ -152,7 +387,7 @@ template <class T> struct SHMEMDataElement {
     return val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator--() const {
     T val = shmem_type_g(ptr, pe);
     val--;
@@ -160,7 +395,7 @@ template <class T> struct SHMEMDataElement {
     return val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator++(int) const {
     T val = shmem_type_g(ptr, pe);
     val++;
@@ -168,7 +403,7 @@ template <class T> struct SHMEMDataElement {
     return val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator--(int) const {
     T val = shmem_type_g(ptr, pe);
     val--;
@@ -176,7 +411,7 @@ template <class T> struct SHMEMDataElement {
     return val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp += val;
@@ -184,7 +419,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator-=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp -= val;
@@ -192,7 +427,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator*=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp *= val;
@@ -200,7 +435,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator/=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp /= val;
@@ -208,7 +443,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator%=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp %= val;
@@ -216,7 +451,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator&=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp &= val;
@@ -224,7 +459,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator^=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp ^= val;
@@ -232,7 +467,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator|=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp |= val;
@@ -240,7 +475,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator<<=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp <<= val;
@@ -248,7 +483,7 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator>>=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     tmp >>= val;
@@ -256,154 +491,140 @@ template <class T> struct SHMEMDataElement {
     return tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator+(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp + val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator-(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp - val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator*(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp * val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator/(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp / val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator%(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp % val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator!() const {
     T tmp = shmem_type_g(ptr, pe);
     return !tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator&&(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp && val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator||(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp || val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator&(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp & val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator|(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp | val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator^(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp ^ val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator~() const {
     T tmp = shmem_type_g(ptr, pe);
     return ~tmp;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp << val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   const_value_type operator>>(const unsigned int &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp >> val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator==(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp == val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator!=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp != val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator>=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp >= val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator<=(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp <= val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator<(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp < val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   bool operator>(const_value_type &val) const {
     T tmp = shmem_type_g(ptr, pe);
     return tmp > val;
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   operator const_value_type() const { return shmem_type_g(ptr, pe); }
 };
 
 template <class T> struct SHMEMDataHandle {
   T *ptr;
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   SHMEMDataHandle() : ptr(NULL) {}
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   SHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION SHMEMDataElement<T> operator()(const int &pe,
+  KOKKOS_DEFAULTED_FUNCTION SHMEMDataElement<T> operator()(const int &pe,
                                                         const iType &i) const {
     SHMEMDataElement<T> element(ptr, pe, i);
-    return element;
-  }
-};
-
-template <> struct SHMEMDataHandle<int> {
-  int *ptr;
-  KOKKOS_INLINE_FUNCTION
-  SHMEMDataHandle() : ptr(NULL) {}
-  KOKKOS_INLINE_FUNCTION
-  SHMEMDataHandle(int *ptr_) : ptr(ptr_) {}
-  template <typename iType>
-  KOKKOS_INLINE_FUNCTION SHMEMDataElement<int>
-  operator()(const int &pe, const iType &i) const {
-    SHMEMDataElement<int> element(ptr, pe, i);
     return element;
   }
 };
@@ -412,20 +633,20 @@ template <class Traits>
 struct ViewDataHandle<
     Traits,
     typename std::enable_if<std::is_same<
-        typename Traits::specialize, SHMEMSpaceSpecializeTag>::value>::type> {
+        typename Traits::specialize, Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
 
   typedef typename Traits::value_type value_type;
   typedef SHMEMDataHandle<value_type> handle_type;
   typedef SHMEMDataElement<value_type> return_type;
   typedef Kokkos::Impl::SharedAllocationTracker track_type;
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,
                             track_type const & /*arg_tracker*/) {
     return handle_type(arg_data_ptr);
   }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   static handle_type assign(handle_type const arg_data_ptr, size_t offset) {
     return handle_type(arg_data_ptr + offset);
   }
@@ -454,12 +675,12 @@ struct ViewTraits<void, Experimental::SHMEMSpace, Prop...> {
       HostMirrorSpace;
   typedef typename execution_space::array_layout array_layout;
   typedef typename ViewTraits<void, Prop...>::memory_traits memory_traits;
-  typedef typename Impl::SHMEMSpaceSpecializeTag specialize;
+  typedef typename Kokkos::Experimental::RemoteSpaceSpecializeTag specialize;
 };
 
 namespace Impl {
 
-template <class Traits> class ViewMapping<Traits, SHMEMSpaceSpecializeTag> {
+template <class Traits> class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 private:
   template <class, class...> friend class ViewMapping;
   template <class, class...> friend class Kokkos::View;
@@ -474,7 +695,7 @@ private:
   offset_type m_offset;
   int m_num_pes;
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   ViewMapping(const handle_type &arg_handle, const offset_type &arg_offset)
       : m_handle(arg_handle), m_offset(arg_offset) {}
 
@@ -488,70 +709,70 @@ public:
   enum { Rank = Traits::dimension::rank };
 
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION constexpr size_t extent(const iType &r) const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t extent(const iType &r) const {
     return m_offset.m_dim.extent(r);
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr typename Traits::array_layout
+  KOKKOS_DEFAULTED_FUNCTION constexpr typename Traits::array_layout
   layout() const {
     return m_offset.layout();
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_0() const {
     return m_num_pes;
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_1() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_1() const {
     return m_offset.dimension_1();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_2() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_2() const {
     return m_offset.dimension_2();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_3() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_3() const {
     return m_offset.dimension_3();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_4() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_4() const {
     return m_offset.dimension_4();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_5() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_5() const {
     return m_offset.dimension_5();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_6() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_6() const {
     return m_offset.dimension_6();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_7() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t dimension_7() const {
     return m_offset.dimension_7();
   }
 
   // Is a regular layout with uniform striding for each index.
   using is_regular = typename offset_type::is_regular;
 
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_0() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_0() const {
     return m_offset.stride_0();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_1() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_1() const {
     return m_offset.stride_1();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_2() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_2() const {
     return m_offset.stride_2();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_3() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_3() const {
     return m_offset.stride_3();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_4() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_4() const {
     return m_offset.stride_4();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_5() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_5() const {
     return m_offset.stride_5();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_6() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_6() const {
     return m_offset.stride_6();
   }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_7() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t stride_7() const {
     return m_offset.stride_7();
   }
 
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION void stride(iType *const s) const {
+  KOKKOS_DEFAULTED_FUNCTION void stride(iType *const s) const {
     m_offset.stride(s);
   }
 
@@ -559,12 +780,12 @@ public:
   // Range span
 
   /** \brief  Span of the mapped range */
-  KOKKOS_INLINE_FUNCTION constexpr size_t span() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t span() const {
     return m_offset.span();
   }
 
   /** \brief  Is the mapped range span contiguous */
-  KOKKOS_INLINE_FUNCTION constexpr bool span_is_contiguous() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr bool span_is_contiguous() const {
     return m_offset.span_is_contiguous();
   }
 
@@ -572,7 +793,7 @@ public:
   typedef typename Traits::value_type *pointer_type;
 
   /** \brief  Query raw pointer to memory */
-  KOKKOS_INLINE_FUNCTION constexpr pointer_type data() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr pointer_type data() const {
     return m_handle.ptr;
   }
 
@@ -664,14 +885,14 @@ private:
 
 public:
   /** \brief  Span, in bytes, of the referenced memory */
-  KOKKOS_INLINE_FUNCTION constexpr size_t memory_span() const {
+  KOKKOS_DEFAULTED_FUNCTION constexpr size_t memory_span() const {
     return (m_offset.span() * sizeof(typename Traits::value_type) +
             MemorySpanMask) &
            ~size_t(MemorySpanMask);
   }
 
   /**\brief  Span, in bytes, of the required memory */
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   static constexpr size_t
   memory_span(typename Traits::array_layout const &arg_layout) {
     typedef std::integral_constant<unsigned, 0> padding;
@@ -680,22 +901,22 @@ public:
            ~size_t(MemorySpanMask);
   }
 
-  KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
-  KOKKOS_INLINE_FUNCTION ViewMapping() : m_handle(), m_offset(), m_num_pes(0) {}
-  KOKKOS_INLINE_FUNCTION ViewMapping(const ViewMapping &rhs)
+  KOKKOS_DEFAULTED_FUNCTION ~ViewMapping() {}
+  KOKKOS_DEFAULTED_FUNCTION ViewMapping() : m_handle(), m_offset(), m_num_pes(0) {}
+  KOKKOS_DEFAULTED_FUNCTION ViewMapping(const ViewMapping &rhs)
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
         m_num_pes(rhs.m_num_pes) {}
-  KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
+  KOKKOS_DEFAULTED_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
     m_handle = rhs.m_handle;
     m_offset = rhs.m_offset;
     m_num_pes = rhs.m_num_pes;
     return *this;
   }
 
-  KOKKOS_INLINE_FUNCTION ViewMapping(ViewMapping &&rhs)
+  KOKKOS_DEFAULTED_FUNCTION ViewMapping(ViewMapping &&rhs)
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
         m_num_pes(rhs.m_num_pes) {}
-  KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
+  KOKKOS_DEFAULTED_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
     m_handle = rhs.m_handle;
     m_offset = rhs.m_offset;
     m_num_pes = rhs.m_num_pes;
@@ -704,7 +925,7 @@ public:
 
   /**\brief  Wrap a span of memory */
   template <class... P>
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   ViewMapping(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
               typename Traits::array_layout const &arg_layout)
       : m_handle(
@@ -726,7 +947,7 @@ public:
   }
 
   /**\brief  Assign data */
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_DEFAULTED_FUNCTION
   void assign_data(pointer_type arg_ptr) { m_handle = handle_type(arg_ptr); }
 
   //----------------------------------------
@@ -785,10 +1006,10 @@ public:
       // Assume destruction is only required when construction is requested.
       // The ViewValueFunctor has both value construction and destruction
       // operators.
-      record->m_destroy = functor_type(
+    /* 9- record->m_destroy = functor_type(
           ((Kokkos::Impl::ViewCtorProp<void, execution_space> const &)arg_prop)
               .value,
-          (value_type *)m_handle, m_offset.span());
+          (value_type *)m_handle, m_offset.span());*/
 
       // Construct values
       record->m_destroy.construct_shared_allocation();

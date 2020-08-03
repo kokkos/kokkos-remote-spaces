@@ -42,6 +42,9 @@
 //@HEADER
 */
 
+#ifndef NVSHMEM_VIEW_MAPPING_HPP_
+#define NVSHMEM_VIEW_MAPPING_HPP_
+
 #include <nvshmem.h>
 #include <type_traits>
 //----------------------------------------------------------------------------
@@ -50,37 +53,289 @@
 namespace Kokkos {
 namespace Impl {
 
+// Put operations
+
+template <typename T>
 KOKKOS_INLINE_FUNCTION
-void shmem_type_p(int64_t *ptr, const int &val, const int pe) {
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_long_p(ptr, val, pe);
+  nvshmem_char_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
+template <typename T>
 KOKKOS_INLINE_FUNCTION
-int shmem_type_g(int64_t *ptr, const int pe) {
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_long_g(ptr, pe);
-#else
-  return 0;
+  nvshmem_uchar_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
+template <typename T>
 KOKKOS_INLINE_FUNCTION
-void shmem_type_p(int *ptr, const int &val, const int pe) {
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_short_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_ushort_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   nvshmem_int_p(ptr, val, pe);
+  return;
 #endif
+  *ptr = val;
 }
 
+template <typename T>
 KOKKOS_INLINE_FUNCTION
-int shmem_type_g(int *ptr, const int pe) {
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_uint_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_long_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_ulong_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_float_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_double_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_longlong_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+void shmem_type_p(T *ptr, const T &val, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  nvshmem_ulonglong_p(ptr, val, pe);
+  return;
+#endif
+  *ptr = val;
+}
+
+// Get operations
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_char_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_uchar_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_short_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_ushort_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
   return nvshmem_int_g(ptr, pe);
-#else
-  return 0;
 #endif
+  return *ptr;
 }
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_uint_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_long_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_ulong_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_float_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_double_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr, const int pe,
+typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_longlong_g(ptr, pe);
+#endif
+  return *ptr;
+  
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION
+T shmem_type_g(T *ptr,  const int pe,
+typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
+{
+#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
+  return nvshmem_ulonglong_g(ptr, pe);
+#endif
+  return *ptr;
+}
+
+// Aggregrate types
+
 
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(double3 *ptr, const double3 &val, const int pe) {
@@ -92,7 +347,6 @@ void shmem_type_p(double3 *ptr, const double3 &val, const int pe) {
 KOKKOS_INLINE_FUNCTION
 double3 shmem_type_g(double3 *ptr, const int pe) {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-
   double3 val;
   nvshmem_double_get((double *)&val, (double *)ptr, 3, pe);
   return val;
@@ -101,25 +355,9 @@ double3 shmem_type_g(double3 *ptr, const int pe) {
 #endif
 }
 
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(double *ptr, const double &val, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_double_p(ptr, val, pe);
-#endif
-}
 
-KOKKOS_INLINE_FUNCTION
-double shmem_type_g(double *ptr, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_double_g(ptr, pe);
-#else
-  return 0;
-#endif
-}
-
-struct NVSHMEMSpaceSpecializeTag {};
-
-template <class T> struct NVSHMEMDataElement {
+template <class T> 
+struct NVSHMEMDataElement {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -398,20 +636,6 @@ template <class T> struct NVSHMEMDataHandle {
   }
 };
 
-template <> struct NVSHMEMDataHandle<int> {
-  int *ptr;
-  KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle() : ptr(NULL) {}
-  KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle(int *ptr_) : ptr(ptr_) {}
-  template <typename iType>
-  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<int>
-  operator()(const int &pe, const iType &i) const {
-    NVSHMEMDataElement<int> element(ptr, pe, i);
-    return element;
-  }
-};
-
 #else
 template <class T> struct NVSHMEMDataHandle {
   T *ptr;
@@ -423,7 +647,6 @@ template <class T> struct NVSHMEMDataHandle {
   NVSHMEMDataHandle(T *ptr_) : ptr(ptr_) {
     for (int i = 0; i < nvshmem_n_pes(); i++) {
       remote_ptrs[i] = (T *)nvshmem_ptr(ptr, i);
-      printf("PTR:%p,%p\n", remote_ptrs[i], ptr);
     }
   }
   template <typename iType>
@@ -438,7 +661,7 @@ template <class Traits>
 struct ViewDataHandle<
     Traits,
     typename std::enable_if<std::is_same<
-        typename Traits::specialize, NVSHMEMSpaceSpecializeTag>::value>::type> {
+        typename Traits::specialize, Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
 
   typedef typename Traits::value_type value_type;
   typedef NVSHMEMDataHandle<value_type> handle_type;
@@ -483,12 +706,12 @@ struct ViewTraits<void, Experimental::NVSHMEMSpace, Prop...> {
       HostMirrorSpace;
   typedef typename execution_space::array_layout array_layout;
   typedef typename ViewTraits<void, Prop...>::memory_traits memory_traits;
-  typedef typename Impl::NVSHMEMSpaceSpecializeTag specialize;
+  typedef typename Kokkos::Experimental::RemoteSpaceSpecializeTag specialize;
 };
 
 namespace Impl {
 
-template <class Traits> class ViewMapping<Traits, NVSHMEMSpaceSpecializeTag> {
+template <class Traits> class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 private:
   template <class, class...> friend class ViewMapping;
   template <class, class...> friend class Kokkos::View;
@@ -815,14 +1038,6 @@ public:
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
     if (alloc_size && alloc_prop::initialize) {
-      // Assume destruction is only required when construction is requested.
-      // The ViewValueFunctor has both value construction and destruction
-      // operators.
-      /*record->m_destroy = functor_type( (
-         (Kokkos::Impl::ViewCtorProp<void,execution_space> const &)
-         arg_prop).value , (value_type *) m_handle , m_offset.span()
-                                      );*/
-
       // Construct values
       record->m_destroy.construct_shared_allocation();
     }
@@ -833,3 +1048,5 @@ public:
 
 } // namespace Impl
 } // namespace Kokkos
+
+#endif

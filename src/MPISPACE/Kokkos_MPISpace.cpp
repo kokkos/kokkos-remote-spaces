@@ -46,22 +46,14 @@
 #include <Kokkos_MPISpace.hpp>
 #include <mpi.h>
 
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
-
 namespace Kokkos {
-
 namespace Experimental {
 
 MPI_Win MPISpace::current_win;
 std::vector<MPI_Win> MPISpace::mpi_windows;
 
 /* Default allocation mechanism */
-MPISpace::MPISpace() : rank_list(NULL), allocation_mode(Symmetric) {}
-
-void MPISpace::impl_set_rank_list(int *const rank_list_) {
-  rank_list = rank_list_;
-}
+MPISpace::MPISpace() : allocation_mode(Symmetric) {}
 
 void MPISpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;
@@ -76,9 +68,6 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
   static_assert(
       Kokkos::Impl::is_integral_power_of_two(Kokkos::Impl::MEMORY_ALIGNMENT),
       "Memory alignment must be power of two");
-
-  constexpr uintptr_t alignment = Kokkos::Impl::MEMORY_ALIGNMENT;
-  constexpr uintptr_t alignment_mask = alignment - 1;
 
   void *ptr = 0;
   if (arg_alloc_size) {
@@ -127,10 +116,22 @@ void MPISpace::fence() {
       break;
 }
 } // namespace Experimental
+
+namespace Impl
+{
+  Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::MPISpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      memcpy(dst, src, n);
+  }
+
+  Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+  ::DeepCopy(void *dst, const void *src, size_t n) {
+      memcpy(dst, src, n);
+  }
+}
+
 } // namespace Kokkos
 
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
 
 namespace Kokkos {
 
@@ -267,5 +268,4 @@ void SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::
 }
 
 } // namespace Impl
-
 } // namespace Kokkos

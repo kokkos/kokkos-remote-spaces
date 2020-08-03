@@ -62,6 +62,8 @@ namespace Kokkos {
 
 namespace Experimental {
 
+struct RemoteSpaceSpecializeTag {};
+
 class NVSHMEMSpace {
 public:
   typedef NVSHMEMSpace memory_space;
@@ -121,15 +123,28 @@ private:
       Kokkos::Experimental::NVSHMEMSpace, void>;
 };
 
+
+
 } // namespace Experimental
 
 } // namespace Kokkos
 
 //----------------------------------------------------------------------------
 
-namespace Kokkos {
 
+namespace Kokkos {
 namespace Impl {
+
+template <>
+struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+  DeepCopy(void* dst, const void* src, size_t);
+};
+
+template <>
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+  DeepCopy(void* dst, const void* src, size_t);
+};
+
 
 static_assert(Kokkos::Impl::MemorySpaceAccess<
                   Kokkos::Experimental::NVSHMEMSpace,
@@ -165,7 +180,7 @@ private:
 
   const Kokkos::Experimental::NVSHMEMSpace m_space;
 
-protected:
+protected: 
   ~SharedAllocationRecord();
   SharedAllocationRecord() = default;
 
@@ -251,5 +266,6 @@ struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
 } // namespace Kokkos
 
 #include <Kokkos_NVSHMEMSpace_ViewMapping.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 
 #endif // #define KOKKOS_NVSHMEMSPACE_HPP
