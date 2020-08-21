@@ -62,6 +62,7 @@ foreach(DIR ${SOURCE_DIRS})
   list(APPEND HEADERS ${DIR_HDRS})
 endforeach()
 list(APPEND HEADERS src/Kokkos_RemoteSpaces.hpp)
+list(APPEND HEADERS src/Kokkos_RemoteSpaces_DeepCopy.hpp)
 
 add_library(kokkosremote ${SOURCES} ${HEADERS})
 add_library(Kokkos::kokkosremote ALIAS kokkosremote)
