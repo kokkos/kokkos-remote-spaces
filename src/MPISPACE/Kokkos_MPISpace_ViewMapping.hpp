@@ -54,11 +54,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_SIGNED_CHAR, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(char), 1, MPI_SIGNED_CHAR,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -69,11 +68,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_UNSIGNED_CHAR, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned char), 1, MPI_UNSIGNED_CHAR,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -84,11 +82,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_SHORT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(short), 1, MPI_SHORT,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -99,11 +96,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_UNSIGNED_SHORT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned short), 1, MPI_UNSIGNED_SHORT,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -114,11 +110,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_INT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(int), 1, MPI_INT,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -129,11 +124,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_UNSIGNED, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned int), 1, MPI_UNSIGNED,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -144,11 +138,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_INT64_T, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(int64_t), 1, MPI_INT64_T,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -159,11 +152,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_UNSIGNED_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long), 1, MPI_UNSIGNED_LONG,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -174,11 +166,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_FLOAT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(float), 1, MPI_FLOAT,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -189,11 +180,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_DOUBLE, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(double), 1, MPI_DOUBLE,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -204,11 +194,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_LONG_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(long long), 1, MPI_LONG_LONG,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -219,11 +208,10 @@ void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Put(&val, 1, MPI_UNSIGNED_LONG_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long long), 1, MPI_UNSIGNED_LONG_LONG,
           win);        
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -236,11 +224,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_SIGNED_CHAR, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(char), 1,
           MPI_SIGNED_CHAR, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -251,11 +238,10 @@ T mpi_type_g(T&val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_UNSIGNED_CHAR, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned char), 1,
           MPI_UNSIGNED_CHAR, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -266,11 +252,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_SHORT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(short), 1,
           MPI_SHORT, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -281,11 +266,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_UNSIGNED_SHORT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned short), 1,
           MPI_UNSIGNED_SHORT, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -296,11 +280,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_INT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(int), 1,
           MPI_INT, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -311,11 +294,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_UNSIGNED, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned int), 1,
           MPI_UNSIGNED, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -326,11 +308,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_INT64_T, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(int64_t), 1,
           MPI_INT64_T, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -341,11 +322,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_UNSIGNED_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long), 1,
           MPI_UNSIGNED_LONG, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -356,11 +336,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_FLOAT, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(float), 1,
           MPI_FLOAT, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -371,11 +350,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_DOUBLE, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(double), 1,
           MPI_DOUBLE, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -386,11 +364,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_LONG_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(long long), 1,
           MPI_LONG_LONG, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
@@ -401,11 +378,10 @@ T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win,
 typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   MPI_Get(&val, 1, MPI_UNSIGNED_LONG_LONG, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(unsigned long long), 1,
           MPI_UNSIGNED_LONG_LONG, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
