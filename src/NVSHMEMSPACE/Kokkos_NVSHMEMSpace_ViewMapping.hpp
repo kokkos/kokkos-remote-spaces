@@ -58,10 +58,14 @@ namespace Impl {
 template <typename T>
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+typename std::enable_if< sizeof(T) == 1 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_char_p(ptr, val, pe);
+  nvshmem_put8(
+    static_cast<void*>(ptr), 
+    static_cast<const void*> (&val), 
+    1,
+    pe);
   return;
 #endif
   *ptr = val;
@@ -70,10 +74,14 @@ typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
 template <typename T>
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+typename std::enable_if< sizeof(T) == 2 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_uchar_p(ptr, val, pe);
+  nvshmem_put16(
+    static_cast<void*>(ptr), 
+    static_cast<const void*> (&val), 
+    1,
+    pe);
   return;
 #endif
   *ptr = val;
@@ -82,10 +90,15 @@ typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
 template <typename T>
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+typename std::enable_if< sizeof(T) == 4 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_short_p(ptr, val, pe);
+  nvshmem_put32(
+    static_cast<void*>(ptr), 
+    static_cast<const void*> (&val), 
+    1,
+    pe);
+
   return;
 #endif
   *ptr = val;
@@ -94,10 +107,14 @@ typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
 template <typename T>
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+typename std::enable_if< sizeof(T) == 8 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_ushort_p(ptr, val, pe);
+    nvshmem_put64(
+    static_cast<void*>(ptr), 
+    static_cast<const void*> (&val), 
+    1,
+    pe);
   return;
 #endif
   *ptr = val;
@@ -106,94 +123,14 @@ typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr
 template <typename T>
 KOKKOS_INLINE_FUNCTION
 void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+typename std::enable_if< sizeof(T) == 16 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_int_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_uint_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_long_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_ulong_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_float_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_double_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_longlong_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  nvshmem_ulonglong_p(ptr, val, pe);
+    nvshmem_put128(
+    static_cast<void*>(ptr), 
+    static_cast<const void*> (&val), 
+    1,
+    pe);
   return;
 #endif
   *ptr = val;
@@ -203,135 +140,83 @@ typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nul
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
+T shmem_type_g(T *ptr, T &val, const int pe,
+typename std::enable_if< sizeof(T) == 1 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_char_g(ptr, pe);
+  nvshmem_get8(
+    static_cast<void*> (&val),
+    static_cast<void*>(ptr), 
+    1,
+    pe);
+  return;
 #endif
-  return *ptr;
+  *ptr = val;
 }
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
+T shmem_type_g(T *ptr, T &val, const int pe,
+typename std::enable_if< sizeof(T) == 2 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_uchar_g(ptr, pe);
+  nvshmem_get16(
+    static_cast<void*> (&val), 
+    static_cast<void*>(ptr), 
+    1,
+    pe);
+  return;
 #endif
-  return *ptr;
+  *ptr = val;
 }
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
+void shmem_type_g(T *ptr, T &val, const int pe,
+typename std::enable_if< sizeof(T) == 4 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_short_g(ptr, pe);
+  nvshmem_get32(
+    static_cast<void*> (&val), 
+    static_cast<void*>(ptr), 
+    1,
+    pe);
+
+  return;
 #endif
-  return *ptr;
+  *ptr = val;
 }
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
+void shmem_type_g(T *ptr, T &val, const int pe,
+typename std::enable_if< sizeof(T) == 8 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_ushort_g(ptr, pe);
+    nvshmem_get64(
+    static_cast<void*> (&val), 
+    static_cast<void*>(ptr), 
+    1,
+    pe);
+  return;
 #endif
-  return *ptr;
+  *ptr = val;
 }
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
+void shmem_type_g(T *ptr, T &val, const int pe,
+typename std::enable_if< sizeof(T) == 16 >::type * = nullptr)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_int_g(ptr, pe);
+    nvshmem_get128(
+    static_cast<void*> (&val), 
+    static_cast<void*>(ptr), 
+    1,
+    pe);
+  return;
 #endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_uint_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_long_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_ulong_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_float_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_double_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_longlong_g(ptr, pe);
-#endif
-  return *ptr;
-  
-}
-
-template <typename T>
-KOKKOS_INLINE_FUNCTION
-T shmem_type_g(T *ptr,  const int pe,
-typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA
-  return nvshmem_ulonglong_g(ptr, pe);
-#endif
-  return *ptr;
+  *ptr = val;
 }
 
 // Aggregrate types
@@ -374,53 +259,59 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   void inc() const {
-    T val = shmem_type_g(ptr, pe);
-    val++;
-    shmem_type_p(ptr, val, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
+    tmp++;
+    shmem_type_p(ptr, tmp, pe);
   }
 
   KOKKOS_INLINE_FUNCTION
   void dec() const {
-    T val = shmem_type_g(ptr, pe);
-    val--;
-    shmem_type_p(ptr, val, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
+    tmp--;
+    shmem_type_p(ptr, tmp, pe);
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator++() const {
-    T val = shmem_type_g(ptr, pe);
-    val++;
-    shmem_type_p(ptr, val, pe);
-    return val;
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
+    tmp++;
+    shmem_type_p(ptr, tmp, pe);
+    return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
-    T val = shmem_type_g(ptr, pe);
-    val--;
-    shmem_type_p(ptr, val, pe);
-    return val;
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
+    tmp--;
+    shmem_type_p(ptr, tmp, pe);
+    return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator++(int) const {
-    T val = shmem_type_g(ptr, pe);
-    val++;
-    shmem_type_p(ptr, val, pe);
-    return val;
+    T tmp; 
+    shmem_type_g(ptr, tmp, pe);
+    tmp++;
+    shmem_type_p(ptr, tmp, pe);
+    return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--(int) const {
-    T val = shmem_type_g(ptr, pe);
-    val--;
-    shmem_type_p(ptr, val, pe);
-    return val;
+    T tmp = shmem_type_g(ptr, pe);
+    tmp--;
+    shmem_type_p(ptr, tmp, pe);
+    return tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp += val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -428,7 +319,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp -= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -436,7 +328,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp *= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -444,7 +337,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp /= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -460,7 +354,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp; 
+    shmem_type_g(ptr, tmp, pe);
     tmp &= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -476,7 +371,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp |= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -484,7 +380,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp <<= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -492,7 +389,8 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     tmp >>= val;
     shmem_type_p(ptr, tmp, pe);
     return tmp;
@@ -500,126 +398,150 @@ struct NVSHMEMDataElement {
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp + val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp - val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp * val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp / val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp % val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator!() const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return !tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&&(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp && val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator||(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp || val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp & val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp | val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp ^ val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator~() const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return ~tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp << val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>(const unsigned int &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp >> val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator==(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp == val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator!=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp != val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp >= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<=(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp; 
+    shmem_type_g(ptr, tmp, pe);
     return tmp <= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp < val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>(const_value_type &val) const {
-    T tmp = shmem_type_g(ptr, pe);
+    T tmp;
+    shmem_type_g(ptr, tmp, pe);
     return tmp > val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  operator const_value_type() const { return shmem_type_g(ptr, pe); }
+  operator const_value_type() const { 
+    T tmp;
+    shmem_type_g(ptr, tmp, pe); 
+    return tmp;
+    }
 };
 #ifndef KOKKOS_ENABLE_NVSHMEM_PTR
 template <class T> struct NVSHMEMDataHandle {

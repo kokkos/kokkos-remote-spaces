@@ -82,6 +82,7 @@ void test_localdeepcopy(
                 v_R(my_rank,0) = 0x123;
               });
       
+      //Run 1 Team only.
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
         Kokkos::Experimental::local_deep_copy(team, v_R_cpy, v_R);
        });
@@ -123,8 +124,10 @@ void test_localdeepcopy(int i1,
                 v_R(my_rank,j) = 0x123;
               });
       
+      //Run 1 Team only.
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
-        Kokkos::Experimental::local_deep_copy(team, v_R_cpy, v_R);
+        Kokkos::Experimental::local_deep_copy(v_R_cpy, v_R);
+        //Kokkos::Experimental::local_deep_copy(team, v_R_cpy, v_R); //Currently not working. TBD
        });
   });
   
@@ -137,13 +140,13 @@ void test_localdeepcopy(int i1,
 TEST(TEST_CATEGORY, test_localdeepcopy) {
   //Scalar
   test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t>();
- /* test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>();
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();*/
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>();
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();
 
   // 1D
   test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(50);
- /* test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(150);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(1500);*/
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(150);
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(1500);
 }
 
 #endif /* TEST_LOCAL_DEEP_COPY_HPP_ */
