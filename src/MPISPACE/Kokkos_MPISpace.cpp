@@ -75,6 +75,7 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
       current_win = MPI_WIN_NULL;
       MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
                        &current_win);
+      MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
       int i = -1;
       for (i = 0; i < mpi_windows.size(); i++)
         if (mpi_windows[i] == MPI_WIN_NULL)
@@ -103,17 +104,21 @@ void MPISpace::deallocate(void *const, const size_t) const {
       break;
     }
 
+  MPI_Win_unlock_all(current_win);
   MPI_Win_free(&current_win);
   current_win = MPI_WIN_NULL;
 }
 
 void MPISpace::fence() {
 
-  for (int i = 0; i < mpi_windows.size(); i++)
-    if (mpi_windows[i] != MPI_WIN_NULL)
-      MPI_Win_fence(MPI_MODE_NOPRECEDE, mpi_windows[i]);
-    else
+  for (int i = 0; i < mpi_windows.size(); i++) {
+    if (mpi_windows[i] != MPI_WIN_NULL) {
+      MPI_Win_flush_all(mpi_windows[i]);
+    } else {
       break;
+    }
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 } // namespace Experimental
 

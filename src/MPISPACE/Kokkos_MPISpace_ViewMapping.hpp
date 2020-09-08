@@ -70,12 +70,11 @@ KOKKOS_DEFAULTED_FUNCTION
 void mpi_type_p(const T val, int offset, const int pe, const MPI_Win& win)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   auto dtype = get_mpi_type<T>();
   MPI_Put(&val, 1, dtype, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(T), 1, dtype,
-          win);        
-  MPI_Win_unlock(0, win);
+          win);
+  MPI_Win_flush(0, win);
 #endif
   return;
 }
@@ -85,12 +84,11 @@ KOKKOS_DEFAULTED_FUNCTION
 T mpi_type_g(T& val, int offset, const int pe, const MPI_Win& win)
 {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);
   auto dtype = get_mpi_type<T>();
   MPI_Get(&val, 1, dtype, pe,
           sizeof(SharedAllocationHeader) + offset * sizeof(T), 1,
           dtype, win);
-  MPI_Win_unlock(0, win);
+  MPI_Win_flush(0, win);
 #endif
   return 0;
 }
