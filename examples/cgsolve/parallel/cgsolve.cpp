@@ -275,38 +275,41 @@ int main(int argc, char *argv[]) {
     double time = timer.seconds();
 
     // Compute Bytes and Flops
-    double spmv_bytes = A.num_rows() * sizeof(int64_t) +
-                        A.nnz() * sizeof(int64_t) + A.nnz() * sizeof(double) +
-                        A.nnz() * sizeof(double) +
-                        A.num_rows() * sizeof(double);
-
-    double dot_bytes = A.num_rows() * sizeof(double) * 2;
+    double spmv_bytes  = A.num_rows() * sizeof(int64_t) +   // A.row_ptr
+                         A.nnz()      * sizeof(int64_t) +   // A.col_idx
+                         A.nnz()      * sizeof(double)  +   // A.values
+                         A.nnz()      * sizeof(double)  +   // input vector
+                         A.num_rows() * sizeof(double);     // output vector
+    double dot_bytes   = A.num_rows() * sizeof(double) * 2;
     double axpby_bytes = A.num_rows() * sizeof(double) * 3;
 
-    double spmv_flops = A.nnz() * 2;
-    double dot_flops = x.extent(0) * 2;
-    double axpby_flops = x.extent(0) * 3;
+    double spmv_flops  = A.nnz()      * 2;
+    double dot_flops   = A.num_rows() * 2;
+    double axpby_flops = A.num_rows() * 3;
 
-    int spmv_calls = 1 + num_iters;
-    int dot_calls = num_iters;
+    int spmv_calls  = 1 + num_iters;
+    int dot_calls   = num_iters;
     int axpby_calls = 2 + num_iters * 3;
 
-    double total_flops = spmv_flops * spmv_calls + dot_flops * dot_calls +
+    double total_flops = spmv_flops  * spmv_calls + 
+                         dot_flops   * dot_calls  +
                          axpby_flops * axpby_calls;
 
-    double GFlops = 1e-9 * (total_flops) / time;
-    double GBs = (1.0 / 1024 / 1024 / 1024) *
-                 (spmv_bytes * spmv_calls + dot_bytes * dot_calls +
-                  axpby_bytes * axpby_calls) /
-                 time;
+    double total_bytes = spmv_bytes  * spmv_calls + 
+                         dot_bytes   * dot_calls  +
+                         axpby_bytes * axpby_calls;
 
-    MPI_Allreduce(MPI_IN_PLACE, &GFlops, 1, MPI_DOUBLE, MPI_SUM,
-                  MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, &GBs, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &total_flops, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &total_bytes, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    double GFlops = 1e-9 * total_flops / time;
+    double GBs = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
 
     if (myRank == 0) {
-      printf("%i, %i, %0.1f, %lf\n", N, num_iters, total_flops, time, GFlops,
-             GBs);
+      printf(
+        "N, num_iters, total_flops, time, GFlops, GBs = %i, %i, %.2e, %.2lf, %.2lf, %.2lf\n", 
+        N, num_iters, total_flops, time, GFlops, GBs
+      );
     }
   }
   
