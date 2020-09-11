@@ -8,19 +8,50 @@ CGSolve is an example of a representative code in scientific computing that impl
 
 ## Dependencies
 
-KRS has the following dependencies:
+KRS has MPI and Kokkos as required dependencies.
+At least one of the following optional dependencies must also be enabled:
 
-- MPI with single-sided communication or SHMEM enabled
-- NVSHMEM for multiple Nvidia-based GPU support
-- Kokkos
+- MPI with one-sided support
+- SHMEM (usually from OpenSHMEM or OpenMPI)
+- NVSHMEM (required for communication in CUDA kernels)
 
 ## Build
 
-- Example: Building for MPI single-sided: export PATH=${KOKKOS_BUILD_DIR}/build/bin:$PATH cmake . -DKokkos_DIR=${KOKKOS_BUILD_DIR} -DKokkos_ENABLE_MPISPACE=ON -DCMAKE_CXX_COMPILER=nvcc_wrapper
+For building KRS, you should build with the same compiler used to build Kokkos.
+For CUDA, this is usually `nvcc_wrapper`, e.g.
+````bash
+KOKKOS_CXX=${KOKKOS_INSTALL_PREFIX}/bin/nvcc_wrapper
+````
+Code should be built out-of-source in a separate build directory.
 
-- Example: Building for SHMEM: export PATH=${KOKKOS_BUILD_DIR}/build/bin:$PATH cmake . -DKokkos_DIR=${KOKKOS_BUILD_DIR} -DSHMEM_ROOT=${PATH_TO_MPI} -DKokkos_ENABLE_SHMEMSPACE=ON -DCMAKE_CXX_COMPILER=nvcc_wrapper
+### MPI one-sided
+Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX` and a valid C++ compiler, an example configuration would be:
+````bash
+> cmake ${KRS_SOURCE_DIR} \
+  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
+  -DKokkos_ENABLE_MPISPACE=ON \
+  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
+````
 
-- Example: Building for NVSHMEM: export PATH=${KOKKOS_BUILD_DIR}/build/bin:$PATH cmake . -DKokkos_DIR=${KOKKOS_BUILD_DIR} -DKokkos_ENABLE_NVSHMEMSPACE=ON -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM} -DCMAKE_CXX_COMPILER=nvcc_wrapper
+### SHMEM
+Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX`, a SHMEM installation at `SHMEM_INSTALL_PREFIX`, and a valid C++ compiler, an example configuration would be:
+````bash
+> cmake ${KRS_SOURCE_DIR} \
+  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
+  -DSHMEM_ROOT=${SHMEM_INSTALL_PREFIX} \
+  -DKokkos_ENABLE_SHMEMSPACE=ON \
+  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
+````
+
+### NVSHMEM
+Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX`, an NVSHMEM installation at `NVSHMEM_INSTALL_PREFIX`, and a valid C++ compiler, an example configuration would be:
+````bash
+> cmake ${KRS_SOURCE_DIR} \
+  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
+  -DNVSHMEM_ROOT=${SHMEM_INSTALL_PREFIX} \
+  -DKokkos_ENABLE_NVSHMEMSPACE=ON \
+  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
+````
 
 ## API
 
