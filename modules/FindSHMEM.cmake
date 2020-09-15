@@ -1,5 +1,5 @@
-
-find_library(shlib_found oshmem PATHS ${SHMEM_ROOT} SUFFIXES lib lib64 NO_DEFAULT_PATHS)
+# libsma.{so/a} are for Cray-SHMEM and Cray-OpenSHMEMX
+find_library(shlib_found NAMES oshmem sma PATHS ${SHMEM_ROOT} SUFFIXES lib lib64 NO_DEFAULT_PATHS)
 find_path(shhdr_found shmem.h PATHS ${SHMEM_ROOT}/include NO_DEFAULT_PATHS)
 
 find_package_handle_standard_args(SHMEMSPACE DEFAULT_MSG shlib_found shhdr_found)

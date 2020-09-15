@@ -332,7 +332,7 @@ typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nul
 
 // Aggregrate types
 
-
+#if 0  // double3 is defined in CUDA but not available on host
 KOKKOS_DEFAULTED_FUNCTION
 void shmem_type_p(double3 *ptr, const double3 &val, const int pe) {
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
@@ -350,6 +350,7 @@ double3 shmem_type_g(double3 *ptr, const int pe) {
   return double3();
 #endif
 }
+#endif  // End of "#if 0"
 
 template <class T> 
 struct SHMEMDataElement {
