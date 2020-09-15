@@ -123,28 +123,26 @@ private:
       Kokkos::Experimental::NVSHMEMSpace, void>;
 };
 
-
-
 } // namespace Experimental
 
 } // namespace Kokkos
 
 //----------------------------------------------------------------------------
 
-
 namespace Kokkos {
 namespace Impl {
 
 template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
-  DeepCopy(void* dst, const void* src, size_t);
+struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace,
+                Kokkos::Experimental::RemoteSpaceSpecializeTag> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
-  DeepCopy(void* dst, const void* src, size_t);
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace,
+                Kokkos::Experimental::RemoteSpaceSpecializeTag> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
-
 
 static_assert(Kokkos::Impl::MemorySpaceAccess<
                   Kokkos::Experimental::NVSHMEMSpace,
@@ -180,7 +178,7 @@ private:
 
   const Kokkos::Experimental::NVSHMEMSpace m_space;
 
-protected: 
+protected:
   ~SharedAllocationRecord();
   SharedAllocationRecord() = default;
 
