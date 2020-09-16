@@ -50,306 +50,60 @@
 namespace Kokkos {
 namespace Impl {
 
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
-{
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_char_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
+#define KOKKOS_SHMEM_P(type, fxn) \
+static inline void shmem_type_p(type* ptr, const type& val, int pe){ \
+  fxn(ptr, val, pe); \
 }
+#else
+#define KOKKOS_SHMEM_P(type, fxn) \
+static inline void shmem_type_p(type* ptr, const type& val, int pe){ \
+  *ptr = val; \
+}
+#endif
 
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
-{
+KOKKOS_SHMEM_P(char, shmem_char_p)
+KOKKOS_SHMEM_P(unsigned char, shmem_uchar_p)
+KOKKOS_SHMEM_P(short, shmem_short_p)
+KOKKOS_SHMEM_P(unsigned short, shmem_ushort_p)
+KOKKOS_SHMEM_P(int, shmem_int_p)
+KOKKOS_SHMEM_P(unsigned int, shmem_uint_p)
+KOKKOS_SHMEM_P(long, shmem_long_p)
+KOKKOS_SHMEM_P(unsigned long, shmem_ulong_p)
+KOKKOS_SHMEM_P(long long, shmem_longlong_p)
+KOKKOS_SHMEM_P(unsigned long long, shmem_ulonglong_p)
+KOKKOS_SHMEM_P(float, shmem_float_p)
+KOKKOS_SHMEM_P(double, shmem_double_p)
+
+#undef KOKKOS_SHMEM_P
+
 #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_uchar_p(ptr, val, pe);
-  return;
+#define KOKKOS_SHMEM_G(type, fxn) \
+static inline type shmem_type_g(type* ptr, int pe){ \
+  return fxn(ptr, pe); \
+}
+#else
+#define KOKKOS_SHMEM_G(type, fxn) \
+static inline type shmem_type_g(type* ptr, int pe){ \
+  return *ptr; \
+}
 #endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_short_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_ushort_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
-{
-  #ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_int_p(ptr, val, pe);
-  return;
-  #endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_uint_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_long_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_ulong_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_float_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_double_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_longlong_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(T *ptr, const T &val, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_ulonglong_p(ptr, val, pe);
-  return;
-#endif
-  *ptr = val;
-}
 
 // Get operations
+KOKKOS_SHMEM_G(char, shmem_char_g)
+KOKKOS_SHMEM_G(unsigned char, shmem_uchar_g)
+KOKKOS_SHMEM_G(short, shmem_short_g)
+KOKKOS_SHMEM_G(unsigned short, shmem_ushort_g)
+KOKKOS_SHMEM_G(int, shmem_int_g)
+KOKKOS_SHMEM_G(unsigned int, shmem_uint_g)
+KOKKOS_SHMEM_G(long, shmem_long_g)
+KOKKOS_SHMEM_G(unsigned long, shmem_ulong_g)
+KOKKOS_SHMEM_G(long long, shmem_longlong_g)
+KOKKOS_SHMEM_G(unsigned long long, shmem_ulonglong_g)
+KOKKOS_SHMEM_G(float, shmem_float_g)
+KOKKOS_SHMEM_G(double, shmem_double_g)
 
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,char>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_char_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned char>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_uchar_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,short>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_short_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned short>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_ushort_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,int>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_int_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned int>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_uint_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,int64_t>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_long_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,unsigned long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_ulong_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,float>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_float_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,double>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_double_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr, const int pe,
-typename std::enable_if<std::is_same<T,long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_longlong_g(ptr, pe);
-#endif
-  return *ptr;
-  
-}
-
-template <typename T>
-KOKKOS_DEFAULTED_FUNCTION
-T shmem_type_g(T *ptr,  const int pe,
-typename std::enable_if<std::is_same<T,unsigned long long>::value>::type * = nullptr)
-{
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  return shmem_ulonglong_g(ptr, pe);
-#endif
-  return *ptr;
-}
-
-// Aggregrate types
-
-
-KOKKOS_DEFAULTED_FUNCTION
-void shmem_type_p(double3 *ptr, const double3 &val, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  shmem_double_put((double *)ptr, (double *)&val, 3, pe);
-#endif
-}
-
-KOKKOS_DEFAULTED_FUNCTION
-double3 shmem_type_g(double3 *ptr, const int pe) {
-#ifdef KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST
-  double3 val;
-  shmem_double_get((double *)&val, (double *)ptr, 3, pe);
-  return val;
-#else
-  return double3();
-#endif
-}
+#undef KOKKOS_SHMEM_G
 
 template <class T> 
 struct SHMEMDataElement {

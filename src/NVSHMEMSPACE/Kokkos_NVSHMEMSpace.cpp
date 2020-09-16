@@ -94,18 +94,23 @@ void NVSHMEMSpace::fence() {
 
 } // namespace Experimental
 
-namespace Impl
-{
-  Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
-  ::DeepCopy(void *dst, const void *src, size_t n) {
-      cudaMemcpy(dst, src, n, cudaMemcpyDefault);
-  }
-
-  Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
-  ::DeepCopy(void *dst, const void *src, size_t n) {
-      cudaMemcpy(dst, src, n, cudaMemcpyDefault);
-  }
+namespace Impl {
+Kokkos::Impl::DeepCopy<
+    HostSpace, Kokkos::Experimental::NVSHMEMSpace,
+    Kokkos::Experimental::RemoteSpaceSpecializeTag>::DeepCopy(void *dst,
+                                                              const void *src,
+                                                              size_t n) {
+  cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
+
+Kokkos::Impl::DeepCopy<
+    Kokkos::Experimental::NVSHMEMSpace, HostSpace,
+    Kokkos::Experimental::RemoteSpaceSpecializeTag>::DeepCopy(void *dst,
+                                                              const void *src,
+                                                              size_t n) {
+  cudaMemcpy(dst, src, n, cudaMemcpyDefault);
+}
+} // namespace Impl
 
 } // namespace Kokkos
 

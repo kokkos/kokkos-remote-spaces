@@ -72,8 +72,8 @@ ORDINAL_T get(const ORDINAL_T mean, const float variance,
   normal or linear distribution (randomly or linearly accessed).
   */
   return g.normal(mean, variance);
-  //return g.urand64();
-  //return mean;
+  // return g.urand64();
+  // return mean;
 }
 
 int main(int argc, char *argv[]) {
@@ -106,8 +106,7 @@ int main(int argc, char *argv[]) {
   int team_size = TEAM_SIZE;
   int vec_len = VEC_LEN;
 
-  num_elems =
-      argc > 1 ? (atoi(argv[1]) << 10) / sizeof(ORDINAL_T) : num_elems;
+  num_elems = argc > 1 ? (atoi(argv[1]) << 10) / sizeof(ORDINAL_T) : num_elems;
   sigma = argc > 2 ? atoi(argv[2]) : sigma;
   league_size = argc > 3 ? atoi(argv[3]) : league_size;
   team_size = argc > 4 ? atoi(argv[4]) : team_size;
@@ -130,12 +129,10 @@ int main(int argc, char *argv[]) {
     ORDINAL_T num_elems_per_rank;
     ORDINAL_T iters_per_team;
     num_elems_per_rank = ceil(1.0 * num_elems / num_ranks);
-  
-    RemoteView v = Kokkos::Experimental::allocate_symmetric_remote_view<RemoteView>(
-      "RemoteView", num_ranks, num_elems_per_rank);
+
+    RemoteView v = RemoteView("RemoteView", num_ranks, num_elems_per_rank);
 
     do {
-      
       Generator gen_pool(5374857);
       // Update execution parameters
       num_iters = next_iters;
@@ -171,8 +168,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (my_rank == 0) {
-    float GBs =
-        (2.0 * num_ranks * num_iters * sizeof(ORDINAL_T)) / 1024.0 / 1024.0 / 1024.0 / time;
+    float GBs = (2.0 * num_ranks * num_iters * sizeof(ORDINAL_T)) / 1024.0 /
+                1024.0 / 1024.0 / time;
     float access_latency = time / (num_ranks * num_iters) * 1.0e6;
 
     printf("%i, %i, %i, %i, %lld, %.3f, %.2f, %.4f\n", num_ranks, league_size,
@@ -180,12 +177,12 @@ int main(int argc, char *argv[]) {
   }
 
   Kokkos::finalize();
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_finalize();
-  #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
-  #endif
+#endif
   MPI_Finalize();
 
   return 0;
