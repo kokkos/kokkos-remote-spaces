@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 
             // From global array index i, dermining PE and offset within PE
             // using two-dimensional indexing
-            b((j / myN) % numPEs, j % myN) = (T)a(myPE, i);
+            b((j / myN) % numPEs, j % myN) = (T)a(myPE, i % myN);
           });
 
       RemoteSpace_t().fence();
