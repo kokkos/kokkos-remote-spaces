@@ -48,11 +48,23 @@
 #include <generate_matrix.hpp>
 #include <mpi.h>
 
+//#define USE_GLOBAL_LAYOUT
+
 typedef Kokkos::Experimental::DefaultRemoteMemorySpace RemoteMemSpace_t;
+#ifndef USE_GLOBAL_LAYOUT
 typedef Kokkos::View<double **, RemoteMemSpace_t> RemoteView_t;
+#else
+typedef Kokkos::View<double *, Kokkos::GlobalLayoutLeft, RemoteMemSpace_t> RemoteView_t;
+#endif
+
 
 template <class YType, class AType, class XType>
 void spmv(YType y, AType A, XType x) {
+  int numRanks =1, rank = 0;
+  int64_t nrows = y.extent(0);
+  int vector_length = 8;
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 #ifdef KOKKOS_ENABLE_CUDA
   int rows_per_team = 16;
@@ -61,10 +73,6 @@ void spmv(YType y, AType A, XType x) {
   int rows_per_team = 512;
   int team_size = 1;
 #endif
-
-  int vector_length = 8;
-
-  int64_t nrows = y.extent(0);
 
   auto policy =
       require(Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
@@ -77,21 +85,32 @@ void spmv(YType y, AType A, XType x) {
         const int64_t last_row = first_row + rows_per_team < nrows
                                      ? first_row + rows_per_team
                                      : nrows;
-
         Kokkos::parallel_for(
             Kokkos::TeamThreadRange(team, first_row, last_row),
             [&](const int64_t row) {
               const int64_t row_start = A.row_ptr(row);
               const int64_t row_length = A.row_ptr(row + 1) - row_start;
-
               double y_row = 0.0;
               Kokkos::parallel_reduce(
                   Kokkos::ThreadVectorRange(team, row_length),
                   [=](const int64_t i, double &sum) {
-                    int64_t idx = A.col_idx(i + row_start);
-                    int64_t pid = idx / MASK;
-                    int64_t offset = idx % MASK;
-                    sum += A.values(i + row_start) * x(pid, offset);
+                    int64_t current_row = row_start + i;
+                    int64_t idx = A.col_idx(current_row);
+
+                    #ifndef USE_GLOBAL_LAYOUT
+                    // Enable for faster pid and offset calculation. May result in unfair comparison
+                    //int64_t pid = idx / MASK;
+                    //int64_t offset = idx % MASK;
+                    int64_t pid = idx / nrows;
+                    int64_t offset = idx % nrows;
+                    sum += A.values(current_row) * x(pid, offset);
+                    #else
+                    // Enable for faster pid and offset calculation. Caution: will not work with GlobalLayout
+                    // int64_t pid = idx / MASK;
+                    // int64_t offset = idx % MASK;
+                    sum += A.values(current_row) * x(idx);
+                    #endif
+                    
                   },
                   y_row);
               y(row) = y_row;
@@ -101,10 +120,12 @@ void spmv(YType y, AType A, XType x) {
   RemoteMemSpace_t().fence();
 }
 
+
 template <class YType, class XType> double dot(YType y, XType x) {
   double result = 0.0;
+  int64_t n = y.extent(0);
   Kokkos::parallel_reduce(
-      "DOT", y.extent(0),
+      "DOT", n,
       KOKKOS_LAMBDA(const int64_t &i, double &lsum) { lsum += y(i) * x(i); },
       result);
   return result;
@@ -190,7 +211,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
                   << std::endl;
       }
     }
-
+  
     double alpha = 0;
     double p_ap_dot = 0;
     spmv(Ap, A, p_global);
@@ -203,6 +224,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
       if (p_ap_dot < 0) {
         std::cerr << "miniFE::cg_solve ERROR, numerical breakdown!"
                   << std::endl;
+        num_iters = k;
         return num_iters;
       } else
         brkdown_tol = 0.1 * p_ap_dot;
@@ -238,7 +260,7 @@ int main(int argc, char *argv[]) {
   {
     int N = argc > 1 ? atoi(argv[1]) : 100;
     int max_iter = argc > 2 ? atoi(argv[2]) : 200;
-    double tolerance = argc > 3 ? atoi(argv[3]) : 1e-7;
+    double tolerance = 1e-7;
     CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
     Kokkos::View<double *, Kokkos::HostSpace> h_x =
         Impl::generate_miniFE_vector(N);
@@ -256,22 +278,15 @@ int main(int argc, char *argv[]) {
     Kokkos::deep_copy(A.col_idx, h_A.col_idx);
     Kokkos::deep_copy(A.values, h_A.values);
 
-    // Remote View
-    RemoteView_t p = Kokkos::Experimental::allocate_symmetric_remote_view<RemoteView_t>(
-        "MyView", numRanks, (h_x.extent(0) + numRanks - 1) / numRanks);
-
-    int64_t start_row = myRank * p.extent(1);
-    int64_t end_row = (myRank + 1) * p.extent(1);
-    if (end_row > h_x.extent(0))
-      end_row = h_x.extent(0);
-
-    // CG
-    Kokkos::pair<int64_t, int64_t> bounds(start_row, end_row);
-    Kokkos::View<double *> x_sub = Kokkos::subview(x, bounds);
-
+    #ifndef USE_GLOBAL_LAYOUT
+    RemoteView_t p = RemoteView_t("MyView", h_x.extent(0));
+    #else
+    //Allocate global size (runtime splits into chunks)
+    RemoteView_t p = RemoteView_t("MyView", numRanks * h_x.extent(0));
+    #endif
     Kokkos::Timer timer;
-
-    int num_iters = cg_solve(y, A, x_sub, p, max_iter, tolerance);
+    int num_iters = cg_solve(y, A, x, p, max_iter, tolerance);
+    
     double time = timer.seconds();
 
     // Compute Bytes and Flops
@@ -307,7 +322,7 @@ int main(int argc, char *argv[]) {
 
     if (myRank == 0) {
       printf(
-        "N, num_iters, total_flops, time, GFlops, GBs = %i, %i, %.2e, %.2lf, %.2lf, %.2lf\n", 
+        "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, %.2e, %.6lf, %.6lf, %.6lf\n", 
         N, num_iters, total_flops, time, GFlops, GBs
       );
     }

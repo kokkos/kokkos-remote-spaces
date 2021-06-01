@@ -36,7 +36,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
@@ -58,32 +58,31 @@
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
-
 namespace Experimental {
 
 struct RemoteSpaceSpecializeTag {};
 
 class SHMEMSpace {
 public:
-  typedef SHMEMSpace memory_space;
-  typedef size_t size_type;
 
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
-  typedef Kokkos::OpenMP execution_space;
+  using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
-  typedef Kokkos::Threads execution_space;
+  using execution_space = Kokkos::Threads;
 #elif defined(KOKKOS_ENABLE_OPENMP)
-  typedef Kokkos::OpenMP execution_space;
+  using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_THREADS)
-  typedef Kokkos::Threads execution_space;
+  using execution_space = Kokkos::Threads;
 #elif defined(KOKKOS_ENABLE_SERIAL)
-  typedef Kokkos::Serial execution_space;
+  using execution_space = Kokkos::Serial;
 #else
 #error                                                                         \
     "At least one of the following host execution spaces must be defined: Kokkos::OpenMP, Kokkos::Threads, Kokkos::Qthreads, or Kokkos::Serial.  You might be seeing this message if you disabled the Kokkos::Serial device explicitly using the Kokkos_ENABLE_Serial:BOOL=OFF CMake option, but did not enable any of the other host execution space devices."
 #endif
 
-  typedef Kokkos::Device<execution_space, memory_space> device_type;
+  using memory_space = SHMEMSpace;
+  using device_type = Kokkos::Device<execution_space, memory_space>;
+  using size_type = size_t;
 
   SHMEMSpace();
   SHMEMSpace(SHMEMSpace &&rhs) = default;
@@ -108,11 +107,9 @@ public:
 
   void fence();
 
-  int *rank_list;
   int allocation_mode;
   int64_t extent;
 
-  void impl_set_rank_list(int *const);
   void impl_set_allocation_mode(const int);
   void impl_set_extent(int64_t N);
 
@@ -122,107 +119,52 @@ private:
       Kokkos::Experimental::SHMEMSpace, void>;
 };
 
+KOKKOS_FUNCTION
+size_t get_num_pes();
+KOKKOS_FUNCTION
+size_t get_my_pe();
+KOKKOS_FUNCTION
+size_t get_block(size_t size);
+KOKKOS_FUNCTION
+size_t get_block_round_up(size_t size);
+KOKKOS_FUNCTION
+size_t get_block_round_down(size_t size);
+
 } // namespace Experimental
 } // namespace Kokkos
 
-
 namespace Kokkos {
-
 namespace Impl {
 
 template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+struct DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace>{
   DeepCopy(void* dst, const void* src, size_t);
 };
 
 template <>
-struct DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>{
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace>{
   DeepCopy(void* dst, const void* src, size_t);
 };
 
-
-static_assert(Kokkos::Impl::MemorySpaceAccess<
-                  Kokkos::Experimental::SHMEMSpace,
-                  Kokkos::Experimental::SHMEMSpace>::assignable,
-              "");
-
-} // namespace Impl
-} // namespace Kokkos
-
-
-namespace Kokkos {
-
-namespace Impl {
-
 template <>
-class SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
-    : public SharedAllocationRecord<void, void> {
-private:
-  friend Kokkos::Experimental::SHMEMSpace;
-
-  typedef SharedAllocationRecord<void, void> RecordBase;
-
-  SharedAllocationRecord(const SharedAllocationRecord &) = delete;
-  SharedAllocationRecord &operator=(const SharedAllocationRecord &) = delete;
-
-  static void deallocate(RecordBase *);
-
-  /**\brief  Root record for tracked allocations from this SHMEMSpace instance
-   */
-  static RecordBase s_root_record;
-
-  const Kokkos::Experimental::SHMEMSpace m_space;
-
-protected:
-  ~SharedAllocationRecord();
-  SharedAllocationRecord() = default;
-
-  SharedAllocationRecord(
-      const Kokkos::Experimental::SHMEMSpace &arg_space,
-      const std::string &arg_label, const size_t arg_alloc_size,
-      const RecordBase::function_type arg_dealloc = &deallocate);
-
-public:
-  inline std::string get_label() const {
-    return std::string(RecordBase::head()->m_label);
-  }
-
-  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *
-  allocate(const Kokkos::Experimental::SHMEMSpace &arg_space,
-           const std::string &arg_label, const size_t arg_alloc_size) {
-#if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
-    return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
-#else
-    return (SharedAllocationRecord *)0;
-#endif
-  }
-
-  /**\brief  Allocate tracked memory in the space */
-  static void *
-  allocate_tracked(const Kokkos::Experimental::SHMEMSpace &arg_space,
-                   const std::string &arg_label, const size_t arg_alloc_size);
-
-  /**\brief  Reallocate tracked memory in the space */
-  static void *reallocate_tracked(void *const arg_alloc_ptr,
-                                  const size_t arg_alloc_size);
-
-  /**\brief  Deallocate tracked memory in the space */
-  static void deallocate_tracked(void *const arg_alloc_ptr);
-
-  static SharedAllocationRecord *get_record(void *arg_alloc_ptr);
-
-  static void print_records(std::ostream &,
-                            const Kokkos::Experimental::SHMEMSpace &,
-                            bool detail = false);
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::SHMEMSpace>{
+  DeepCopy(void* dst, const void* src, size_t);
 };
 
-} // namespace Impl
-} // namespace Kokkos
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::SHMEMSpace,
+                ExecutionSpace> {
+  DeepCopy(void *dst, const void *src, size_t n);
+  DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n);
+};
 
-
-namespace Kokkos {
-
-namespace Impl {
+template <>
+struct MemorySpaceAccess<Kokkos::Experimental::SHMEMSpace,
+                         Kokkos::Experimental::SHMEMSpace> {
+  enum { assignable = true };
+  enum { accessible = true };
+  enum { deepcopy = false };
+};
 
 template <>
 struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
@@ -231,29 +173,18 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
   enum { deepcopy = true };
 };
 
-template <>
-struct VerifyExecutionCanAccessMemorySpace<Kokkos::HostSpace,
-                                           Kokkos::Experimental::SHMEMSpace> {
-  enum { value = true };
-  inline static void verify(void) {}
-  inline static void verify(const void *) {}
-};
-
-template <class ExecutionSpace>
-struct DeepCopy<Kokkos::Experimental::SHMEMSpace,
-                Kokkos::Experimental::SHMEMSpace, ExecutionSpace> {
-  DeepCopy(void *dst, const void *src, size_t n) { memcpy(dst, src, n); }
-
-  DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n) {
-    exec.fence();
-    memcpy(dst, src, n);
-  }
-};
-
 } // namespace Impl
 } // namespace Kokkos
 
-#include <Kokkos_SHMEMSpace_ViewMapping.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
+#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
+#include <Kokkos_RemoteSpaces_Options.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
+#include <Kokkos_SHMEMSpace_Ops.hpp>
+#include <Kokkos_SHMEMSpace_AllocationRecord.hpp>
+#include <Kokkos_SHMEMSpace_DataHandle.hpp>
+#include <Kokkos_SHMEMSpace_ViewTraits.hpp>
 
 #endif // #define KOKKOS_SHMEMSPACE_HPP

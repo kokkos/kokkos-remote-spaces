@@ -36,7 +36,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
@@ -75,7 +75,11 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
       current_win = MPI_WIN_NULL;
       MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
                        &current_win);
-      MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
+      assert(current_win != MPI_WIN_NULL);
+      int ret = MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
+      if (ret != MPI_SUCCESS) {
+        Kokkos::abort("MPI window lock all failed.");
+      }
       int i = -1;
       for (i = 0; i < mpi_windows.size(); i++)
         if (mpi_windows[i] == MPI_WIN_NULL)
@@ -84,6 +88,7 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
         mpi_windows.push_back(current_win);
       else
         mpi_windows[i] = current_win;
+
     } else {
       Kokkos::abort("MPISpace only supports symmetric allocation policy.");
     }
@@ -104,13 +109,13 @@ void MPISpace::deallocate(void *const, const size_t) const {
       break;
     }
 
+  assert(current_win != MPI_WIN_NULL);
   MPI_Win_unlock_all(current_win);
   MPI_Win_free(&current_win);
   current_win = MPI_WIN_NULL;
 }
 
 void MPISpace::fence() {
-
   for (int i = 0; i < mpi_windows.size(); i++) {
     if (mpi_windows[i] != MPI_WIN_NULL) {
       MPI_Win_flush_all(mpi_windows[i]);
@@ -120,156 +125,89 @@ void MPISpace::fence() {
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
-} // namespace Experimental
 
-namespace Impl
-{
-  Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::MPISpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
-  ::DeepCopy(void *dst, const void *src, size_t n) {
-      memcpy(dst, src, n);
-  }
-
-  Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace, HostSpace, Kokkos::Experimental::RemoteSpaceSpecializeTag>
-  ::DeepCopy(void *dst, const void *src, size_t n) {
-      memcpy(dst, src, n);
-  }
+size_t get_num_pes() {
+  int n_ranks;
+  MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+  return n_ranks;
 }
 
-} // namespace Kokkos
+size_t get_my_pe() {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  return rank;
+}
 
+size_t get_block_round_up(size_t size) {
+  size_t n_pe, block;
+  n_pe = get_num_pes();
+  block = (size % get_num_pes()) ? (size + n_pe) / n_pe : size / n_pe;
+  return block;
+}
 
-namespace Kokkos {
+size_t get_block_round_down(size_t size) {
+  size_t n_pe, block;
+  n_pe = get_num_pes();
+  block = size / n_pe;
+  return block;
+}
+
+size_t get_block(size_t size) { return get_block_round_up(size); }
+
+} // namespace Experimental
 
 namespace Impl {
 
-SharedAllocationRecord<void, void>
-    SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::s_root_record;
-
-void SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::deallocate(
-    SharedAllocationRecord<void, void> *arg_rec) {
-  delete static_cast<SharedAllocationRecord *>(arg_rec);
+Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::MPISpace>::DeepCopy(
+    void *dst, const void *src, size_t n) {
+  Kokkos::Experimental::MPISpace().fence();
+  memcpy(dst, src, n);
 }
 
-SharedAllocationRecord<Kokkos::Experimental::MPISpace,
-                       void>::~SharedAllocationRecord() {
-#if defined(KOKKOS_ENABLE_PROFILING)
-  if (Kokkos::Profiling::profileLibraryLoaded()) {
-    SharedAllocationHeader header;
-    /*Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
-    &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));*/
-
-    Kokkos::Profiling::deallocateData(
-        Kokkos::Profiling::SpaceHandle(Kokkos::Experimental::MPISpace::name()),
-        header.m_label, data(), size());
-  }
-#endif
-  m_space.current_win = win;
-  m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
-                     SharedAllocationRecord<void, void>::m_alloc_size);
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace, HostSpace>::DeepCopy(
+    void *dst, const void *src, size_t n) {
+  Kokkos::Experimental::MPISpace().fence();
+  memcpy(dst, src, n);
 }
 
-SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::
-    SharedAllocationRecord(
-        const Kokkos::Experimental::MPISpace &arg_space,
-        const std::string &arg_label, const size_t arg_alloc_size,
-        const SharedAllocationRecord<void, void>::function_type arg_dealloc)
-    // Pass through allocated [ SharedAllocationHeader , user_memory ]
-    // Pass through deallocation function
-    : SharedAllocationRecord<void, void>(
-#ifdef KOKKOS_DEBUG
-          &SharedAllocationRecord<Kokkos::Experimental::MPISpace,
-                                  void>::s_root_record,
-#endif
-          reinterpret_cast<SharedAllocationHeader *>(arg_space.allocate(
-              sizeof(SharedAllocationHeader) + arg_alloc_size)),
-          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc),
-      m_space(arg_space) {
-#if defined(KOKKOS_ENABLE_PROFILING)
-  if (Kokkos::Profiling::profileLibraryLoaded()) {
-    Kokkos::Profiling::allocateData(
-        Kokkos::Profiling::SpaceHandle(arg_space.name()), arg_label, data(),
-        arg_alloc_size);
-  }
-#endif
-  // Fill in the Header information
-  RecordBase::m_alloc_ptr->m_record =
-      static_cast<SharedAllocationRecord<void, void> *>(this);
-  strncpy(RecordBase::m_alloc_ptr->m_label, arg_label.c_str(),
-          SharedAllocationHeader::maximum_label_length);
-  win = m_space.current_win;
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
+                       Kokkos::Experimental::MPISpace>::DeepCopy(void *dst,
+                                                                 const void
+                                                                     *src,
+                                                                 size_t n) {
+  Kokkos::Experimental::MPISpace().fence();
+  memcpy(dst, src, n);
 }
 
-//----------------------------------------------------------------------------
-
-void *
-SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::allocate_tracked(
-    const Kokkos::Experimental::MPISpace &arg_space,
-    const std::string &arg_alloc_label, const size_t arg_alloc_size) {
-  if (!arg_alloc_size)
-    return (void *)0;
-
-  SharedAllocationRecord *const r =
-      allocate(arg_space, arg_alloc_label, arg_alloc_size);
-
-  RecordBase::increment(r);
-  return r->data();
+template <typename ExecutionSpace>
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
+                       Kokkos::Experimental::MPISpace,
+                       ExecutionSpace>::DeepCopy(void *dst, const void *src,
+                                                 size_t n) {
+  Kokkos::Experimental::MPISpace().fence();
+  memcpy(dst, src, n);
 }
 
-void SharedAllocationRecord<Kokkos::Experimental::MPISpace,
-                            void>::deallocate_tracked(void *const
-                                                          arg_alloc_ptr) {
-  if (arg_alloc_ptr != 0) {
-    SharedAllocationRecord *const r = get_record(arg_alloc_ptr);
-
-    RecordBase::decrement(r);
-  }
+template <typename ExecutionSpace>
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
+                       Kokkos::Experimental::MPISpace,
+                       ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
+                                                 void *dst, const void *src,
+                                                 size_t n) {
+  Kokkos::Experimental::MPISpace().fence();
+  memcpy(dst, src, n);
 }
 
-void *
-SharedAllocationRecord<Kokkos::Experimental::MPISpace,
-                       void>::reallocate_tracked(void *const arg_alloc_ptr,
-                                                 const size_t arg_alloc_size) {
-  SharedAllocationRecord *const r_old = get_record(arg_alloc_ptr);
-  SharedAllocationRecord *const r_new =
-      allocate(r_old->m_space, r_old->get_label(), arg_alloc_size);
-
-  Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
-                         Kokkos::Experimental::MPISpace>(
-      r_new->data(), r_old->data(), std::min(r_old->size(), r_new->size()));
-
-  RecordBase::increment(r_new);
-  RecordBase::decrement(r_old);
-
-  return r_new->data();
+// Currently not invoked. We need a better local_deep_copy overload that
+// recognizes consecutive memory regions
+void local_deep_copy_get(void *dst, const void *src, size_t pe, size_t n) {
+  // TBD
 }
 
-SharedAllocationRecord<Kokkos::Experimental::MPISpace, void> *
-SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::get_record(
-    void *alloc_ptr) {
-  typedef SharedAllocationHeader Header;
-  typedef SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>
-      RecordHost;
-
-  SharedAllocationHeader const *const head =
-      alloc_ptr ? Header::get_header(alloc_ptr) : (SharedAllocationHeader *)0;
-  RecordHost *const record =
-      head ? static_cast<RecordHost *>(head->m_record) : (RecordHost *)0;
-
-  if (!alloc_ptr || record->m_alloc_ptr != head) {
-    Kokkos::Impl::throw_runtime_exception(std::string(
-        "Kokkos::Impl::SharedAllocationRecord< Kokkos::Experimental::MPISpace "
-        ", void >::get_record ERROR"));
-  }
-
-  return record;
-}
-
-// Iterate records to print orphaned memory ...
-void SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::
-    print_records(std::ostream &s, const Kokkos::Experimental::MPISpace &,
-                  bool detail) {
-  SharedAllocationRecord<void, void>::print_host_accessible_records(
-      s, "MPISpace", &s_root_record, detail);
+// Currently not invoked. We need a better local_deep_copy overload that
+// recognizes consecutive memory regions
+void local_deep_copy_put(void *dst, const void *src, size_t pe, size_t n) {
+  // TBD
 }
 
 } // namespace Impl

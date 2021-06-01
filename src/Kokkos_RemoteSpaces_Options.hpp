@@ -36,61 +36,38 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
 */
 
-#ifndef TEST_REMOTE_ACCESS_HPP_
-#define TEST_REMOTE_ACCESS_HPP_
+#ifndef KOKKOS_REMOTESPACES_OPTIONS_HPP
+#define KOKKOS_REMOTESPACES_OPTIONS_HPP
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_RemoteSpaces.hpp>
-#include <gtest/gtest.h>
-#include <mpi.h>
+#include <cstdint>
 
-using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+namespace Kokkos {
 
-template <class Data_t, class Space_t> void test_remote_accesses(int size) {
-  int my_rank;
-  int num_ranks;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+enum RemoteSpaces_MemoryTraitsFlags {
+  GlobalIndex = 1 < 0x128,
+  Dim0IsNotPE = 1 < 0x192
+};
 
-  using TeamPolicy = Kokkos::TeamPolicy<>;
-  TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
+template <typename T> struct RemoteSpaces_MemoryTraits;
 
-  using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
-  using HostSpace_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
-  HostSpace_t v_H("HostView", 1, size);
+template <unsigned T> struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
+  enum : bool {
+    is_global_index = (unsigned(0) != (T & unsigned(GlobalIndex)))
+  };
 
-  // Allocate remote view
-  RemoteView_t v_R = RemoteView_t("RemoteView", num_ranks, size);
+  enum : bool {
+    is_dim0_is_not_pe = (unsigned(0) != (T & unsigned(Dim0IsNotPE)))
+  };
 
-  RemoteSpace_t().fence();
+  enum : int { state = T };
+};
+} // namespace Kokkos
 
-  Kokkos::parallel_for(
-      "Update", size, KOKKOS_LAMBDA(const int i) {
-              v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;         
-      });
-
-  Kokkos::Experimental::deep_copy(v_H, v_R);
-
-  Data_t check(0), ref(0);
-  for (int i = 0; i < size; i++) {
-    check += v_H(0, i);
-    ref += (num_ranks - my_rank - 1) * size + i;
-  }
-  ASSERT_EQ(check, ref);
-}
-
-TEST(TEST_CATEGORY, test_remote_accesses) {
-  test_remote_accesses<int, RemoteSpace_t>(0);
-  test_remote_accesses<int, RemoteSpace_t>(1);
-  test_remote_accesses<float, RemoteSpace_t>(122);
-  test_remote_accesses<int64_t, RemoteSpace_t>(4567);
-  test_remote_accesses<double, RemoteSpace_t>(89);
-}
-
-#endif /* TEST_REMOTE_ACCESS_HPP_ */
+#endif // KOKKOS_REMOTESPACES_OPTIONS_HPP
