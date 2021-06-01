@@ -36,61 +36,47 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
 */
 
-#ifndef TEST_REMOTE_ACCESS_HPP_
-#define TEST_REMOTE_ACCESS_HPP_
+#ifndef KOKKOS_REMOTESPACES_NVSHMEM_VIEWTRAITS_HPP
+#define KOKKOS_REMOTESPACES_NVSHMEM_VIEWTRAITS_HPP
 
-#include <Kokkos_Core.hpp>
-#include <Kokkos_RemoteSpaces.hpp>
-#include <gtest/gtest.h>
-#include <mpi.h>
+namespace Kokkos {
+/*
+ * ViewTraits class evaluated during View specialization
+ */
 
-using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+template <class... Properties>
+struct ViewTraits<void, Kokkos::Experimental::NVSHMEMSpace, Properties...> {
 
-template <class Data_t, class Space_t> void test_remote_accesses(int size) {
-  int my_rank;
-  int num_ranks;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  static_assert(
+      std::is_same<typename ViewTraits<void, Properties...>::execution_space,
+                   void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::memory_space,
+                       void>::value &&
+          std::is_same<
+              typename ViewTraits<void, Properties...>::HostMirrorSpace,
+              void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::array_layout,
+                       void>::value,
+      "Only one View Execution or Memory Space template argument");
 
-  using TeamPolicy = Kokkos::TeamPolicy<>;
-  TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
+  // Specify layout, keep subsequent space and memory traits arguments
+  using execution_space =
+      typename Kokkos::Experimental::NVSHMEMSpace::execution_space;
+  using memory_space =
+      typename Kokkos::Experimental::NVSHMEMSpace::memory_space;
+  using HostMirrorSpace = typename Kokkos::Impl::HostMirror<
+      Kokkos::Experimental::NVSHMEMSpace>::Space;
+  using array_layout = typename execution_space::array_layout;
+  using specialize = Kokkos::Experimental::RemoteSpaceSpecializeTag;
+  using memory_traits = typename ViewTraits<void, Properties...>::memory_traits;
+};
 
-  using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
-  using HostSpace_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
-  HostSpace_t v_H("HostView", 1, size);
+} // namespace Kokkos
 
-  // Allocate remote view
-  RemoteView_t v_R = RemoteView_t("RemoteView", num_ranks, size);
-
-  RemoteSpace_t().fence();
-
-  Kokkos::parallel_for(
-      "Update", size, KOKKOS_LAMBDA(const int i) {
-              v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;         
-      });
-
-  Kokkos::Experimental::deep_copy(v_H, v_R);
-
-  Data_t check(0), ref(0);
-  for (int i = 0; i < size; i++) {
-    check += v_H(0, i);
-    ref += (num_ranks - my_rank - 1) * size + i;
-  }
-  ASSERT_EQ(check, ref);
-}
-
-TEST(TEST_CATEGORY, test_remote_accesses) {
-  test_remote_accesses<int, RemoteSpace_t>(0);
-  test_remote_accesses<int, RemoteSpace_t>(1);
-  test_remote_accesses<float, RemoteSpace_t>(122);
-  test_remote_accesses<int64_t, RemoteSpace_t>(4567);
-  test_remote_accesses<double, RemoteSpace_t>(89);
-}
-
-#endif /* TEST_REMOTE_ACCESS_HPP_ */
+#endif // KOKKOS_REMOTESPACES_NVSHMEM_VIEWTRAITS_HPP

@@ -1,73 +1,61 @@
 ## Kokkos Remote Spaces
-Kokkos Remote Spaces (KRS) adds distributed memory support to the Kokkos parallel programming model. It does so by adding new memory space types to Kokkos. Memory spaces can be used to specialize Kokkos views. Specialized views (remote views) can be used to access local as well as remote memory, that is, memory in a different address space through the View type operator. KRS implements remote memory support via a set of back-ends that implement a PGAS access semantic. 
 
-### Background
-Traditionally, to support the execution on devices with disjoint memory address spaces, the developer is required to implements data exchange manually. This includes buffer allocation, data assembly (packing and unpacking), communication library invocation, and correct synchronization. PGAS programming models can simplify data management as they offer a globally accessible view of user data. While now a single-address space program can execute in parallel, spanning across many GPUs or cluster nodes, remote memory accesses are costly and special care is needed to achieve satisfactory performance. One strategy to reduce the exposure of memory access latencies, originating from per-element accesses, is the use of the block transfer API (deep_copy and local_deep_copy using remote views) in Kokkos. 
+<img src="https://user-images.githubusercontent.com/755191/120260364-ff398a80-c252-11eb-9f01-886bb888533a.png" width="500" align="right" >
 
-### Example 
-KRS includes a set of examples including a conjugate gradient solver (CGSolve).  CGSolve invokes a sequence of kernels that compute the product of two vectors (dot product), matrix-vector multiplication (gemm), and vector sum (axpy). To support multiple GPUs and cluster nodes, the program input data is divided into partitions where each partition corresponds to one such device. While the dot product and the vector sum computations access local data only due to their regular memory access patterns, the parallel matrix-vector multiplication accesses vector elements across all partitions (memory spaces). This makes the matrix-vector multiplication a great example to showcase the use of the KRS API
+Kokkos Remote Spaces adds distributed shared memory (DSM) support to the Kokkos parallel programming model. This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
-*Note: Kokkos Remote Spaces is in an experimental development stage.*
+Under the hood, a new memory space type, namely the `DefaultRemoteMemorySpace` type, represent a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer. 
 
-### Dependencies
-KRS requires MPI and Kokkos. At least one of the following dependencies must be enabled:
-- MPI with one-sided support
-- SHMEM (usually from OpenSHMEM or OpenMPI)
-- NVSHMEM (required for communication in CUDA kernels)
+Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows the fit of Kokkos Remote Spaces into the landscape of Kokkos and PGAS libraries.
+
+## Examples
+
+The following example illustrates the type definition of a Kokkos remote view. Further, it shows the instantiation of a remote view, in this case of a 3-dimensional array of 20 elements per dimension, and a subsequent instantiation of a subview that can span over multiple virtual address spaces. It is worth pointing out that GlobalLayouts, per definition, distribute arrays by the left-most dimension. View data can be accesses similarly to Kokkos views.
+
+<img src="https://user-images.githubusercontent.com/755191/120261884-10d06180-c256-11eb-9f07-9649a5331864.png" align="right" >
+
+We have included more examples in the source code distribution namely RandomAccess as well as CGSolve. CGSolve is an example of a representative code in scientific computing that implements the conjugate gradient method in Kokkos. Taking a closer look shows that CGSolve involves a sequence of kernels that compute the product of two vectors (dot product), perform a matrix-vector multiplication (gemm), and compute a vector sum (axpy). While data can be partitioned for the dot product and the vector sum computations, the matrix-vector multiplication accesses vector elements across all partitions (memory spaces). Because of this, it can be challenging to maintain resource utilization when scaling to multiple processes or GPUs. RandomAccess implements random access to memory. 
+
+## Insights
+
+The following charts provide a perspective on performance and development complexity. We document measured performance expressed as bandwidth (GB/sec) and quantify complexity with LOC (lines of code). We compare different executions on the Lassen supercomputer and compare against a reference implementation with MPI+Cuda. Here, the executions correspond to configurations with one, two, and four Nvidia V100 GPUs. We would like to point out that executions on >2 GPUs result in fine-grained memory accesses over the inter-processor communication interface which is significantly slower (~4x) than the NVLink interface connecting 2 GPUs each (NVLink complex).
+
+<img width="1301" alt="image" src="https://user-images.githubusercontent.com/755191/120264874-f7caaf00-c25b-11eb-8a60-942f8345091c.png">
+
+In this chart, GI (global indexing) and SI (local indexing) mark two implementations of CGSolve where one implementation uses Kokkos views with global layout (`GlobalLayoutLeft` and where the other uses `LayoutLeft` and thus relies on the programmer to compute the PE index. In the latter case, this computation can be implemented with a binary left-shift which yields a slight performance advantage. 
 
 ## Build
-For building KRS, you should build with the same compiler used to build Kokkos.
-For CUDA, this is usually `nvcc_wrapper`, e.g.
-````bash
-KOKKOS_CXX=${KOKKOS_INSTALL_PREFIX}/bin/nvcc_wrapper
-````
-Code should be built out-of-source in a separate build directory.
 
-#### MPI one-sided
-Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX` and a valid C++ compiler, an example configuration would be:
-````bash
-> cmake ${KRS_SOURCE_DIR} \
-  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
-  -DKokkos_ENABLE_MPISPACE=ON \
-  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
-````
+Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a selected PGAS backend library. The following steps document the build process from within the Kokkos Remote Spaces root directory.
 
-#### SHMEM
-Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX`, a SHMEM installation at `SHMEM_INSTALL_PREFIX`, and a valid C++ compiler, an example configuration would be:
-````bash
-> cmake ${KRS_SOURCE_DIR} \
-  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
-  -DSHMEM_ROOT=${SHMEM_INSTALL_PREFIX} \
-  -DKokkos_ENABLE_SHMEMSPACE=ON \
-  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
-````
-
-#### NVSHMEM
-Given a Kokkos installation at `KOKKOS_INSTALL_PREFIX`, an NVSHMEM installation at `NVSHMEM_INSTALL_PREFIX`, and a valid C++ compiler, an example configuration would be:
-````bash
-> cmake ${KRS_SOURCE_DIR} \
-  -DKokkos_ROOT=${KOKKOS_INSTALL_PREFIX} \
-  -DNVSHMEM_ROOT=${SHMEM_INSTALL_PREFIX} \
-  -DKokkos_ENABLE_NVSHMEMSPACE=ON \
-  -DCMAKE_CXX_COMPILER=${KOKKOS_CXX}
-````
-
-### API
-```C++
-template <class DataType [, class LayoutType] [, class RemoteMemorySpace] [, class MemoryTraits]>
-class View;
+`SHMEM`
+```
+   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
+   $: cmake . -DKokkos_ENABLE_SHMEMSPACE=ON
+           -DKokkos_DIR=${KOKKOS_BUILD_DIR} 
+           -DSHMEM_ROOT=${PATH_TO_MPI}
+           -DCMAKE_CXX_COMPILER=mpicxx
+   $: make
 ```
 
-## Example
-```C++
-using namespace Kokkos::Experimental;
-using RemoteSpace = DefaultRemoteMemorySpace;
-using RemoteView = Kokkos::View<int **, RemoteSpace>;
-...
-RemoteView v ("RemoteView", num_ranks, size_per_rank);
-v(pe,index)+=1;
-printf("%i\n", v(pe,index));
+`NVSHMEM`
+```
+   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
+   $: cmake . -DKokkos_ENABLE_NVSHMEMSPACE=ON
+           -DKokkos_DIR=${KOKKOS_BUILD_DIR} 
+           -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM}
+           -DCMAKE_CXX_COMPILER=nvcc_wrapper
+   $: make
 ```
 
-Hint: Launching multiple processes per node requires the use of the '--kokkos-num-devices' Kokkos runtime flag. Please consult the Kokkos documentation for further information.
+`MPI`
+```
+   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
+   $: cmake . -DKokkos_ENABLE_MPISPACE=ON
+           -DKokkos_DIR=${KOKKOS_BUILD_DIR} 
+           -DCMAKE_CXX_COMPILER=mpicxx
+   $: make
+```
+
+*Note: Kokkos Remote Spaces is in an experimental development stage.*
 

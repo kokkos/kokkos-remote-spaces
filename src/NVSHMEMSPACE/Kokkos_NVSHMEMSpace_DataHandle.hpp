@@ -41,57 +41,69 @@
 // ************************************************************************
 //@HEADER
 */
-#ifndef KOKKOS_REMOTESPACES_HPP
-#define KOKKOS_REMOTESPACES_HPP
-#include <Kokkos_Core.hpp>
 
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-namespace Kokkos {
-namespace Experimental {
-class SHMEMSpace;
-}
-} // namespace Kokkos
-#include <Kokkos_SHMEMSpace.hpp>
-#endif
-
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-namespace Kokkos {
-namespace Experimental {
-class NVSHMEMSpace;
-}
-} // namespace Kokkos
-#include <Kokkos_NVSHMEMSpace.hpp>
-#endif
-
-#ifdef KOKKOS_ENABLE_MPISPACE
-namespace Kokkos {
-namespace Experimental {
-class MPISpace;
-}
-} // namespace Kokkos
-#include <Kokkos_MPISpace.hpp>
-#endif
+#ifndef KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
+#define KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 
 namespace Kokkos {
-namespace Experimental {
+namespace Impl {
 
-enum { Monolithic, Symmetric, Asymmetric };
+template <class T, class Traits> struct NVSHMEMDataHandle {
+  T *ptr;
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataHandle() : ptr(NULL) {}
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-typedef NVSHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-typedef SHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KOKKOS_ENABLE_MPISPACE
-typedef MPISpace DefaultRemoteMemorySpace;
-#else
-error "At least one remote space must be selected."
-#endif
-#endif
-#endif
-} // namespace Experimental
+  template <typename iType>
+  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits>
+  operator()(const int &pe, const iType &i) const {
+    NVSHMEMDataElement<T, Traits> element(ptr, pe, i);
+    return element;
+  }
 
+  KOKKOS_INLINE_FUNCTION
+  T *operator+(size_t &offset) const { return ptr + offset; }
+};
+
+template <class Traits>
+struct ViewDataHandle<
+    Traits, typename std::enable_if<std::is_same<
+                typename Traits::specialize,
+                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
+
+  using value_type = typename Traits::value_type;
+  using handle_type = NVSHMEMDataHandle<value_type, Traits>;
+  using return_type = NVSHMEMDataElement<value_type, Traits>;
+  using track_type = Kokkos::Impl::SharedAllocationTracker;
+
+  KOKKOS_INLINE_FUNCTION
+  static handle_type assign(value_type *arg_data_ptr,
+                            track_type const & /*arg_tracker*/) {
+    return handle_type(arg_data_ptr);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type
+  assign(SrcHandleType const arg_data_ptr, size_t offset) {
+    return handle_type(arg_data_ptr + offset);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type
+  assign(SrcHandleType const arg_data_ptr) {
+    return handle_type(arg_data_ptr);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION handle_type operator=(SrcHandleType const &rhs) {
+    return handle_type(rhs);
+  }
+};
+
+} // namespace Impl
 } // namespace Kokkos
 
-#endif // KOKKOS_RESMOTESPACES_HPP
+#endif // KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP

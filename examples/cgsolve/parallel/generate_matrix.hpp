@@ -81,14 +81,15 @@ miniFE_get_row(int64_t *rows, S *vals, GO *cols, int64_t rows_per_proc,
                int64_t startrow, int64_t endrow, int64_t &row, int64_t o,
                int64_t nx1, int64_t c1, int64_t c2, int64_t c3, int64_t val,
                int64_t &miniFE_a, int64_t &miniFE_b, int64_t &miniFE_c) {
-  // FIXME (mfh 25 Jun 2014) Seriously, "val27"???  Who writes
-  // code like this???
+
+int rank;
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   bool val27 = false;
   if (c1 * c2 * c3 == 27) {
     val27 = true;
   }
-  // printf("%li %li %li\n",c1,c2,c3);
+
   if ((row >= startrow) && (row < endrow)) {
     int64_t offset = rows[row - startrow];
     rows[row + 1 - startrow] = offset + c1 * c2 * c3;
@@ -97,8 +98,13 @@ miniFE_get_row(int64_t *rows, S *vals, GO *cols, int64_t rows_per_proc,
         for (int64_t k = 0; k < c3; k++) {
           int64_t m = i * c2 * c3 + j * c2 + k;
           int64_t col_idx = o + i * nx1 * nx1 + j * nx1 + k;
-          cols[offset + m] =
-              (col_idx / rows_per_proc) * MASK + col_idx % rows_per_proc;
+          #ifndef USE_GLOBAL_LAYOUT
+            cols[offset + m] = col_idx; 
+            //Enable for faster pid and offset calculation. May result in unfair comparison
+            //cols[offset + m] = (col_idx / rows_per_proc) * MASK + col_idx % rows_per_proc;
+          #else 
+            cols[offset + m] = col_idx; 
+          #endif            
           if (val27) {
             bool doa = ((miniFE_a > 0) && (miniFE_a < nx1 - 3)) ||
                        ((miniFE_a == 0) && (m / 9 >= 1)) ||
@@ -143,7 +149,6 @@ miniFE_get_row(int64_t *rows, S *vals, GO *cols, int64_t rows_per_proc,
       miniFE_a++;
     }
   }
-
   row++;
 }
 
@@ -196,18 +201,18 @@ static CrsMatrix<Kokkos::HostSpace> generate_miniFE_matrix(int nx) {
 
   int64_t nx1 = nx + 1;
 
-  int nrows_block = 1 + nx - 1 + 1;
-  int nrows_superblock = (1 + nx - 1 + 1) * nrows_block;
-  int nrows = (1 + (nx - 1) + 1) * nrows_superblock;
+  int64_t nrows_block = 1 + (nx - 1 )+ 1;
+  int64_t nrows_superblock = (1 + (nx - 1) + 1) * nrows_block;
+  int64_t nrows = (1 + (nx - 1) + 1) * nrows_superblock;
 
   int64_t nnz = 0;
   nnz += 4 * (8 + (nx - 1) * 12 + 8);
   nnz += 4 * (nx - 1) * (12 + (nx - 1) * 18 + 12);
   nnz += (nx - 1) * (nx - 1) * (18 + (nx - 1) * 27 + 18);
 
-  int64_t rows_per_proc = (nrows + numRanks - 1) / numRanks;
-  int64_t startrow = rows_per_proc * myRank;
-  int64_t endrow = startrow + rows_per_proc;
+  int64_t rowsPerProc = (nrows + numRanks - 1) / numRanks;
+  int64_t startrow = rowsPerProc * myRank;
+  int64_t endrow = startrow + rowsPerProc;
   if (endrow > nrows)
     endrow = nrows;
 
@@ -223,14 +228,14 @@ static CrsMatrix<Kokkos::HostSpace> generate_miniFE_matrix(int nx) {
   LOCAL_ORDINAL *cols = &colInd[0];
 
   int64_t row = 0;
-  miniFE_get_superblock(rows, vals, cols, rows_per_proc, startrow, endrow, row,
+  miniFE_get_superblock(rows, vals, cols, rowsPerProc, startrow, endrow, row,
                         0, nx1, 2, 0, 0, 0, miniFE_a, miniFE_b, miniFE_c);
   for (int64_t i = 0; i < nx1 - 2; i++) {
-    miniFE_get_superblock(rows, vals, cols, rows_per_proc, startrow, endrow,
+    miniFE_get_superblock(rows, vals, cols, rowsPerProc, startrow, endrow,
                           row, i * nx1 * nx1, nx1, 3, 4, 2, 1, miniFE_a,
                           miniFE_b, miniFE_c);
   }
-  miniFE_get_superblock(rows, vals, cols, rows_per_proc, startrow, endrow, row,
+  miniFE_get_superblock(rows, vals, cols, rowsPerProc, startrow, endrow, row,
                         (nx1 - 2) * nx1 * nx1, nx1, 2, 4, 2, 1, miniFE_a,
                         miniFE_b, miniFE_c);
 
@@ -257,41 +262,46 @@ static void miniFE_vector_generate_superblock(S *vec, int nx, S a, S b, S c,
                                               int &count, int start, int end) {
   miniFE_vector_generate_block(vec, nx, 0.0, 0.0, count, start, end);
   miniFE_vector_generate_block(vec, nx, a, b, count, start, end);
-  for (int i = 0; i < nx - 3; i++)
+  for (int i = 0; i < nx - 3; i++){
     miniFE_vector_generate_block(vec, nx, a, c, count, start, end);
+  }
   miniFE_vector_generate_block(vec, nx, a, b, count, start, end);
   miniFE_vector_generate_block(vec, nx, 0.0, 0.0, count, start, end);
 }
 
 Kokkos::View<double *, Kokkos::HostSpace> generate_miniFE_vector(int64_t nx) {
 
-  int my_rank = 0;
-  int num_ranks = 1;
-  // MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
-  // MPI_Comm_size(MPI_COMM_WORLD,&num_ranks);
+  int myRank = 0;
+  int numRanks = 1;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+  MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
 
-  const int64_t numRows = (nx + 1) * (nx + 1) * (nx + 1);
+  int64_t nrows_block = 1 + (nx - 1) + 1;
+  int64_t nrows_superblock = (1 + (nx - 1) + 1) * nrows_block;
+  int64_t nrows = (1 + (nx - 1) + 1) * nrows_superblock;
 
-  int64_t start = numRows / num_ranks * my_rank;
-  int64_t end = start + numRows / num_ranks;
-  if (end > numRows)
-    end = numRows;
+  int64_t block = (nrows + numRanks - 1) / numRanks;
+  int64_t start = block * myRank;
+  int64_t end = start + block;
+  if (end > nrows)
+    end = nrows;
 
-  // Make a multivector X owned entirely by Proc 0.
-  Kokkos::View<double *, Kokkos::HostSpace> X("X_host", numRows);
-  double *vec = X.data();
+  Kokkos::View<double *, Kokkos::HostSpace> x("X_host", block);
+  double *vec = x.data();
   int count = 0;
   miniFE_vector_generate_superblock(vec, nx, 0.0, 0.0, 0.0, count, start, end);
   miniFE_vector_generate_superblock(vec, nx, 1.0, 5.0 / 12, 8.0 / 12, count,
                                     start, end);
-  for (int i = 0; i < nx - 3; i++)
+  for (int i = 0; i < nx - 3; i++){
     miniFE_vector_generate_superblock(vec, nx, 1.0, 8.0 / 12, 1.0, count, start,
                                       end);
+  }
+
   miniFE_vector_generate_superblock(vec, nx, 1.0, 5.0 / 12, 8.0 / 12, count,
                                     start, end);
   miniFE_vector_generate_superblock(vec, nx, 0.0, 0.0, 0.0, count, start, end);
 
-  return X;
+  return x;
 }
 
 } // namespace Impl

@@ -41,7 +41,7 @@
 // ************************************************************************
 //@HEADER
 */
-#include <Kokkos_Core.hpp>
+#include <Kokkos_Core.hpp> 
 #include <cassert>
 
 using ORDINAL_T = int64_t;
@@ -57,6 +57,7 @@ using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
 using Vector_t = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
 using Matrix_t = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
+
 
 int main(int argc, char *argv[]) {
 
@@ -78,39 +79,39 @@ int main(int argc, char *argv[]) {
     VectorHost_t b_h("b_h", nx);
     VectorHost_t x_h("x_h", nx);
 
-    Kokkos::deep_copy(A_h, 2.0);
-    Kokkos::deep_copy(b_h, 0.0);
-    Kokkos::deep_copy(x_h, 1.0);
+    Kokkos::deep_copy(A_h,2.0);
+    Kokkos::deep_copy(b_h,0.0);
+    Kokkos::deep_copy(x_h,1.0);
 
-    auto A = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), A_h);
-    auto b = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), b_h);
-    auto x = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), x_h);
+    auto A = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(),A_h);
+    auto b = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(),b_h);
+    auto x = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(),x_h);
 
     Kokkos::Timer timer;
     Kokkos::parallel_for(
-        "mv", policy,
-        KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
-          Kokkos::parallel_for(Kokkos::TeamThreadRange(team, nx),
-                               [&](CONST_ORDINAL_T row) {
-                                 VALUE_T b_row = 0.0;
-                                 Kokkos::parallel_reduce(
-                                     Kokkos::ThreadVectorRange(team, nx),
-                                     [=](CONST_ORDINAL_T col, VALUE_T &sum) {
-                                       sum += A(row, col) * x(col);
-                                     },
-                                     b_row);
-                                 b(row) = b_row;
-                               });
-        });
+    "mv", policy,
+    KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
+      Kokkos::parallel_for(
+      Kokkos::TeamThreadRange(team,nx),
+        [&](CONST_ORDINAL_T row) {
+          VALUE_T b_row = 0.0;
+          Kokkos::parallel_reduce(
+            Kokkos::ThreadVectorRange(team, nx),
+            [=](CONST_ORDINAL_T col, VALUE_T &sum) {        
+              sum += A(row,col) * x(col);
+            },
+            b_row);
+          b(row) = b_row;
+      });
+    });
 
     Kokkos::fence();
     time = timer.seconds();
 
-    Kokkos::deep_copy(b_h, b);
-    for (ORDINAL_T i = 0; i < nx; ++i)
-      assert(b_h(i) == 2 * nx);
-    printf("%.2f sec, %.2f MB/sec\n", time,
-           ((nx * nx + 2 * nx) * sizeof(VALUE_T) >> 10) / time);
+    Kokkos::deep_copy(b_h,b);
+    for(ORDINAL_T i = 0; i < nx; ++i)
+    assert(b_h(i) == 2*nx);
+    printf("%.2f sec, %.2f MB/sec\n", time, ((nx*nx + 2 * nx) * sizeof(VALUE_T)>>10) / time );
   }
   Kokkos::finalize();
   return 0;

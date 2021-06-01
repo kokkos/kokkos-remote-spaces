@@ -45,15 +45,14 @@
 #ifndef TEST_ALLOCATION_HPP_
 #define TEST_ALLOCATION_HPP_
 
-#include <gtest/gtest.h>
-#include <mpi.h>
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
+#include <gtest/gtest.h>
+#include <mpi.h>
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class ViewType> 
-void check_extents(ViewType view, int r) {
+template <class ViewType> void check_extents(ViewType view, int r) {
   int rank = view.rank;
   ASSERT_EQ(r, rank);
 }
@@ -72,16 +71,14 @@ void test_allocate_symmetric_remote_view_by_rank(Args... args) {
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-  using RemoteViewType = Kokkos::View<DataType, RemoteSpace>;
+  using RemoteView_t = Kokkos::View<DataType, RemoteSpace>;
 
-  //Check explicit mem space allocation through API call
-  RemoteViewType view =
-      Kokkos::Experimental::allocate_symmetric_remote_view<RemoteViewType>(
-          "MyRemoteView", numRanks, args...);
+  // Check explicit mem space allocation through API call
+  RemoteView_t view("MyRemoteView", numRanks, args...);
   check_extents(view, 0, numRanks, args...);
 
-  //Check implicit memort space allocaton 
-  view = RemoteViewType("MyRemoteView", numRanks, args...);
+  // Check implicit memort space allocaton
+  view = RemoteView_t("MyRemoteView", numRanks, args...);
   check_extents(view, 0, numRanks, args...);
 }
 
@@ -89,7 +86,26 @@ TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
   test_allocate_symmetric_remote_view_by_rank<double *, RemoteMemSpace>();
   test_allocate_symmetric_remote_view_by_rank<double **, RemoteMemSpace>(113);
   test_allocate_symmetric_remote_view_by_rank<double ***, RemoteMemSpace>(7, 5);
-  test_allocate_symmetric_remote_view_by_rank<double ****, RemoteMemSpace>(9, 10, 7);
+  test_allocate_symmetric_remote_view_by_rank<double ****, RemoteMemSpace>(
+  9, 10, 7);
+  test_allocate_symmetric_remote_view_by_rank<double *****, RemoteMemSpace>(
+  9, 10, 7, 2);
+  test_allocate_symmetric_remote_view_by_rank<double ******, RemoteMemSpace>(
+  9, 10, 7, 2, 1);
+        test_allocate_symmetric_remote_view_by_rank<double *******, RemoteMemSpace>(
+  9, 10, 7, 2, 1, 1);
+
+  test_allocate_symmetric_remote_view_by_rank<int *, RemoteMemSpace>();
+  test_allocate_symmetric_remote_view_by_rank<int **, RemoteMemSpace>(113);
+  test_allocate_symmetric_remote_view_by_rank<int ***, RemoteMemSpace>(7, 5);
+  test_allocate_symmetric_remote_view_by_rank<int ****, RemoteMemSpace>(
+      9, 10, 7);
+  test_allocate_symmetric_remote_view_by_rank<int *****, RemoteMemSpace>(
+  9, 10, 7, 2);
+  test_allocate_symmetric_remote_view_by_rank<int ******, RemoteMemSpace>(
+  9, 10, 7, 2, 1);
+        test_allocate_symmetric_remote_view_by_rank<int *******, RemoteMemSpace>(
+  9, 10, 7, 2, 1, 1);
 }
 
 #endif /* TEST_ALLOCATION_HPP_ */
