@@ -36,7 +36,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
@@ -50,9 +50,9 @@
 #include <numeric>
 #include <cmath>
 
-using GenPool=Kokkos::Random_XorShift64_Pool<>;
-using RemoteSpace=Kokkos::DefaultRemoteMemorySpace;
-using RemoteView=Kokkos::View<double**, Kokkos::DefaultRemoteMemorySpace>;
+using GenPool_t = Kokkos::Random_XorShift64_Pool<>;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t = Kokkos::View<double**, RemoteSpace_t>;
 
 int main(int argc, char** argv)
 {
@@ -75,11 +75,11 @@ int main(int argc, char** argv)
 
   option gopt[] = {
     { "help", no_argument, NULL, 'h' },
-    { "team_size", no_argument, NULL, 'T'},
-    { "size", no_argument, NULL, 'n'},
-    { "league_size", no_argument, NULL, 'L'},
-    { "repeat", no_argument, NULL, 'r'},
-    { "remote_teammates", no_argument, NULL, 'R'},
+    { "team_size", required_argument, NULL, 'T'},
+    { "size", required_argument, NULL, 'n'},
+    { "league_size", required_argument, NULL, 'L'},
+    { "repeat", required_argument, NULL, 'r'},
+    { "remote_teammates", required_argument, NULL, 'R'},
   };
 
   int ch;
@@ -113,8 +113,8 @@ int main(int argc, char** argv)
   }
 
   if (help){
-    std::cout << "missLatency <optional_args>"
-	"\n-n/--size:             The size of the array"
+    std::cout << "latency_test <optional_args>"
+	      "\n-n/--size:             The size of the array"
         "\n-T/--team_size:        The team size (default: 32)"
         "\n-L/--league_size:      The league size (default: array_size/team_size)"
         "\n-r/--repeat: 	  The number of iterations (default: 5)" 
@@ -160,14 +160,11 @@ int main(int argc, char** argv)
   }
   int partner_rank = rank == 0 ? 1 : 0;
 
-  std::vector<int> rankList(nproc);
-  std::iota(rankList.begin(), rankList.end(), 0);
-  
   using Team=Kokkos::TeamPolicy<>::member_type;
   {
     Kokkos::View<double*>  target("target", view_size);
     Kokkos::TeamPolicy<> policy(league_size,team_size,1);
-    RemoteView remote = Kokkos::allocate_symmetric_remote_view<RemoteView>("MyView",nproc,rankList.data(),view_size);
+    RemoteView_t remote ("MyView", nproc, view_size);
 
     Kokkos::Timer init_timer;
     //initialize the list of indices to zero
@@ -181,9 +178,7 @@ int main(int argc, char** argv)
       });
     });
   
-
     Kokkos::fence();
-
 
     Kokkos::Timer work_timer;
     for (int r=0; r < repeats; ++r){
@@ -192,22 +187,23 @@ int main(int argc, char** argv)
       //based on the logic above, some subset of the accesses will
       //"miss", causing a remote access
       Kokkos::parallel_for("work", policy, KOKKOS_LAMBDA (const Team &team){
-	uint64_t offset = uint64_t(team.league_rank()) * team_size;
-	Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_size), [&](int team_idx){
+      	uint64_t offset = uint64_t(team.league_rank()) * team_size;
+	      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_size), [&](int team_idx){
           int dst_idx = offset + team_idx;
           if (team_idx < remote_threads_per_warp) {
-	    target[dst_idx] = 2.0*remote(partner_rank,dst_idx);
+	          target[dst_idx] = 2.0*remote(partner_rank,dst_idx);
           }
         });
       });
-      RemoteSpace().fence();
-      double time = timer.seconds();
-      if (rank == 0){
-        printf("Iteration %d: %12.8fs\n", r, time);
-      }
-      //let the first repeat be a warm-up
-      if (r==0) work_timer.reset(); 
+
+    RemoteSpace_t().fence();
+    double time = timer.seconds();
+    if (rank == 0){
+      printf("Iteration %d: %12.8fs\n", r, time);
     }
+    //let the first repeat be a warm-up
+    if (r==0) work_timer.reset(); 
+  }
     Kokkos::fence();
     double work_time = work_timer.seconds();
     //we run league_size warp cycles
@@ -216,6 +212,7 @@ int main(int argc, char** argv)
       printf("Observed latency/warp: %12.8f us\n", latency_per_warp);
     }
   }
+
   Kokkos::finalize();
   MPI_Finalize();
   return 0;

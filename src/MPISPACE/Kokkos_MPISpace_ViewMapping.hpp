@@ -36,15 +36,14 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
 */
 
 #include <type_traits>
-//----------------------------------------------------------------------------
-/** \brief  View mapping for non-specialized data type and standard layout */
+
 namespace Kokkos {
 namespace Impl {
 

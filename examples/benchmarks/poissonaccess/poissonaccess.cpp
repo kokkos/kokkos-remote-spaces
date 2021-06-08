@@ -36,7 +36,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
@@ -50,9 +50,10 @@
 #include <numeric>
 #include <cmath>
 
-using GenPool=Kokkos::Random_XorShift64_Pool<>;
-using RemoteSpace=Kokkos::DefaultRemoteMemorySpace;
-using RemoteView=Kokkos::View<double**, Kokkos::DefaultRemoteMemorySpace>;
+using GenPool_t = Kokkos::Random_XorShift64_Pool<>;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t = Kokkos::View<double**, RemoteSpace_t>;
+using Team_t = Kokkos::TeamPolicy<>::member_type;
 
 #define MASK (2 << 27)
 constexpr uint64_t MISS_INDEX = std::numeric_limits<uint64_t>::max();
@@ -79,12 +80,12 @@ int main(int argc, char** argv)
 
   option gopt[] = {
     { "help", no_argument, NULL, 'h' },
-    { "lambda", no_argument, NULL, 'l'},
-    { "team_size", no_argument, NULL, 'T'},
-    { "nx", no_argument, NULL, 'n'},
-    { "league_size", no_argument, NULL, 'L'},
-    { "repeat", no_argument, NULL, 'r'},
-    { "fraction", no_argument, NULL, 'f'},
+    { "lambda", required_argument, NULL, 'l'},
+    { "team_size", required_argument, NULL, 'T'},
+    { "nx", required_argument, NULL, 'n'},
+    { "league_size", required_argument, NULL, 'L'},
+    { "repeat", required_argument, NULL, 'r'},
+    { "fraction", required_argument, NULL, 'f'},
   };
 
   int ch;
@@ -121,15 +122,15 @@ int main(int argc, char** argv)
   }
 
   if (help){
-    std::cout << "poisson <optional_args>"
-	"\n-n/--nx:               The dimension of the problem (total array size is nXnX)"
+    std::cout << "randomaccess-poisson <optional_args>"
+	      "\n-n/--nx:               The dimension of the problem (total array size is nXnX)"
         "\n-l/--lambda:           The possion parameter controlling the gap between misses."
-	"\n                       Lambda is the average gap"
+      	"\n                       Lambda is the average gap"
         "\n-T/--team_size:        The team size (default: 32)"
         "\n-L/--league_size:      The league size (default: array_size/team_size)"
-        "\n-r/--repeat: 	  The number of iterations (default: 5)" 
+        "\n-r/--repeat: 	        The number of iterations (default: 5)" 
         "\n-f/--fraction:         The number of warps doing only local accesses for every"
-	"\n			  remote warp. The remote fraction is 1/f"
+	      "\n			                  remote warp. The remote fraction is 1/f"
     ;
     return 0;
   }
@@ -163,27 +164,23 @@ int main(int argc, char** argv)
       << "  Argv[]=" << kokkos_argv[1] 
       << " ..." << std::endl;
   }
-
-  Kokkos::initialize(kokkos_argc,kokkos_argv);
-
-  std::vector<int> rankList(nproc);
-  std::iota(rankList.begin(), rankList.end(), 0);
   
-  using Team=Kokkos::TeamPolicy<>::member_type;
   {
-    GenPool pool(5374857);
+    Kokkos::ScopeGuard guard(argc, argv);
+
+    GenPool_t pool(5374857);
     Kokkos::View<int*> gaps("gaps", view_size);
     Kokkos::View<uint64_t*> misses("misses", view_size);
     Kokkos::View<uint64_t*> indices("indices", view_size);
     Kokkos::View<double*>  target("target", view_size);
     Kokkos::View<double*>  values("values", view_size);
     Kokkos::TeamPolicy<> policy(league_size,team_size,1);
-    RemoteView remote = Kokkos::allocate_symmetric_remote_view<RemoteView>("MyView",nproc,rankList.data(),view_size);
+    RemoteView_t remote("MyView", nproc, view_size);
 
     Kokkos::Timer init_timer;
     //initialize the list of indices to zero
     //randomly select gaps between misses in the index list
-    Kokkos::parallel_for("fill", policy, KOKKOS_LAMBDA (const Team &team){
+    Kokkos::parallel_for("fill", policy, KOKKOS_LAMBDA (const Team_t &team){
       int rank = team.league_rank();
       int offset = rank * team_size;
       auto gen = pool.get_state();
@@ -231,27 +228,28 @@ int main(int argc, char** argv)
     //that performs a stream benchmark
     //for certain teams (warps) and indices, change the stream index
     //to a remote index on another proc
-    Kokkos::parallel_for("index", policy, KOKKOS_LAMBDA (const Team& team) {
+    Kokkos::parallel_for("index", policy, KOKKOS_LAMBDA (const Team_t & team) {
       uint64_t offset = uint64_t(team.league_rank()) * team_size;
       int warp_remainder = team.league_rank() % remote_warp_fraction;
       Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_size), [&](int team_idx){
         uint64_t local_idx = offset + team_idx;
         //this warp has misses
         if (warp_remainder == 0 && indices[local_idx] == MISS_INDEX){
-	  int rank_stride = local_idx / nproc;
-	  int dst_idx = local_idx % view_size;
-	  if (rank_stride == 0) rank_stride = 1;
-	  int dst = (rank + rank_stride) % nproc;
-	  uint64_t global_dst_idx = uint64_t(dst) * MASK + uint64_t(dst_idx);
-	  indices[local_idx] = global_dst_idx;
+	        int rank_stride = local_idx / nproc;
+	        int dst_idx = local_idx % view_size;
+	        if (rank_stride == 0) rank_stride = 1;
+	        int dst = (rank + rank_stride) % nproc;
+	        uint64_t global_dst_idx = uint64_t(dst) * MASK + uint64_t(dst_idx);
+	        indices[local_idx] = global_dst_idx;
         } else { //this warp does not have misses
           indices[local_idx] = uint64_t(rank)*MASK + local_idx;
         }
         remote(rank,local_idx) = local_idx;
       });
     });
-    RemoteSpace().fence();
-    Kokkos::fence();
+
+    RemoteSpace_t().fence();
+    
     double init_time = init_timer.seconds();
 
     Kokkos::Timer work_timer;
@@ -260,20 +258,22 @@ int main(int argc, char** argv)
       //stream through the array and essentially just copy it over
       //based on the logic above, some subset of the accesses will
       //"miss", causing a remote access
-      Kokkos::parallel_for("work", policy, KOKKOS_LAMBDA (const Team &team){
+      Kokkos::parallel_for("work", policy, KOKKOS_LAMBDA (const Team_t &team){
   	  uint64_t offset = uint64_t(team.league_rank()) * team_size;
 	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_size), [&](int team_idx){
 	    uint64_t global_idx = indices[offset+team_idx];
 	    target[offset+team_idx] = 2.0*remote(global_idx/MASK,global_idx%MASK);
         });
       });
-      RemoteSpace().fence();
+
+      RemoteSpace_t().fence();
+
       double time = timer.seconds();
       if (rank == 0){
         printf("Iteration %d: %12.8fs\n", r, time);
       }
     }
-    Kokkos::fence();
+
     double work_time = work_timer.seconds();
     //each op reads/writes 2 doubles and 1 64-bit int
     double GB = repeats * view_size * (2*sizeof(double) + sizeof(uint64_t)) / 1e9;
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
       printf("Observed BW: %18.8f GB/s\n", bw);
     }
   }
-  Kokkos::finalize();
+
   MPI_Finalize();
   return 0;
 }

@@ -36,7 +36,7 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
 //
 // ************************************************************************
 //@HEADER
@@ -58,25 +58,27 @@
 #define ORDINAL_T int64_t
 #define SIGMA 1000
 
-using RemoteSpace = Kokkos::DefaultRemoteMemorySpace;
-using RemoteView = Kokkos::View<ORDINAL_T **, RemoteSpace>;
-using Generator = Kokkos::Random_XorShift64_Pool<>;
+using RemoteSpace_t =  Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t = Kokkos::View<ORDINAL_T **, RemoteSpace_t>;
+using Generator_t = Kokkos::Random_XorShift64_Pool<>;
+using TeamPolicy = Kokkos::TeamPolicy<>;
 
 /*
   Uncomment to select between random or linear access pattern. 
   Random access pattern follow either a 
   normal or random distribution.
 */
+
 KOKKOS_INLINE_FUNCTION
 ORDINAL_T get(const ORDINAL_T mean, const float variance,
-                   Generator::generator_type &g) {
+                   Generator_t::generator_type &g) {
   return g.normal(mean, variance);
   //return g.urand64();
   //return mean; 
 }
 
 int main(int argc, char *argv[]) {
-  ORDINAL_T array_size = (SIZE << 10) / sizeof(ORDINAL_T);
+  ORDINAL_T num_elems = (SIZE << 10) / sizeof(ORDINAL_T);
   ORDINAL_T num_iters = NUM_ITER;
   int sigma = SIGMA;
   int league_size = LEAGUE_SIZE;
@@ -85,18 +87,15 @@ int main(int argc, char *argv[]) {
 
   option gopt[] = {
     { "help", no_argument, NULL, 'h' },
-    { "size", no_argument, NULL, 's'},
-    { "sigma", no_argument, NULL, 'si'},
-    { "leage_size", no_argument, NULL, 'l'},
-    { "team_size", no_argument, NULL, 't'},
-    { "vec_len", no_argument, NULL, 'v'},
+    { "size", required_argument, NULL, 's'},
+    { "sigma", required_argument, NULL, 'g'},
+    { "leage_size", required_argument, NULL, 'l'},
+    { "team_size", required_argument, NULL, 't'},
   };
 
   int ch;
   bool help = false;
-  bool keepParsingOpts = true;
-  optind = 1;
-  while ((ch = getopt_long(argc, argv, "hs:si:l:t:v:", gopt, NULL)) != -1 && keepParsingOpts){
+  while ((ch = getopt_long(argc, argv, "hs:g:l:t:", gopt, NULL)) != -1){
       switch (ch) {
       case 0:
         //this set an input flag
@@ -105,9 +104,9 @@ int main(int argc, char *argv[]) {
         help = true;
         break;
       case 's': 
-        array_size = (std::atoi(optarg) << 10) / sizeof(ORDINAL_T);
+        num_elems = (std::atoi(optarg) << 10) / sizeof(ORDINAL_T);
         break;
-      case 'si':
+      case 'g':
         sigma = std::atoi(optarg);
         break;
       case 'l':
@@ -122,7 +121,7 @@ int main(int argc, char *argv[]) {
   if (help){
     std::cout << "randomaccess <optional_args>"
 	    "\n-s/--size:             The size of the problem in kB (default: 1000)"
-      "\n-si/--sigma:           Sigma used to conpute variance normalized to 1000 (default: 1000)"
+      "\n-g/--sigma:            Sigma used to conpute variance normalized to 1000 (default: 1000)"
       "\n-t/--team_size:        The team size (default: 32)"
       "\n-l/--league_size:      The league size (default: 1)"
       "\n-h/--help:             Prints this help message"
@@ -153,7 +152,6 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
   ORDINAL_T next_iters = num_iters;
   ORDINAL_T elems_per_rank;
-  ORDINAL_T iters_per_team;
 
   // Compute variance: Three Sigma rule
   // https://en.wikipedia.org/wiki/68–95–99.7_rule
@@ -163,23 +161,22 @@ int main(int argc, char *argv[]) {
   if (sigma <= 0)
     variance = sigma_fixed;
   else {
-    float max_spread = array_size * sigma_fixed;
+    float max_spread = num_elems * sigma_fixed;
     variance = max_spread / 1000.0 * sigma;
   }
-
-  Kokkos::initialize(argc, argv);
-  using TeamPolicy = Kokkos::TeamPolicy<>;
-  TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);  
+  
   {
-    elems_per_rank = ceil(1.0 * array_size / num_ranks);
-    int rank_list[num_ranks];
-    for (int r = 0; r < num_ranks; r++)
-      rank_list[r] = r;
-    RemoteView v = Kokkos::allocate_symmetric_remote_view<RemoteView>(
-        "RemoteView", num_ranks, rank_list, elems_per_rank);
+    Kokkos::ScopeGuard guard(argc, argv);
+    TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);  
+  
+    ORDINAL_T num_elems_per_rank;
+    ORDINAL_T iters_per_team;
+    num_elems_per_rank = ceil(1.0 * num_elems / num_ranks);
+
+    RemoteView_t v("RemoteView", num_ranks, num_elems_per_rank);
 
     do {
-      Generator gen_pool(5374857);
+      Generator_t gen_pool(5374857);
     
       // Update execution parameters
       num_iters = next_iters;
@@ -191,19 +188,21 @@ int main(int argc, char *argv[]) {
       Kokkos::parallel_for(
           "Outer", policy,
           KOKKOS_LAMBDA(const TeamPolicy::member_type &team) {
-            Generator::generator_type g = gen_pool.get_state();
+            Generator_t::generator_type g = gen_pool.get_state();
             Kokkos::parallel_for(              
                 Kokkos::TeamThreadRange(team, my_rank * iters_per_team, 
                 (my_rank+1) * iters_per_team), [&](const int i) {
-                  ORDINAL_T index = abs(get(i, variance, g));
-                    int rank = floor(index / elems_per_rank);
-                    v(rank, index % elems_per_rank) ^= 0xC0FFEE;
-
+                  int rank;
+                  ORDINAL_T index;
+                  index = abs(get(i, variance, g));
+                  rank = index / elems_per_rank;
+                  index = index % num_elems_per_rank;
+                  v(rank, index) ^= 0xC0FFEE;
                 });
             gen_pool.free_state(g);
         });
 
-      RemoteSpace().fence();
+      RemoteSpace_t().fence();
       time = timer.seconds();
 
       // Increase iteration space to reach a 2 sec. execution time.
@@ -223,10 +222,11 @@ int main(int argc, char *argv[]) {
       league_size, 
       team_size,
       vec_len, 
-      array_size, 
-      access_latency, time, GBs);
+      num_elems, 
+      access_latency, 
+      time, 
+      GBs);
   }
 
-  Kokkos::finalize();
   MPI_Finalize();
 }
