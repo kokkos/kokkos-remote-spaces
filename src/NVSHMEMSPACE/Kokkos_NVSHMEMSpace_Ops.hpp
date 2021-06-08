@@ -372,7 +372,7 @@ struct NVSHMEMDataElement<
     do {
       tmp = oldval;
       newval = tmp & val;
-      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval);
+      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval, pe);
     } while (tmp != oldval);
     return tmp;
   }
@@ -384,7 +384,7 @@ struct NVSHMEMDataElement<
     do {
       tmp = oldval;
       newval = tmp ^ val;
-      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval);
+      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval, pe);
     } while (tmp != oldval);
     return tmp;
   }
@@ -396,7 +396,7 @@ struct NVSHMEMDataElement<
     do {
       tmp = oldval;
       newval = tmp | val;
-      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval);
+      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval, pe);
     } while (tmp != oldval);
     return tmp;
   }
@@ -408,7 +408,7 @@ struct NVSHMEMDataElement<
     do {
       tmp = oldval;
       newval = tmp << val;
-      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval);
+      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval, pe);
     } while (tmp != oldval);
     return tmp;
   }
@@ -420,7 +420,7 @@ struct NVSHMEMDataElement<
     do {
       tmp = oldval;
       newval = tmp >> val;
-      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval);
+      oldval = shmem_type_atomic_compare_swap(ptr, tmp, newval, pe);
     } while (tmp != oldval);
     return tmp;
   }
