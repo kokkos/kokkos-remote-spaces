@@ -45,6 +45,8 @@
 #ifndef KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 #define KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 
+#include <Racerlib_interface.hpp>
+
 namespace Kokkos {
 namespace Impl {
 
