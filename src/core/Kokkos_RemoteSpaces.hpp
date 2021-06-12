@@ -45,6 +45,10 @@
 #define KOKKOS_REMOTESPACES_HPP
 #include <Kokkos_Core.hpp>
 
+#ifdef KOKKOS_ENABLE_RACERLIB
+#include <Racerlib_interface.hpp>
+#endif
+
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
