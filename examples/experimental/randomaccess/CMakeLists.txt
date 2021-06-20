@@ -1,0 +1,2 @@
+add_executable(randomaccess_exp randomaccess.cpp)
+target_link_libraries(randomaccess_exp PRIVATE Kokkos::kokkosremote)

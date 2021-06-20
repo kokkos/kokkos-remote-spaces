@@ -1,3 +1,46 @@
+/*
+//@HEADER
+// ************************************************************************
+//
+//                        Kokkos v. 3.0
+//       Copyright (2020) National Technology & Engineering
+//               Solutions of Sandia, LLC (NTESS).
+//
+// Under the terms of Contract DE-NA0003525 with NTESS,
+// the U.S. Government retains certain rights in this software.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the Corporation nor the names of the
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
+//
+// ************************************************************************
+//@HEADER
+*/
 
 #include <RDMA_Interface.hpp>
 
@@ -74,7 +117,7 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker *sgw, Team &&team,
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
   KOKKOS_REMOTE_SHARED int
-      misses[32]; // TODO, make this an array, I'm too lazy right now
+      misses[32]; // TODO, make this an array
   for (int i = 0; i < 32; ++i)
     misses[i] = 0;
   completion = 0;
@@ -150,70 +193,6 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker *sgw, Team &&team,
 }
 
 #else
-
-template <typename T, class Team>
-KOKKOS_FUNCTION void pack_response(T *local_values,
-                                   RdmaScatterGatherWorker *sgw,
-                                   unsigned *completion_flag, Team &&team) {
-  KOKKOS_REMOTE_SHARED unsigned completion;
-  KOKKOS_REMOTE_SHARED uint64_t request;
-  completion = 0;
-  uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
-  while (completion == 0) {
-    uint64_t idx = sgw->rx_block_request_ctr % queue_size;
-    uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
-    Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
-    });
-    team.team_barrier();
-    if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
-      uint32_t num_requests = GET_BLOCK_SIZE(request);
-      uint32_t pe = GET_BLOCK_PE(request);
-      uint32_t window = GET_BLOCK_WINDOW(request);
-      uint32_t reply_offset =
-          pe * queue_size + sgw->tx_element_reply_ctrs[pe] % queue_size;
-      uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
-      T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
-
-      auto vec_length = team.vector_length();
-      uint64_t num_passes = num_requests / vec_length;
-      if (num_requests % vec_length)
-        num_passes++;
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 0, num_passes),
-                           [&](const int64_t pass) {
-                             uint64_t start = pass * vec_length;
-                             uint64_t stop = start + vec_length;
-                             if (stop > num_requests)
-                               stop = num_requests;
-                             Kokkos::parallel_for(
-                                 Kokkos::ThreadVectorRange(team, start, stop),
-                                 [=](uint64_t my_index) {
-                                   // this needs to be volatile to force
-                                   // visibility from the IB send
-                                   uint32_t offset = GET_ELEMENT_OFFSET(
-                                       volatile_load(&offsets[my_index]));
-                                   reply_tx_buffer_T[my_index] =
-                                       local_values[offset];
-                                 });
-                           });
-      Kokkos::single(Kokkos::PerTeam(team), [&]() {
-        ++sgw->rx_block_request_ctr;
-        sgw->tx_element_reply_ctrs[pe] += num_requests;
-      });
-
-      KOKKOS_REMOTE_THREADFENCE_SYSTEM();
-      Kokkos::single(Kokkos::PerTeam(team), [&]() {
-        volatile_store(&sgw->tx_block_reply_cmd_queue[idx], request);
-      });
-    }
-    Kokkos::single(Kokkos::PerTeam(team),
-                   [&]() { completion = volatile_load(completion_flag); });
-    team.team_barrier();
-  }
-  team.team_barrier();
-  Kokkos::single(Kokkos::PerTeam(team),
-                 [&]() { volatile_store(completion_flag, 0u); });
-}
 
 template <class Team>
 KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
@@ -312,6 +291,71 @@ KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
     volatile_store(sgw->response_done_flag, 1u);
   });
 }
+
+template <typename T, class Team>
+KOKKOS_FUNCTION void pack_response(T *local_values,
+                                   RdmaScatterGatherWorker *sgw,
+                                   unsigned *completion_flag, Team &&team) {
+  KOKKOS_REMOTE_SHARED unsigned completion;
+  KOKKOS_REMOTE_SHARED uint64_t request;
+  completion = 0;
+  uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
+  while (completion == 0) {
+    uint64_t idx = sgw->rx_block_request_ctr % queue_size;
+    uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
+    Kokkos::single(Kokkos::PerTeam(team), [&]() {
+      request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
+    });
+    team.team_barrier();
+    if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
+      uint32_t num_requests = GET_BLOCK_SIZE(request);
+      uint32_t pe = GET_BLOCK_PE(request);
+      uint32_t window = GET_BLOCK_WINDOW(request);
+      uint32_t reply_offset =
+          pe * queue_size + sgw->tx_element_reply_ctrs[pe] % queue_size;
+      uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
+      T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
+
+      auto vec_length = team.vector_length();
+      uint64_t num_passes = num_requests / vec_length;
+      if (num_requests % vec_length)
+        num_passes++;
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 0, num_passes),
+                           [&](const int64_t pass) {
+                             uint64_t start = pass * vec_length;
+                             uint64_t stop = start + vec_length;
+                             if (stop > num_requests)
+                               stop = num_requests;
+                             Kokkos::parallel_for(
+                                 Kokkos::ThreadVectorRange(team, start, stop),
+                                 [=](uint64_t my_index) {
+                                   // this needs to be volatile to force
+                                   // visibility from the IB send
+                                   uint32_t offset = GET_ELEMENT_OFFSET(
+                                       volatile_load(&offsets[my_index]));
+                                   reply_tx_buffer_T[my_index] =
+                                       local_values[offset];
+                                 });
+                           });
+      Kokkos::single(Kokkos::PerTeam(team), [&]() {
+        ++sgw->rx_block_request_ctr;
+        sgw->tx_element_reply_ctrs[pe] += num_requests;
+      });
+
+      KOKKOS_REMOTE_THREADFENCE_SYSTEM();
+      Kokkos::single(Kokkos::PerTeam(team), [&]() {
+        volatile_store(&sgw->tx_block_reply_cmd_queue[idx], request);
+      });
+    }
+    Kokkos::single(Kokkos::PerTeam(team),
+                   [&]() { completion = volatile_load(completion_flag); });
+    team.team_barrier();
+  }
+  team.team_barrier();
+  Kokkos::single(Kokkos::PerTeam(team),
+                 [&]() { volatile_store(completion_flag, 0u); });
+}
+
 
 #endif // RAW_CUDA
 

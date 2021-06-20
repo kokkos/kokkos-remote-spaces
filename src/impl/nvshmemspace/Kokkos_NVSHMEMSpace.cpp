@@ -110,7 +110,6 @@ size_t get_block_round_down(size_t size) {
   return block;
 }
 
-KOKKOS_FUNCTION
 size_t get_block(size_t size) { return get_block_round_up(size); }
 
 } // namespace Experimental

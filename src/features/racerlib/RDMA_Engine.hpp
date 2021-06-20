@@ -54,6 +54,7 @@
 #include <RDMA_Access_Cache.hpp>
 #include <RDMA_Transport.hpp>
 #include <RDMA_Worker.hpp>
+#include <RDMA_Helpers.hpp>
 
 #include <infiniband/verbs.h>
 #include <iostream>
@@ -214,7 +215,7 @@ struct PendingRdmaRequest {
 struct RdmaScatterGatherEngine {
 
   // for optimization purposes, we have a statically sized queue
-  constexpr static uint32_t queue_size = 1 << 20;
+  constexpr static uint32_t queue_size = QUEUE_SIZE;
 
   RemoteWindow *get_rx_remote_window(int idx) const {
     RemoteWindow *windows = (RemoteWindow *)rx_remote_windows_mr->addr;

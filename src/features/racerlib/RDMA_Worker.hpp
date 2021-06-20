@@ -53,7 +53,7 @@ namespace RACERlib {
 struct RdmaScatterGatherWorker {
   // struct RemoteCacheHolder;
 
-  static constexpr uint32_t queue_size = /*FIXME RdmaScatterGatherEngine::queue_size;*/ 1;
+  static constexpr uint32_t queue_size = QUEUE_SIZE;
 
   template <class T> KOKKOS_FUNCTION T get(int pe, uint32_t offset);
 

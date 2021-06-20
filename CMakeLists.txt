@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.12)
 
-project(KokkosRemote 
+project(KokkosRemote
   LANGUAGES CXX 
   VERSION 0.1.0)
 
@@ -12,7 +12,7 @@ option(Kokkos_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
 option(Kokkos_ENABLE_SHMEMSPACE   "Whether to build with SHMEMS space" OFF)
 option(Kokkos_ENABLE_MPISPACE     "Whether to build with MPI space" OFF)
 option(Kokkos_ENABLE_TESTS   "Whether to enable tests" OFF)
-option(Kokkos_ENABLE_RACERLIB   "Whether to enable RACERlib" OFF)
+option(Kokkos_ENABLE_EXPERIMENTAL   "Whether to enable experimental features (RACERlib)" OFF)
 
 set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
@@ -57,7 +57,7 @@ if (Kokkos_ENABLE_MPISPACE)
   list(APPEND SOURCE_DIRS ${MPISPACE_PATH})
   list(APPEND PUBLIC_DEPS ${BACKEND_NAME})
 endif()
-if (Kokkos_ENABLE_RACERLIB)
+if (Kokkos_ENABLE_EXPERIMENTAL)
   find_package(IBVERBS REQUIRED)
   list(APPEND PUBLIC_DEPS IBVERBS)
 endif()
@@ -75,7 +75,7 @@ foreach(DIR ${SOURCE_DIRS})
   list(APPEND HEADERS ${DIR_HDRS})
 endforeach()
 
-if (Kokkos_ENABLE_RACERLIB)
+if (Kokkos_ENABLE_EXPERIMENTAL)
   file(GLOB DIR_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib/*.cpp)
   file(GLOB DIR_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib/*.hpp)
   list(APPEND SOURCES ${DIR_SRCS})
@@ -91,8 +91,8 @@ foreach(DIR ${SOURCE_DIRS})
   target_compile_definitions(kokkosremote PUBLIC KOKKOS_ENABLE_${BACKEND_NAME})
 endforeach()
 
-if (Kokkos_ENABLE_RACERLIB)
-target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib>)
+if (Kokkos_ENABLE_EXPERIMENTAL)
+  target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib>)
 endif()
 
 target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/core>)
@@ -143,6 +143,7 @@ install(EXPORT
 )
 
 add_subdirectory(examples)
+
 IF (Kokkos_ENABLE_TESTS)
   enable_testing()
   add_subdirectory(unit_tests)

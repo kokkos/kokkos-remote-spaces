@@ -49,6 +49,8 @@
 #include <mpi.h>
 #include <stdlib.h>
 
+#define RANDOM_DISTRO
+
 // Default values
 #define SIZE 1024
 #define NUM_ITER 100
@@ -72,9 +74,15 @@ using TeamPolicy = Kokkos::TeamPolicy<>;
 KOKKOS_INLINE_FUNCTION
 ORDINAL_T get(const ORDINAL_T mean, const float variance,
                    Generator_t::generator_type &g) {
+  #ifdef NORMAL_DISTRO
   return g.normal(mean, variance);
-  //return g.urand64();
-  //return mean; 
+  #endif
+
+  #ifdef RANDOM_DISTRO
+  return g.urand64();
+  #endif
+  
+  return mean; 
 }
 
 int main(int argc, char *argv[]) {
@@ -155,15 +163,16 @@ int main(int argc, char *argv[]) {
 
   // Compute variance: Three Sigma rule
   // https://en.wikipedia.org/wiki/68–95–99.7_rule
-
+  
+  float variance = 0;
   const float sigma_fixed = 0.20;
-  float variance;
   if (sigma <= 0)
     variance = num_elems * sigma_fixed;
   else {
     float max_spread = num_elems * sigma_fixed;
     variance = max_spread / 1000.0 * sigma;
   }
+
   
   {
     Kokkos::ScopeGuard guard(argc, argv);

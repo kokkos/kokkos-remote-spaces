@@ -1,2 +1,5 @@
 add_subdirectory(cgsolve)
 add_subdirectory(benchmarks)
+if (Kokkos_ENABLE_EXPERIMENTAL)
+ add_subdirectory(experimental)
+endif()
