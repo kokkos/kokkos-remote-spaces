@@ -261,9 +261,9 @@ int main(int argc, char *argv[]) {
     int N = argc > 1 ? atoi(argv[1]) : 100;
     int max_iter = argc > 2 ? atoi(argv[2]) : 200;
     double tolerance = 1e-7;
-    CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
+    CrsMatrix<Kokkos::HostSpace> h_A = generate_miniFE_matrix(N);
     Kokkos::View<double *, Kokkos::HostSpace> h_x =
-        Impl::generate_miniFE_vector(N);
+        generate_miniFE_vector(N);
 
     Kokkos::View<int64_t *> row_ptr("row_ptr", h_A.row_ptr.extent(0));
     Kokkos::View<int64_t *> col_idx("col_idx", h_A.col_idx.extent(0));

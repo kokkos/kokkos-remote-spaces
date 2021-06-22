@@ -44,6 +44,8 @@
 
 #include <RDMA_Interface.hpp>
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
 
 #ifdef RAW_CUDA
@@ -360,3 +362,5 @@ KOKKOS_FUNCTION void pack_response(T *local_values,
 #endif // RAW_CUDA
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos

@@ -46,7 +46,7 @@
 #include <Kokkos_Core.hpp>
 
 #ifdef KOKKOS_ENABLE_RACERLIB
-#include <Racerlib_interface.hpp>
+#include <RACERlib_Interface.hpp>
 #endif
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE

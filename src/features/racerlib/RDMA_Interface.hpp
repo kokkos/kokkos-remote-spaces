@@ -47,6 +47,8 @@
 
 #include <RDMA_Worker.hpp>
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
 
 #ifdef RAW_CUDA
@@ -58,9 +60,6 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker *sgw,
 template <class Team>
 __device__ void aggregate_requests(RdmaScatterGatherWorker *sgw, Team &&team,
                                    unsigned num_worker_teams);
-
-
-
 
 #else
 
@@ -147,6 +146,9 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   remote_space().fence();
   view.impl_map().clear_fence(exec_space{});
 }
+
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos
 
 #endif // RACERLIB_RDMA_INTERFACE

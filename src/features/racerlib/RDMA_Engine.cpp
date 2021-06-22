@@ -55,8 +55,9 @@
 
 using namespace Kokkos;
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
-
 
 Transport *request_tport = nullptr;
 Transport *response_tport = nullptr;
@@ -460,7 +461,7 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
   available_reply_keys.append(req.token);
 }
 
-void Features::Cache::RemoteCache::invalidate() {
+void Cache::RemoteCache::invalidate() {
   memset_device(flags, 0, 2 * sizeof(unsigned int) * num_pes * pe_num_entries);
 }
 
@@ -498,9 +499,8 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   delete[] tx_element_request_acked_ctrs;
 }
 
-RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buf,
-                                                 size_t elem_size,
-                                                 size_t header_size)
+RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, 
+                                                 size_t elem_size)                                                
     : comm(c), tx_block_request_ctr(0), rx_block_request_ctr(0),
       tx_block_reply_ctr(0), epoch(0), terminate_signal(0) {
   if (available_reply_keys.size() == 0) {
@@ -621,7 +621,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buf,
   std::vector<RdmaScatterGatherBuffer> remote_bufs(num_pes);
   RdmaScatterGatherBuffer data;
 #ifdef KOKKOS_ENABLE_CUDA
-  cuda_safe(cuIpcGetMemHandle(&ipc_handle, (CUdeviceptr)buf));
+  ///*FIXME*/
+  //cuda_safe(cuIpcGetMemHandle(&ipc_handle, (CUdeviceptr)buf));
   data.handle = ipc_handle;
 #endif
   data.reply_tx_buffer = tx_element_reply_queue_mr->addr;
@@ -742,12 +743,11 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buf,
   run_on_core(0);
 }
 
-RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(void *buf,
+RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(
                                                              size_t elem_size,
-                                                             size_t header_size,
                                                              MPI_Comm comm) {
   RdmaScatterGatherEngine *sge =
-      new RdmaScatterGatherEngine(comm, buf, elem_size, header_size);
+      new RdmaScatterGatherEngine(comm, elem_size);
   return sge;
 }
 
@@ -777,3 +777,5 @@ void rdma_ibv_finalize() {
 }
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos

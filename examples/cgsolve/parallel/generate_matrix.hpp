@@ -74,7 +74,7 @@ template <class MemSpace> struct CrsMatrix {
         _num_cols(num_cols_) {}
 };
 
-namespace Impl {
+
 template <class GO, class S>
 static void
 miniFE_get_row(int64_t *rows, S *vals, GO *cols, int64_t rows_per_proc,
@@ -304,5 +304,4 @@ Kokkos::View<double *, Kokkos::HostSpace> generate_miniFE_vector(int64_t nx) {
   return x;
 }
 
-} // namespace Impl
 #endif

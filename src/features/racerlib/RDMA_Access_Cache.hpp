@@ -51,8 +51,9 @@
 
 using namespace Kokkos;
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
-namespace Features {
 namespace Cache {
 
 #ifdef __CUDA_ARCH__
@@ -210,7 +211,8 @@ struct RemoteCache {
 };
 
 } // namespace Cache
-} // namespace Features
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos
 
 #endif // RACERLIB_ACCESSCACHE_HPP

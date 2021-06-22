@@ -54,6 +54,8 @@
 #include <vector>
 #include <iostream>
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
 
 struct Transport {
@@ -82,6 +84,8 @@ struct BootstrapPort {
 };
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos
 
 #endif // RACERLIB_RDMA_TRANSPORT
 

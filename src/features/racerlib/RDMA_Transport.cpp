@@ -44,8 +44,10 @@
 
 #include <RDMA_Transport.hpp>
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
-
+  
 Transport::Transport(MPI_Comm comm)
 {
   MPI_Comm_size(comm, &nproc);
@@ -181,3 +183,5 @@ Transport::~Transport()
 }
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos

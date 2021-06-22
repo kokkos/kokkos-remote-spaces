@@ -44,6 +44,8 @@
 
 #include <RDMA_Worker.hpp>
 
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
 
 template <class T>
@@ -100,3 +102,5 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker::request(int pe, uint32_t offset) {
 }
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos

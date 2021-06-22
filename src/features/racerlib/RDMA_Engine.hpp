@@ -65,6 +65,9 @@
 #include <set>
 #include <vector>
 
+
+namespace Kokkos {
+namespace Experimental {
 namespace RACERlib {
 
 #define NEW_REQUEST_BIT 0
@@ -226,8 +229,7 @@ struct RdmaScatterGatherEngine {
 
   void ack_completed(int pe, uint64_t num_completed);
 
-  RdmaScatterGatherEngine(MPI_Comm comm, void *buf, size_t elem_size,
-                          size_t header_size);
+  RdmaScatterGatherEngine(MPI_Comm comm, size_t elem_size);
 
   ~RdmaScatterGatherEngine();
 
@@ -266,7 +268,7 @@ public: // these are public, safe to use on device
   MPI_Comm comm;
   int num_pes;
   int rank;
-  Features::Cache::RemoteCache cache;
+  Cache::RemoteCache cache;
 
   uint64_t *tx_block_request_cmd_queue;
   uint64_t *rx_block_request_cmd_queue;
@@ -332,10 +334,7 @@ private:
   void ack_response(PendingRdmaRequest &req);
 };
 
-RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(void *buf,
-                                                             size_t elem_size,
-                                                             size_t header_size,
-                                                             MPI_Comm comm);
+                                                             
 void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge);
 
 
@@ -344,5 +343,7 @@ void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge);
   fflush(stdout)
 
 } // namespace RACERlib
+} // namespace Experimental
+} // namespace Kokkos
 
-#endif // RACERLIB_RDMA_ENGINE_H
+#endif // RACERLIB_RDMA_ENGINE

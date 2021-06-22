@@ -51,8 +51,9 @@
 namespace Kokkos {
 
 enum RemoteSpaces_MemoryTraitsFlags {
-  GlobalIndex = 1 < 0x128,
-  Dim0IsNotPE = 1 < 0x192
+  GlobalIndex = 0x128,
+  Dim0IsNotPE = 0x192,
+  Cached = 0x224
 };
 
 template <typename T> struct RemoteSpaces_MemoryTraits;

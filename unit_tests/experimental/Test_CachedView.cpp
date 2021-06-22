@@ -50,8 +50,11 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using DeviceSpace_t = Kokkos::CudaSpace;
+using HostSpace_t = Kokkos::HostSpace;
+
+using Traits = Kokkos::RemoteSpaces_MemoryTraitsFlags;
 
 template <class Data_t> void test_cached_view1D(int dim0) {
   int my_rank;
@@ -60,112 +63,66 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_1D_t =
-      Kokkos::View<Data_t *, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, HostSpace_t>;
+  using ViewDevice_1D_t =
+      Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, DeviceSpace_t>;                   
   using ViewRemote_1D_t =
-      Kokkos::View<Data_t *, Kokkos::GlobalLayoutRight, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+      Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, RemoteSpace_t,
+                   Kokkos::MemoryTraits<Traits::Cached>>;
 
-  ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
-  ViewHost_1D_t v_h("HostView", v.extent(0));
+  //use league_size - 2 to leave room for persistent kernels
+  //using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
-  // Init
-  for (int i = 0; i < v_h.extent(0); ++i)
-    v_h(i) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
-
-  Kokkos::parallel_for(
-      "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
-
-  Kokkos::Experimental::deep_copy(v_h, v);
-
-  for (int i = 0; i < dim0 / num_ranks; ++i)
-    ASSERT_EQ(v_h(i), num_ranks);
-}
-
-template <class Data_t> void test_cached_view2D(int dim0, int dim1) {
-  int my_rank;
-  int num_ranks;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
-
-  using ViewHost_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
-  using ViewRemote_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
-  ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
-  ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
+  ViewRemote_1D_t v_r = ViewRemote_1D_t("RemoteView", dim0);
+  ViewDevice_1D_t v_d = ViewDevice_1D_t("RemoteView", v_r.extent(0));
+  ViewHost_1D_t v_h("HostView", v_r.extent(0));
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      v_h(i, j) = 0;
+    v_h(i) = my_rank * v_h.extent(0) + i;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::Experimental::deep_copy(v_r, v_h);
 
+  //PHASE 1: SET UP
+  //***** RACERLib engine //rename this maybe to Symmetric Active Component (SAC)
+  // This can integrated in KokkosRemoteSpaces::Impl
+  // Init Newtork layer
+  // Init Host and Device active components
+  Kokkos::Experimental::RACERlib::Engine<Data_t> e;
+  //********************************
+  //e.start(MPI_COMM_WORLD, (void*) v_r.data()); //Inside: //make sure the kernels are running 
+  //********************************
+
+  int next_rank = (my_rank + 1) % num_ranks;
+
+  //PHASE 2: USE
   Kokkos::parallel_for(
-      "Increment", dim0, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < dim1; ++j)
-          v(i, j)++;
-      });
+    "Increment", v_r.extent(0), KOKKOS_LAMBDA(const int i) {
+      int index = next_rank * v_r.extent(0) + i;
+      v_d(index) = v_r(index); 
+    });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  //PHASE 3: Stop active components
+  // flush
+  //********************************
+  //e.stop(MPI_COMM_WORLD, (void*) v_r.data());
+  //********************************
+
+  Kokkos::deep_copy(v_h, v_d);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      ASSERT_EQ(v_h(i, j), num_ranks);
+    ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
+
+  //PHASE 4: Stop active components
+  // fianlize
+  //e.finalize(MPI_COMM_WORLD);
 }
 
-template <class Data_t>
-void test_cached_view3D(int dim0, int dim1, int dim2) {
-  int my_rank;
-  int num_ranks;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
-
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
-  using ViewRemote_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
-  ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
-  ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
-  // Init
-  for (int i = 0; i < v_h.extent(0); ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l)
-        v_h(i, j, l) = 0;
-
-  Kokkos::Experimental::deep_copy(v, v_h);
-
-  Kokkos::parallel_for(
-      "Increment", dim0, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < dim1; ++j)
-          for (int k = 0; k < dim2; ++k)
-            v(i, j, k)++;
-      });
-
-  Kokkos::Experimental::deep_copy(v_h, v);
-
-  for (int i = 0; i < dim0 / num_ranks; ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l)
-        ASSERT_EQ(v_h(i, j, l), num_ranks);
-}
 
 TEST(TEST_CATEGORY, test_cached_view) {
    // 1D
   test_cached_view1D<int>(31);
-  // 2D
-  test_cached_view2D<int>(256, 237);
-  // 3D
-  test_cached_view3D<int>(255, 1024, 3);
 }
 
 #endif /* TEST_ATOMIC_GLOBALVIEW_HPP_ */
