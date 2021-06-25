@@ -53,6 +53,55 @@
 namespace Kokkos {
 namespace Impl {
 
+template <class DstTraits, class SrcTraits>
+class ViewMapping<DstTraits, SrcTraits,
+                  Kokkos::Experimental::RemoteSpaceSpecializeTag> {
+private:
+  enum {
+    is_assignable_space =
+        Kokkos::Impl::MemorySpaceAccess<
+            typename DstTraits::memory_space,
+            typename SrcTraits::memory_space>::assignable
+  };
+
+
+  enum {
+    is_assignable_value_type =
+        std::is_same<typename DstTraits::value_type,
+                     typename SrcTraits::value_type>::value ||
+        std::is_same<typename DstTraits::value_type,
+                     typename SrcTraits::const_value_type>::value
+  };
+
+  enum {
+    is_assignable_dimension =
+        ViewDimensionAssignable<typename DstTraits::dimension,
+                                typename SrcTraits::dimension>::value
+  };
+
+  enum {
+    is_assignable_layout =
+        std::is_same<typename DstTraits::array_layout,
+                     typename SrcTraits::array_layout>::value ||
+        std::is_same<typename DstTraits::array_layout,
+                     Kokkos::LayoutStride>::value ||
+        (DstTraits::dimension::rank == 0) ||
+        (DstTraits::dimension::rank == 1 &&
+         DstTraits::dimension::rank_dynamic == 1)
+  };
+
+public:
+  enum {
+    is_assignable_data_type =
+        is_assignable_value_type && is_assignable_dimension
+  };
+  enum {
+    is_assignable = is_assignable_space && is_assignable_value_type &&
+                    is_assignable_layout && is_assignable_dimension
+  };
+};
+
+
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
  * (sub-) view type
@@ -264,6 +313,10 @@ private:
 
   int m_num_pes;
   int pe;
+
+  #ifdef KOKKOS_ENABLE_RACERLIB 
+
+  #endif
 
 public:
   typedef void printable_label_typedef;
@@ -987,9 +1040,7 @@ public:
   template <class... P, typename T = Traits>
   Kokkos::Impl::SharedAllocationRecord<> *allocate_shared(
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-      typename Traits::array_layout const &arg_layout,
-      typename std::enable_if<!RemoteSpaces_MemoryTraits<
-          typename T::memory_traits>::is_dim0_is_not_pe>::type * = nullptr) {
+      typename Traits::array_layout const &arg_layout) {
 
     typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
 
@@ -1026,16 +1077,32 @@ public:
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
 
-    #ifdef KOKKOS_ENABLE_MPISPACE
+     // #if defined(KOKKOS_ENABLE_RACERLIB)
+     // Kokkos::Experimental::RACERlib::Engine<int> e = record->get_RACERlib_Engine();
+      
+       //e.start();
+     // #endif
+
+    #ifdef KOKKOS_ENABLE_MPISPACE 
     if (alloc_size) {
+      #ifdef KOKKOS_ENABLE_RACERLIB 
+      Kokkos::abort("Feature not supported.");
+      #endif
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
       record->win);
     }
     #else
     if (alloc_size) {
-      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));
-    }
+      #ifdef KOKKOS_ENABLE_RACERLIB 
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()), &record->get_RACERlib_Engine());
+      record->get_RACERlib_Engine().init( (void*)record->data(), MPI_COMM_WORLD);
+      record->get_RACERlib_Engine().start( (void*)record->data(), MPI_COMM_WORLD);
+      #else
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()), NULL);
+      #endif
+    }      
     #endif
+
     
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
@@ -1046,56 +1113,13 @@ public:
 
     return record;
   }
+
+  template <class ExecSpace>
+  void clear_fence(ExecSpace&& e) const {
+    volatile_store(m_handle.e->sge->fence_done_flag, 1u);
+    e.fence();
+  }
 };
-
-template <class DstTraits, class SrcTraits>
-class ViewMapping<DstTraits, SrcTraits,
-                  Kokkos::Experimental::RemoteSpaceSpecializeTag> {
-private:
-  enum {
-    is_assignable_space =
-        Kokkos::Impl::MemorySpaceAccess<
-            typename DstTraits::memory_space,
-            typename SrcTraits::memory_space>::assignable
-  };
-
-
-  enum {
-    is_assignable_value_type =
-        std::is_same<typename DstTraits::value_type,
-                     typename SrcTraits::value_type>::value ||
-        std::is_same<typename DstTraits::value_type,
-                     typename SrcTraits::const_value_type>::value
-  };
-
-  enum {
-    is_assignable_dimension =
-        ViewDimensionAssignable<typename DstTraits::dimension,
-                                typename SrcTraits::dimension>::value
-  };
-
-  enum {
-    is_assignable_layout =
-        std::is_same<typename DstTraits::array_layout,
-                     typename SrcTraits::array_layout>::value ||
-        std::is_same<typename DstTraits::array_layout,
-                     Kokkos::LayoutStride>::value ||
-        (DstTraits::dimension::rank == 0) ||
-        (DstTraits::dimension::rank == 1 &&
-         DstTraits::dimension::rank_dynamic == 1)
-  };
-
-public:
-  enum {
-    is_assignable_data_type =
-        is_assignable_value_type && is_assignable_dimension
-  };
-  enum {
-    is_assignable = is_assignable_space && is_assignable_value_type &&
-                    is_assignable_layout && is_assignable_dimension
-  };
-};
-
 
 } // namespace Impl
 } // namespace Kokkos

@@ -54,7 +54,7 @@ using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using DeviceSpace_t = Kokkos::CudaSpace;
 using HostSpace_t = Kokkos::HostSpace;
 
-using Traits = Kokkos::RemoteSpaces_MemoryTraitsFlags;
+using RemoteTraits = Kokkos::RemoteSpaces_MemoryTraitsFlags;
 
 template <class Data_t> void test_cached_view1D(int dim0) {
   int my_rank;
@@ -62,17 +62,20 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
+  int num_teams = 1;
+  int team_size = 32;
+  int thread_vector_length = 8;
+
   using ViewHost_1D_t =
       Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, HostSpace_t>;
   using ViewDevice_1D_t =
       Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, DeviceSpace_t>;                   
   using ViewRemote_1D_t =
       Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Traits::Cached>>;
+                   Kokkos::MemoryTraits<RemoteTraits::Cached>>;
 
   //use league_size - 2 to leave room for persistent kernels
   //using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
 
   ViewRemote_1D_t v_r = ViewRemote_1D_t("RemoteView", dim0);
   ViewDevice_1D_t v_d = ViewDevice_1D_t("RemoteView", v_r.extent(0));
@@ -84,39 +87,25 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
   Kokkos::Experimental::deep_copy(v_r, v_h);
 
-  //PHASE 1: SET UP
-  //***** RACERLib engine //rename this maybe to Symmetric Active Component (SAC)
-  // This can integrated in KokkosRemoteSpaces::Impl
-  // Init Newtork layer
-  // Init Host and Device active components
-  Kokkos::Experimental::RACERlib::Engine<Data_t> e;
-  //********************************
-  //e.start(MPI_COMM_WORLD, (void*) v_r.data()); //Inside: //make sure the kernels are running 
-  //********************************
-
   int next_rank = (my_rank + 1) % num_ranks;
 
-  //PHASE 2: USE
-  Kokkos::parallel_for(
-    "Increment", v_r.extent(0), KOKKOS_LAMBDA(const int i) {
-      int index = next_rank * v_r.extent(0) + i;
-      v_d(index) = v_r(index); 
-    });
+auto policy = Kokkos::TeamPolicy<>
+       (num_teams, team_size, thread_vector_length);
+  using team_t = Kokkos::TeamPolicy<>::member_type;
 
-  //PHASE 3: Stop active components
-  // flush
-  //********************************
-  //e.stop(MPI_COMM_WORLD, (void*) v_r.data());
-  //********************************
+  Kokkos::Experimental::remote_parallel_for(
+    "Increment", policy, KOKKOS_LAMBDA(const team_t& team) {
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,v_r.extent(0)),
+        [&] (const int64_t i) {
+        int index = next_rank * v_r.extent(0) + i;
+        v_d(index) = v_r(index);       
+      });
+    }, v_r);
 
   Kokkos::deep_copy(v_h, v_d);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
     ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
-
-  //PHASE 4: Stop active components
-  // fianlize
-  //e.finalize(MPI_COMM_WORLD);
 }
 
 

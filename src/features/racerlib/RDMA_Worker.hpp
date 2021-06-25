@@ -52,14 +52,16 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
+
+template<typename T>
 struct RdmaScatterGatherWorker {
-  // struct RemoteCacheHolder;
 
   static constexpr uint32_t queue_size = QUEUE_SIZE;
 
-  template <class T> KOKKOS_FUNCTION T get(int pe, uint32_t offset);
+  KOKKOS_FUNCTION T get(int pe, uint32_t offset);
 
-  template <class T> KOKKOS_FUNCTION T request(int pe, uint32_t offset);
+  KOKKOS_FUNCTION 
+  T request(int pe, uint32_t offset);
 
   Cache::RemoteCache cache;
   

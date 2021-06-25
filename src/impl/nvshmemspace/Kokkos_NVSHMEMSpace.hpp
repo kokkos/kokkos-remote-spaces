@@ -56,7 +56,6 @@
 #include <mpi.h>
 #include <nvshmem.h>
 #include <nvshmemx.h>
-/*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
 namespace Experimental {
@@ -65,6 +64,10 @@ class RemoteSpaceSpecializeTag {};
 
 class NVSHMEMSpace {
 public:
+
+#if defined(KOKKOS_ENABLE_RACERLIB)
+  Kokkos::Experimental::RACERlib::Engine<int> e;
+#endif
 
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
   using execution_space = Kokkos::OpenMP;
@@ -113,7 +116,6 @@ public:
   int allocation_mode;
   int64_t extent;
 
-  void impl_set_allocation_mode(const int);
   void impl_set_extent(int64_t N);
 
 private:

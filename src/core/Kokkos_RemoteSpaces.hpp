@@ -45,6 +45,7 @@
 #define KOKKOS_REMOTESPACES_HPP
 #include <Kokkos_Core.hpp>
 
+
 #ifdef KOKKOS_ENABLE_RACERLIB
 #include <RACERlib_Interface.hpp>
 #endif
@@ -79,7 +80,7 @@ class MPISpace;
 namespace Kokkos {
 namespace Experimental {
 
-enum { Monolithic, Symmetric, Asymmetric };
+enum RemoteSpaces_MemoryAllocationMode { Symmetric, Cached };
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;

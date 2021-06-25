@@ -48,6 +48,10 @@
 #include <nvshmem.h>
 #include <type_traits>
 
+#if defined(KOKKOS_ENABLE_RACERLIB)
+#include <RDMA_Worker.hpp>
+#endif
+
 namespace Kokkos {
 namespace Impl {
 
@@ -253,6 +257,7 @@ static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {     \
 #undef KOKKOS_REMOTESPACES_ATOMIC_SWAP
 
 #endif
+
 template <class T, class Traits, typename Enable = void>
 struct NVSHMEMDataElement {};
 
@@ -881,6 +886,159 @@ struct NVSHMEMDataElement<
     return tmp;
   }
 };
+
+#if defined(KOKKOS_ENABLE_RACERLIB)
+
+template <class T, class Traits, typename Enable = void>
+struct CachedDataElement {};
+
+// Cached Operators (Requires RACERlib)
+template <class T, class Traits>
+struct CachedDataElement<
+    T, Traits,
+    typename std::enable_if<RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached>::type> {
+  
+  using worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
+  worker * sgw;
+  typedef const T const_value_type;
+  typedef T non_const_value_type;
+  uint32_t offset;
+  T *ptr;
+  int pe; 
+
+  KOKKOS_INLINE_FUNCTION
+  CachedDataElement(T *ptr_, worker* sgw_, int pe_, int i_) : 
+  ptr(ptr_), sgw(sgw_), pe(pe_), offset(i_) {}
+
+  KOKKOS_INLINE_FUNCTION
+  T request(int pe, uint32_t offset) const {
+    bool nonlocal = pe != sgw->rank;
+    if (nonlocal){
+      void* shm_ptr = sgw->direct_ptrs[pe];
+      if (shm_ptr){
+        T* t = (T*) shm_ptr;
+        return volatile_load(&t[offset]);
+      }
+      return sgw->request(pe, offset);
+    } else {
+      return ptr[offset];
+    }
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator + (const_value_type& val) const {
+    return request(pe, offset) + val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator - (const_value_type& val) const {
+    return request(pe, offset) - val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator * (const_value_type& val) const {
+    return request(pe, offset) * val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator / (const_value_type& val) const {
+    return request(pe, offset) / val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator % (const_value_type& val) const {
+    return request(pe, offset) & val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator ! () const {
+    return ! request(pe, offset);
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator && (const_value_type& val) const {
+    return request(pe, offset) && val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator || (const_value_type& val) const {
+    return request(pe, offset) || val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator & (const_value_type& val) const {
+    return request(pe, offset) & val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator | (const_value_type& val) const {
+    return request(pe, offset) | val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator ^ (const_value_type& val) const {
+    return request(pe, offset) & val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator ~ () const {
+    return ~ request(pe, offset);
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator << (const unsigned int& val) const {
+    return request(pe, offset) << val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator >> (const unsigned int& val) const {
+    return request(pe, offset) >> val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator == (const_value_type& val) const {
+    return request(pe, offset) == val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator != (const_value_type& val) const {
+    return request(pe, offset) != val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator >= (const_value_type& val) const {
+    return request(pe, offset) >= val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator <= (const_value_type& val) const {
+    return request(pe, offset) <= val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator < (const_value_type& val) const {
+    return request(pe, offset) < val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  bool operator > (const_value_type& val) const {
+    return request(pe, offset) > val;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  operator const_value_type () const {
+    return request(pe, offset);
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  const_value_type operator = (const_value_type& val) const {
+    if (sgw->rank == pe){
+      ptr[offset] = val;
+    }
+    return val;
+  }
+};
+#endif
 
 } // namespace Impl
 } // namespace Kokkos

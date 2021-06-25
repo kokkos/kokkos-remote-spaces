@@ -166,6 +166,15 @@ static void memset_device(void *buf, int value, size_t size) {
 #endif
 }
 
+void rdma_ibv_init() {
+  if (!request_tport) {
+    request_tport = new Transport(MPI_COMM_WORLD);
+  }
+  if (!response_tport) {
+    response_tport = new Transport(MPI_COMM_WORLD);
+  }
+}
+
 static void free_device_rdma_memory(ibv_mr *mr) {
   void *buf = mr->addr;
   size_t size = mr->length;
@@ -753,15 +762,6 @@ RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(
 
 void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge) {
   delete sge;
-}
-
-void rdma_ibv_init() {
-  if (!request_tport) {
-    request_tport = new Transport(MPI_COMM_WORLD);
-  }
-  if (!response_tport) {
-    response_tport = new Transport(MPI_COMM_WORLD);
-  }
 }
 
 void rdma_ibv_finalize() {

@@ -116,9 +116,10 @@ struct RemoteCache {
                   " = %12.8f\n",
                   slot, offset, values_T[slot]);
       return volatile_load(&values_T[slot]);
+      //Warning: max is a host func
     } else if (slot == std::numeric_limits<int>::max()) {
       // no slots left, fall back
-      return fb->template get<T>(pe, offset);
+      return fb->get(pe, offset);
     } else {
       // data already there
       T *values_T = (T *)values;
@@ -166,7 +167,7 @@ struct RemoteCache {
                   ticket_number, offset, glbl_cache_slot, new_claim);
       if (ticket_number == 0) {
         // I am responsible for initiating the RDMA get
-        T ret = fb->template get<T>(pe, offset);
+        T ret = fb->get(pe, offset);
         // store the value in the cache first
         volatile_store(&values_T[glbl_cache_slot], ret);
         // make sure value is written before ready flag

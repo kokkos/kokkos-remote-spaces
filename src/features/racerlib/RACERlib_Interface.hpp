@@ -47,47 +47,49 @@
 
 #include <Kokkos_Core.hpp>
 #include <RDMA_Engine.hpp>
+#include <RDMA_Transport.hpp>
+#include <RDMA_Interface.hpp>
 
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-template <typename T>
-struct Engine;
 #define RACERLIB_SUCCESS 1
 
+template <typename T>
+struct Engine;
+
 // Todo: template this on Feature for generic Engine feature support
-template <typename data_type>
+template <typename T>
 struct Engine {
 
-void put(void *comm_id, void *allocation, data_type &value, int PE, int offset);
-data_type get(void *comm_id, void *allocation, int PE, int offset);
+  void put(void * target, T & value, int PE, int offset, MPI_Comm comm_id);
+  T get(void * target, int PE, int offset, MPI_Comm comm_id);
 
-// Call this at View memory allocation (allocation record)
-int start(void *comm_id, void *allocation_id);
-// Call this at View memory deallocation (~allocation record);
-int stop(void *comm_id, void *allocation_id);
-// Call this on fence. We need to make sure that at sychronization points,
-// caches are empty
-int flush(void *comm_id, void *allocation);
-// Call this on Kokkos initialize.
-int init(void *comm_id); // set communicator reference, return RACERLIB_STATUS
-// Call this on kokkos finalize
-int finalize(
-    void *comm_id); // finalize communicator instance, return RECERLIB_STATUS
-
+  // Call this at View memory allocation (allocation record)
+  int start(void * target, MPI_Comm comm_id);
+  // Call this at View memory deallocation (~allocation record);
+  int stop(void * target, MPI_Comm comm_id);
+  // Call this on fence. We need to make sure that at sychronization points,
+  // caches are empty
+  int flush(void * allocation, MPI_Comm comm_id);
+  // Call this on Kokkos initialize.
+  int init(void * target, MPI_Comm comm_id); // set communicator reference, return RACERLIB_STATUS
+  // Call this on kokkos finalize
+  int finalize(
+      MPI_Comm comm_id); // finalize communicator instance, return RECERLIB_STATUS
 
   RdmaScatterGatherEngine *sge;
-  RdmaScatterGatherWorker *sgw;
+  RdmaScatterGatherWorker<T> *sgw;
   std::set<RdmaScatterGatherEngine *> sges;
-  
   Engine();
-  void allocate_device_component(void *p, MPI_Comm comm);
-  void allocate_host_component();
+  Engine(void * target, MPI_Comm comm_id);
+  void allocate_host_device_component(void *p, MPI_Comm comm);
+  void allocate_host_host_component();
   // Dealloc all for now.
   void deallocate_device_component();
   void deallocate_host_component();
-  RdmaScatterGatherWorker *get_worker() const;
+  RdmaScatterGatherWorker<T> *get_worker() const;
   RdmaScatterGatherEngine *get_engine() const;
   ~Engine();
   void fence();

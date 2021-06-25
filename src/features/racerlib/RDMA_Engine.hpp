@@ -73,6 +73,8 @@ namespace RACERlib {
 #define NEW_REQUEST_BIT 0
 #define NEW_REQUEST_MASK 1
 
+void rdma_ibv_init();
+
 template <class T> struct SPSC_LockFree_Pool {
   uint64_t read_head;
   uint64_t write_head;

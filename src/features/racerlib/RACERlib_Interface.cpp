@@ -49,52 +49,59 @@ namespace Experimental {
 namespace RACERlib {
 
 //ETI this
-Engine<int>    __en1;
-Engine<double> __en2;
-Engine<size_t> __en3;
+template class Engine<int>;
+template class Engine<double>;
+template class Engine<size_t>;
+//etc.
+
 
 #define RACERLIB_SUCCESS 1
 
-template <typename data_type>
-void Engine<data_type>::put(void *comm_id, void *allocation, data_type &value, int PE, int offset)
+template <typename T>
+void Engine<T>::put(void * allocation, T &value, int PE, int offset, MPI_Comm comm_id)
 {
   //do nothin'
 };
 
-template <typename data_type>
-data_type Engine<data_type>::get(void *comm_id, void *allocation, int PE, int offset){
+template <typename T>
+T Engine<T>::get(void * allocation, int PE, int offset, MPI_Comm comm_id){
   return 1;
 };
 
-template <typename data_type>
-int Engine<data_type>::start(void *comm_id, void *allocation_id) {
-  // Call this at View memory allocation (allocation record)
-  return RACERLIB_SUCCESS;
+template <typename T>
+int Engine<T>::start(void * target, MPI_Comm comm_id) {
+  //
+    return RACERLIB_SUCCESS;
 }
 
-template <typename data_type>
-int Engine<data_type>::stop(void *comm_id, void *allocation_id)
+template <typename T>
+int Engine<T>::stop(void * target, MPI_Comm comm_id)
 {
   // Call this at View memory deallocation (~allocation record);
   return RACERLIB_SUCCESS;
 }
 
-template <typename data_type>
-int Engine<data_type>::flush(void *comm_id, void *allocation) {
+template <typename T>
+int Engine<T>::flush(void * allocation, MPI_Comm comm_id) {
   // Call this on fence. We need to make sure that at sychronization points,
   // caches are empty
   return RACERLIB_SUCCESS;
 }
 
-template <typename data_type>
-int Engine<data_type>::init(void *comm_id) // set communicator reference, return RACERLIB_STATUS
+template <typename T>
+int Engine<T>::init(void * target, MPI_Comm comm_id) // set communicator reference, return RACERLIB_STATUS
 {
-  // Call this on Kokkos initialize.
+  //Init RDMA transport layer
+  rdma_ibv_init();
+
+  //Init components 
+  allocate_host_device_component(target, comm_id);
+  
   return RACERLIB_SUCCESS;
 }
-template <typename data_type>
-int Engine<data_type>::finalize(
-    void *comm_id) // finalize communicator instance, return RECERLIB_STATUS
+template <typename T>
+int Engine<T>::finalize(
+    MPI_Comm comm_id) // finalize communicator instance, return RECERLIB_STATUS
 {
   // Call this on kokkos finalize
   return RACERLIB_SUCCESS;
@@ -102,20 +109,26 @@ int Engine<data_type>::finalize(
 
 // Todo: template this on Feature for generic Engine feature support
 
-template <typename data_type>
-Engine<data_type>::Engine() { 
+template <typename T>
+Engine<T>::Engine(void * target, MPI_Comm comm_id) { 
+  start(target, comm_id);
  
 }
 
-template <typename data_type>
-void Engine<data_type>::allocate_device_component(void *p, MPI_Comm comm) {
+template <typename T>
+Engine<T>::Engine() { 
+}
+
+template <typename T>
+void Engine<T>::allocate_host_device_component(void *p, MPI_Comm comm) {
   // Create here a persistent kernel with functor (polling)
   // Call into Feature::Worker();
-  size_t header_size = 0x1;
-  sge = new RdmaScatterGatherEngine(comm, sizeof(data_type));
+  //size_t header_size = 0x1;
+
+  sge = new RdmaScatterGatherEngine(comm, sizeof(T));
   sges.insert(sge);
 
-  RdmaScatterGatherWorker dev_worker;
+  RdmaScatterGatherWorker<T> dev_worker;
 
   dev_worker.tx_element_request_ctrs =
   sge->tx_element_request_ctrs; // already a device buffer
@@ -149,19 +162,19 @@ void Engine<data_type>::allocate_device_component(void *p, MPI_Comm comm) {
   cuda_safe(cuMemHostGetDevicePointer(
   (CUdeviceptr *)&dev_worker.fence_done_flag, sge->fence_done_flag, 0));
 
-  cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker));
-  cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker),
+  cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
+  cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
               cudaMemcpyHostToDevice);
 }
 
-template <typename data_type>
-void Engine<data_type>::allocate_host_component() {
+template <typename T>
+void Engine<T>::allocate_host_host_component() {
 
   // Create here a PThread ensemble
   // Call into Feature Init(); //Here the RDMAEngine initializes
   // Assign Call backs
 
-  sgw = new RdmaScatterGatherWorker;
+  sgw = new RdmaScatterGatherWorker<T>;
   sgw->tx_element_request_ctrs = sge->tx_element_request_ctrs;
   sgw->ack_ctrs_h = sge->ack_ctrs_h;
   sgw->tx_element_request_queue =
@@ -171,31 +184,31 @@ void Engine<data_type>::allocate_host_component() {
 }
 
   // Dealloc all for now.
-  template <typename data_type>
-void Engine<data_type>::deallocate_device_component() {
+  template <typename T>
+void Engine<T>::deallocate_device_component() {
   for (RdmaScatterGatherEngine *sge : sges) {
     delete sge;
   }
 }
-template <typename data_type>
-  void Engine<data_type>::deallocate_host_component() { delete sgw; }
+template <typename T>
+  void Engine<T>::deallocate_host_component() { delete sgw; }
 
-template <typename data_type>
-  RdmaScatterGatherWorker *Engine<data_type>::get_worker() const { return sgw; }
+template <typename T>
+  RdmaScatterGatherWorker<T> *Engine<T>::get_worker() const { return sgw; }
 
-template <typename data_type>
-  RdmaScatterGatherEngine *Engine<data_type>::get_engine() const { return sge; }
+template <typename T>
+  RdmaScatterGatherEngine *Engine<T>::get_engine() const { return sge; }
 
-template <typename data_type>
-  Engine<data_type>::~Engine() {
+template <typename T>
+  Engine<T>::~Engine() {
     fence();
     deallocate_device_component();
     deallocate_host_component();
   }
 
 
-template <typename data_type>
-  void Engine<data_type>::fence() {
+template <typename T>
+  void Engine<T>::fence() {
     for (RdmaScatterGatherEngine *sge : sges) {
       sge->fence();
     }

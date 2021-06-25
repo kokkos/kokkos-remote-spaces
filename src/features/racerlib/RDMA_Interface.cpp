@@ -46,12 +46,19 @@
 
 namespace Kokkos {
 namespace Experimental {
-namespace RACERlib {
+//namespace RACERlib {
 
 #ifdef RAW_CUDA
 
+//ETI this
+template void pack_response<int,Kokkos::Impl::CudaTeamMember const&>(int *local_values, RdmaScatterGatherWorker<int> *sgw,
+                              unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const & team);
+
+template void aggregate_requests<int, Kokkos::Impl::CudaTeamMember const&>(RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const & team,
+                              unsigned num_worker_teams);
+
 template <typename T, class Team>
-__device__ void pack_response(T *local_values, RdmaScatterGatherWorker *sgw,
+__device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
                               unsigned *completion_flag, Team &&team) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
@@ -108,8 +115,8 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker *sgw,
   }
 }
 
-template <class Team>
-__device__ void aggregate_requests(RdmaScatterGatherWorker *sgw, Team &&team,
+template <typename T, class Team>
+__device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
                                    unsigned num_worker_teams) {
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
   int total_threads = blockDim.x * blockDim.y;
@@ -361,6 +368,6 @@ KOKKOS_FUNCTION void pack_response(T *local_values,
 
 #endif // RAW_CUDA
 
-} // namespace RACERlib
+//} // namespace RACERlib
 } // namespace Experimental
 } // namespace Kokkos

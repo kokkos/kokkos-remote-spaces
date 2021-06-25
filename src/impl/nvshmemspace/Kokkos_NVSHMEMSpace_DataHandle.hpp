@@ -45,15 +45,21 @@
 #ifndef KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 #define KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 
+
+#if defined(KOKKOS_ENABLE_RACERLIB)
+#include <RDMA_Worker.hpp>
+#endif
+
 namespace Kokkos {
 namespace Impl {
 
-template <class T, class Traits> struct NVSHMEMDataHandle {
+template <class T, class Traits> 
+struct NVSHMEMDataHandle {
   T *ptr;
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle() : ptr(NULL) {}
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
+  NVSHMEMDataHandle(T *ptr_, void * tmp) : ptr(ptr_) {}
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
@@ -72,7 +78,10 @@ template <class Traits>
 struct ViewDataHandle<
     Traits, typename std::enable_if<std::is_same<
                 typename Traits::specialize,
-                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
+                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value
+                && 
+                !RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached
+                >::type> {
 
   using value_type = typename Traits::value_type;
   using handle_type = NVSHMEMDataHandle<value_type, Traits>;
@@ -81,7 +90,7 @@ struct ViewDataHandle<
 
   KOKKOS_INLINE_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,
-                            track_type const & /*arg_tracker*/) {
+                            track_type const & arg_tracker) {
     return handle_type(arg_data_ptr);
   }
 
@@ -102,6 +111,62 @@ struct ViewDataHandle<
     return handle_type(rhs);
   }
 };
+
+#if defined(KOKKOS_ENABLE_RACERLIB)
+
+template <class T, class Traits> 
+struct CachedDataHandle {
+  using Worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
+  using RDMA_Engine = Kokkos::Experimental::RACERlib::Engine<T>;
+    
+  T *ptr;
+  RDMA_Engine * e;
+  Worker * sgw;
+  KOKKOS_INLINE_FUNCTION
+  CachedDataHandle() : ptr(NULL), sgw(NULL) {}
+  KOKKOS_INLINE_FUNCTION
+  CachedDataHandle(T *ptr_, RDMA_Engine * e_) : ptr(ptr_), e(e_), sgw(e_->sgw) {}
+  KOKKOS_INLINE_FUNCTION
+  CachedDataHandle(CachedDataHandle<T, Traits> const &arg) : ptr(arg.ptr), sgw(arg.sgw) {}
+
+  template <typename iType>
+  KOKKOS_INLINE_FUNCTION CachedDataElement<T, Traits>
+  operator()(const int &pe, const iType &i) const {
+    CachedDataElement<T, Traits> element(ptr, sgw, pe, i);
+    return element;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  T *operator+(size_t &offset) const { return ptr + offset; }
+};
+
+template <class Traits>
+struct ViewDataHandle<
+    Traits, typename std::enable_if<std::is_same<
+                typename Traits::specialize,
+                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value
+                && 
+                RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached
+                >::type> {
+
+  using value_type = typename Traits::value_type;
+  using handle_type = CachedDataHandle<value_type, Traits>;
+  using return_type = CachedDataElement<value_type, Traits>;
+  using track_type = Kokkos::Impl::SharedAllocationTracker;
+
+  KOKKOS_INLINE_FUNCTION
+  static handle_type assign(value_type *arg_data_ptr,
+                            track_type const & arg_tracker) {
+    auto* record = arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
+    return handle_type(arg_data_ptr, record->get_RACERlib_Engine());
+  }
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION handle_type operator=(SrcHandleType const &rhs) {
+    return handle_type(rhs);
+  }
+};
+
+#endif
 
 } // namespace Impl
 } // namespace Kokkos

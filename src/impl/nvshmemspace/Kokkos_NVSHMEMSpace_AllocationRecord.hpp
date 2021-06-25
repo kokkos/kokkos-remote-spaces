@@ -67,7 +67,7 @@ private:
    */
   static RecordBase s_root_record;
 
-  const Kokkos::Experimental::NVSHMEMSpace m_space;
+  Kokkos::Experimental::NVSHMEMSpace m_space;
 
 protected:
   ~SharedAllocationRecord();
@@ -113,7 +113,14 @@ public:
   static void print_records(std::ostream &,
                             const Kokkos::Experimental::NVSHMEMSpace &,
                             bool detail = false);
+
+
+  #if defined(KOKKOS_ENABLE_RACERLIB)
+  Kokkos::Experimental::RACERlib::Engine<int> &  get_RACERlib_Engine();
+  #endif
 };
+
+
 
 } // namespace Impl
 } // namespace Kokkos

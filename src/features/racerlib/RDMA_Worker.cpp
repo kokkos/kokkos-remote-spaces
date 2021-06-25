@@ -48,8 +48,16 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
+
+  //ETI this
+template class RdmaScatterGatherWorker<int>;
+template class RdmaScatterGatherWorker<double>;
+template class RdmaScatterGatherWorker<size_t>;
+//etc.
+
+
 template <class T>
-KOKKOS_FUNCTION T RdmaScatterGatherWorker::get(int pe, uint32_t offset) {
+KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   uint64_t *tail_ctr = &tx_element_request_ctrs[pe];
   uint64_t idx = Kokkos::atomic_fetch_add((unsigned long long *)tail_ctr, 1);
   uint32_t trip_number = idx / queue_size;
@@ -93,7 +101,7 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker::get(int pe, uint32_t offset) {
 }
 
 template <class T>
-KOKKOS_FUNCTION T RdmaScatterGatherWorker::request(int pe, uint32_t offset) {
+KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {
 #ifdef KOKKOS_DISABLE_CACHE
   return get<T>(pe, offset);
 #else

@@ -49,27 +49,31 @@
 
 namespace Kokkos {
 namespace Experimental {
-namespace RACERlib {
+
+using namespace RACERlib;
+
+
 
 #ifdef RAW_CUDA
 
+
 template <typename T, class Team>
-__device__ void pack_response(T *local_values, RdmaScatterGatherWorker *sgw,
+__device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
                               unsigned *completion_flag, Team &&team);
 
-template <class Team>
-__device__ void aggregate_requests(RdmaScatterGatherWorker *sgw, Team &&team,
+template <typename T, class Team>
+__device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
                                    unsigned num_worker_teams);
 
 #else
 
 template <typename T, class Team>
 KOKKOS_FUNCTION void pack_response(T *local_values,
-                                   RdmaScatterGatherWorker *sgw,
+                                   RdmaScatterGatherWorker<T> *sgw,
                                    unsigned *completion_flag, Team &&team);
 
-template <class Team>
-KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
+template <typename T, class Team>
+KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker<T> *sgw,
                                                Team &&team,
                                                unsigned num_worker_teams);
 
@@ -79,13 +83,13 @@ template <class Policy, class Lambda, class RemoteView>
 struct RemoteParallelFor {
   KOKKOS_FUNCTION void
   operator()(const typename Policy::member_type &team) const {
-    RdmaScatterGatherWorker *sgw = m_view(0, 0).sg;
+    RdmaScatterGatherWorker<int> *sgw = m_view(0).sgw;
     if (team.league_rank() == 0) {
       aggregate_requests(sgw, team, team.league_size() - 2);
     } else if (team.league_rank() == 1) {
-      pack_response(m_view(0, 0).ptr, sgw, sgw->response_done_flag, team);
+      pack_response(m_view(0).ptr, sgw, sgw->response_done_flag, team);
     } else {
-      auto new_team = team.shrink_league(2);
+      auto new_team = team;//team.shrink_league(2);
       m_lambda(new_team);
       team.team_barrier();
       Kokkos::single(
@@ -108,8 +112,8 @@ template <class Policy, class RemoteView> struct RespondParallelFor {
 
   KOKKOS_FUNCTION void
   operator()(const typename Policy::member_type &team) const {
-    RdmaScatterGatherWorker *sgw = m_view(0, 0).sg;
-    pack_response(m_view(0, 0).ptr, sgw, sgw->fence_done_flag, team);
+    RdmaScatterGatherWorker<int> *sgw = m_view(0).sgw;
+    pack_response(m_view(0).ptr, sgw, sgw->fence_done_flag, team);
   }
 
 private:
@@ -119,14 +123,19 @@ private:
 template <class Policy, class Lambda, class RemoteView>
 void remote_parallel_for(const std::string &name, Policy &&policy,
                          Lambda &&lambda, const RemoteView &view) {
+
   if (policy.league_size() == 0) {
     return;
   }
   using PolicyType = typename std::remove_reference<Policy>::type;
   using LambdaType = typename std::remove_reference<Lambda>::type;
+
+
   RemoteParallelFor<PolicyType, LambdaType, RemoteView> rpf(
       std::forward<Lambda>(lambda), view);
+
   int num_teams = policy.league_size();
+
 #ifdef KOKKOS_ENABLE_CUDA
   int vector_length = policy.vector_length();
 #else
@@ -135,6 +144,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   PolicyType new_policy(num_teams + 2, policy.team_size(), vector_length);
   using remote_space = typename RemoteView::memory_space;
   using exec_space = typename RemoteView::execution_space;
+
   Kokkos::parallel_for(name, new_policy, rpf);
   exec_space().fence();
 
@@ -143,11 +153,12 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   auto respond_policy =
       Kokkos::TeamPolicy<>(1, policy.team_size() * vector_length);
   Kokkos::parallel_for("respond", respond_policy, txpf);
+
   remote_space().fence();
+  
   view.impl_map().clear_fence(exec_space{});
 }
 
-} // namespace RACERlib
 } // namespace Experimental
 } // namespace Kokkos
 

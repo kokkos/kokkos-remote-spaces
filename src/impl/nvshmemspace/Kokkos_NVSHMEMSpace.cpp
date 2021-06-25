@@ -44,21 +44,24 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_NVSHMEMSpace.hpp>
+#include <Kokkos_RemoteSpaces_Options.hpp>
 #include <nvshmem.h>
 
 namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-NVSHMEMSpace::NVSHMEMSpace() : allocation_mode(Symmetric) {}
-
-void NVSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
-  allocation_mode = allocation_mode_;
-}
+NVSHMEMSpace::NVSHMEMSpace() {
+    #if defined(KOKKOS_ENABLE_RACERLIB)
+    allocation_mode = RemoteSpaces_MemoryAllocationMode::Cached;
+    #else
+    allocation_mode = RemoteSpaces_MemoryAllocationMode::Symmetric;
+    #endif
+  }
 
 void NVSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
-void *NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
+void * NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
   static_assert(sizeof(void *) == sizeof(uintptr_t),
                 "Error sizeof(void*) != sizeof(uintptr_t)");
 
@@ -66,21 +69,41 @@ void *NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
       Kokkos::Impl::is_integral_power_of_two(Kokkos::Impl::MEMORY_ALIGNMENT),
       "Memory alignment must be power of two");
 
-  void *ptr = 0;
+  void * ptr = 0;
   if (arg_alloc_size) {
-    if (allocation_mode == Kokkos::Experimental::Symmetric) {
+    if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Symmetric) {
       int num_pes = nvshmem_n_pes();
       int my_id = nvshmem_my_pe();
       ptr = nvshmem_malloc(arg_alloc_size);
-    } else {
-      Kokkos::abort("NVSHMEMSpace only supports symmetric allocation policy.");
+    } else if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Cached) {
+      #if defined(KOKKOS_ENABLE_RACERLIB) //Do nothing for now
+      int num_pes = nvshmem_n_pes();
+      int my_id = nvshmem_my_pe();
+      ptr = nvshmem_malloc(arg_alloc_size);
+      #else
+       Kokkos::abort("Cached allocation policy requested but no implementation provided.");
+      #endif
+    }
+    
+    else {
+      Kokkos::abort("NVSHMEMSpace only supports symmetric or cached allocation policy.");
     }
   }
   return ptr;
 }
 
 void NVSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
-  nvshmem_free(arg_alloc_ptr);
+  if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Symmetric) {
+    nvshmem_free(arg_alloc_ptr);
+  } else if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Cached) {
+    #if defined(KOKKOS_ENABLE_RACERLIB)
+    nvshmem_free(arg_alloc_ptr);
+    #else
+    Kokkos::abort("Cached allocation policy requested but not implementation provided.");
+    #endif
+  }else{
+    Kokkos::abort("NVSHMEMSpace only supports symmetric or cached allocation policy.");
+  }
 }
 
 void NVSHMEMSpace::fence() {
