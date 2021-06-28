@@ -62,9 +62,9 @@ int main(int argc, char *argv[]) {
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
 
-  Kokkos::initialize(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  int result = RUN_ALL_TESTS();
+Kokkos::initialize(argc, argv);
+::testing::InitGoogleTest(&argc, argv);
+int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
 #ifdef KOKKOS_ENABLE_SHMEMSPACE

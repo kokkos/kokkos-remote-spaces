@@ -70,8 +70,10 @@ T Engine<T>::get(void * allocation, int PE, int offset, MPI_Comm comm_id){
 
 template <typename T>
 int Engine<T>::start(void * target, MPI_Comm comm_id) {
-  //
-    return RACERLIB_SUCCESS;
+  // Do nothing since we're triggering the device-side
+  // kernels in the remote_paralle_for (for now)
+  // The host side is lauched at init (for now)
+  return RACERLIB_SUCCESS;
 }
 
 template <typename T>
@@ -112,7 +114,6 @@ int Engine<T>::finalize(
 template <typename T>
 Engine<T>::Engine(void * target, MPI_Comm comm_id) { 
   start(target, comm_id);
- 
 }
 
 template <typename T>
