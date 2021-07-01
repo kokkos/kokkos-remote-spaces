@@ -89,9 +89,9 @@ struct Worker {
       aggregate_requests(sgw, team, team.league_size() - 2);
     } else if (team.league_rank() == 1) {
       debug_2("Launching: pack_response kernel:%i\n",0);
-      pack_response(m_view(0).ptr, sgw, sgw->response_done_flag, team);
+      //pack_response(m_view(0).ptr, sgw, sgw->response_done_flag, team);
     } else {
-      debug_2("Launching: user kernel:%i\n",0);
+      debug_2("Launching: user kernel:%p\n",sgw);
       auto new_team = team.shrink_league(2);
       m_lambda(new_team);
       team.team_barrier();
@@ -100,7 +100,7 @@ struct Worker {
           KOKKOS_LAMBDA() {            
             //Terminate
             atomic_fetch_add(sgw->request_done_flag, 1); 
-            debug_2("User-kernel done:%i\n", 0);
+            debug_2("User-kernel done:%p\n", sgw);
           });
     }
   }
@@ -147,7 +147,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   using exec_space = typename RemoteView::execution_space;
 
   PolicyType worker_policy(policy.league_size(), policy.team_size(), vector_length);
-  //auto respond_policy = Kokkos::TeamPolicy<>(1, policy.team_size() * vector_length);
+  auto respond_policy = Kokkos::TeamPolicy<>(1, policy.team_size() * vector_length);
 
   Worker<PolicyType, LambdaType, RemoteView> worker(
       std::forward<Lambda>(lambda), view);

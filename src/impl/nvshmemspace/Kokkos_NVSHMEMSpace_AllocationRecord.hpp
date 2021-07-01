@@ -121,7 +121,7 @@ public:
 
 
   #if defined(KOKKOS_ENABLE_RACERLIB)
-  Kokkos::Experimental::RACERlib::Engine<int> &  get_RACERlib_Engine();
+  Kokkos::Experimental::RACERlib::Engine<int> *  RACERlib_get_engine();
   #endif
 };
 

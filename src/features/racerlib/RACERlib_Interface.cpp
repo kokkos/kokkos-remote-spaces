@@ -171,8 +171,11 @@ void Engine<T>::allocate_host_device_component(void *p, MPI_Comm comm) {
   (CUdeviceptr *)&dev_worker.fence_done_flag, sge->fence_done_flag, 0));
 
   cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
+
+
   cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
               cudaMemcpyHostToDevice);
+  debug_2("Host Step 1:%p\n",sgw);
 }
 
 template <typename T>
@@ -182,7 +185,10 @@ void Engine<T>::allocate_host_host_component() {
   // Call into Feature Init(); //Here the RDMAEngine initializes
   // Assign Call backs
 
+  
+
   sgw = new RdmaScatterGatherWorker<T>;
+  debug_2("WE DO NOT CALL THIS:%p\n",sgw);
   sgw->tx_element_request_ctrs = sge->tx_element_request_ctrs;
   sgw->ack_ctrs_h = sge->ack_ctrs_h;
   sgw->tx_element_request_queue =

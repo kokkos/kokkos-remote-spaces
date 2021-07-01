@@ -46,6 +46,10 @@
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 
+#if defined(KOKKOS_ENABLE_RACERLIB)
+#include <RDMA_Worker.hpp>
+#endif
+
 #if defined(KOKKOS_ENABLE_PROFILING)
 #include <impl/Kokkos_Profiling_Interface.hpp>
 #endif
@@ -110,7 +114,7 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
                      SharedAllocationRecord<void, void>::m_alloc_size);
 
   #if defined(KOKKOS_ENABLE_RACERLIB)  
-  get_RACERlib_Engine().finalize();
+  RACERlib_get_engine()->finalize();
   #endif
 }
 
@@ -195,11 +199,12 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_record(
 }
 
 #if defined(KOKKOS_ENABLE_RACERLIB)
-Kokkos::Experimental::RACERlib::Engine<int> &  
-SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_RACERlib_Engine()
+Kokkos::Experimental::RACERlib::Engine<int> *
+SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::RACERlib_get_engine()
 {
-  return m_space.e;
+  return & m_space.e;
 }
+
 #endif
 
 // Iterate records to print orphaned memory ...

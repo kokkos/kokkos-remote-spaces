@@ -117,18 +117,22 @@ struct ViewDataHandle<
 template <class T, class Traits> 
 struct CachedDataHandle {
   using Worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
-  using RDMA_Engine = Kokkos::Experimental::RACERlib::Engine<T>;
+  using Engine = Kokkos::Experimental::RACERlib::Engine<T>;
     
   T *ptr;
-  RDMA_Engine * e;
+  Engine * e;
   Worker * sgw;
   KOKKOS_INLINE_FUNCTION
-  CachedDataHandle() : ptr(NULL), sgw(NULL) {}
+  CachedDataHandle() : ptr(NULL), sgw(NULL) {
+  }
+
   KOKKOS_INLINE_FUNCTION
-  CachedDataHandle(T *ptr_, RDMA_Engine * e_) : ptr(ptr_), e(e_), sgw(e_->sgw) {}
+  CachedDataHandle(T *ptr_, Engine *e_, Worker * sgw_) : ptr(ptr_), e(e_), sgw(sgw_) {
+  }
+
   KOKKOS_INLINE_FUNCTION
   CachedDataHandle(CachedDataHandle<T, Traits> const &arg) : ptr(arg.ptr), 
-    sgw(arg.sgw), e(arg.e) {}
+    e(arg.e), sgw(arg.sgw) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION CachedDataElement<T, Traits>
@@ -159,7 +163,7 @@ struct ViewDataHandle<
   static handle_type assign(value_type *arg_data_ptr,
                             track_type const & arg_tracker) {
     auto* record = arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
-    return handle_type(arg_data_ptr, record->get_RACERlib_Engine());
+    return handle_type(arg_data_ptr, record->RACERlib_get_engine()->sgw);
   }
   template <class SrcHandleType>
   KOKKOS_INLINE_FUNCTION handle_type operator=(SrcHandleType const &rhs) {

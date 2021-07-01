@@ -67,16 +67,15 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
   int total_threads = blockDim.x * blockDim.y;
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
-   
+
   while (completion == 0) {
     uint64_t idx = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
     if (my_thread == 0) {
       request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
     }
-
     __syncthreads();
-
+    
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       uint32_t num_requests = GET_BLOCK_SIZE(request);
       uint32_t pe = GET_BLOCK_PE(request);
@@ -113,10 +112,11 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
         debug_2("pack_response: Completion_flag:%i\n",  (int)*completion_flag);
     }
     __syncthreads();
-  }
+  } //While loop
 
-  debug_2("Stopping: pack_response kernel:%i\n",0);
   __syncthreads();
+  debug_2("Stopping: pack_response kernel:%i\n",0);
+  
   if (my_thread == 0) {
     volatile_store(completion_flag, 0u);
   }
@@ -138,6 +138,7 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
     misses[i] = 0;
   completion = 0;
   __syncthreads();
+  
   while (completion < num_worker_teams) {
     for (int pe = 0; pe < sgw->num_pes; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
@@ -198,13 +199,12 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
     }
     if (my_thread == 0) {
       completion = volatile_load(sgw->request_done_flag);
-      debug_2("aggregate_requests: Completion_flag:%i\n", (int)*sgw->request_done_flag);
     }
     __syncthreads();
-  }
-
-  debug_2("Stopping: aggregate_requests kernel:%i\n",0);
+  } //While loop
+  
   __syncthreads();
+  debug_2("Stopping: aggregate_requests kernel:%i\n",0);
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
