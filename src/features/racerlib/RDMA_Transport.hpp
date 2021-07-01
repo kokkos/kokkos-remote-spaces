@@ -66,10 +66,6 @@ struct BootstrapPort {
   uint32_t qp_num;
 };
 
-  ibv_pd* global_pd = nullptr;
-  ibv_context* global_ctx = nullptr;
-  int global_pd_ref_count = 0;
-
   int nproc;
   int rank;
   ibv_context* ctx;

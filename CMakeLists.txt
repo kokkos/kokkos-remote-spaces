@@ -13,6 +13,7 @@ option(Kokkos_ENABLE_SHMEMSPACE   "Whether to build with SHMEMS space" OFF)
 option(Kokkos_ENABLE_MPISPACE     "Whether to build with MPI space" OFF)
 option(Kokkos_ENABLE_TESTS   "Whether to enable tests" OFF)
 option(Kokkos_ENABLE_RACERLIB   "Whether to enable experimental features (RACERlib)" OFF)
+option(Kokkos_ENABLE_DEBUG "Whether to enable debugging output" OFF)
 
 set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
@@ -98,6 +99,10 @@ endif()
 
 target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/core>)
 target_include_directories(kokkosremote PUBLIC $<INSTALL_INTERFACE:include>)
+
+if(Kokkos_ENABLE_DEBUG)
+ target_compile_definitions(kokkosremote PUBLIC KOKKOS_IBV_DEBUG)
+endif()
 
 if (PRIVATE_DEPS)
   target_link_libraries(kokkosremote PRIVATE ${PRIVATE_DEPS})

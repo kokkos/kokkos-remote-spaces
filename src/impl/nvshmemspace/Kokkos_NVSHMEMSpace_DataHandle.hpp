@@ -59,7 +59,7 @@ struct NVSHMEMDataHandle {
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle() : ptr(NULL) {}
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle(T *ptr_, void * tmp) : ptr(ptr_) {}
+  NVSHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
@@ -127,7 +127,8 @@ struct CachedDataHandle {
   KOKKOS_INLINE_FUNCTION
   CachedDataHandle(T *ptr_, RDMA_Engine * e_) : ptr(ptr_), e(e_), sgw(e_->sgw) {}
   KOKKOS_INLINE_FUNCTION
-  CachedDataHandle(CachedDataHandle<T, Traits> const &arg) : ptr(arg.ptr), sgw(arg.sgw) {}
+  CachedDataHandle(CachedDataHandle<T, Traits> const &arg) : ptr(arg.ptr), 
+    sgw(arg.sgw), e(arg.e) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION CachedDataElement<T, Traits>

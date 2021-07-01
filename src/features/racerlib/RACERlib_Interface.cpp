@@ -54,6 +54,9 @@ template class Engine<double>;
 template class Engine<size_t>;
 //etc.
 
+extern Transport *request_tport;
+
+void rdma_ibv_finalize();
 
 #define RACERLIB_SUCCESS 1
 
@@ -98,13 +101,18 @@ int Engine<T>::init(void * target, MPI_Comm comm_id) // set communicator referen
 
   //Init components 
   allocate_host_device_component(target, comm_id);
+  debug("RACERlib engine allocated. %i\n", 0);
   
   return RACERLIB_SUCCESS;
 }
 template <typename T>
-int Engine<T>::finalize(
-    MPI_Comm comm_id) // finalize communicator instance, return RECERLIB_STATUS
+int Engine<T>::finalize() // finalize communicator instance, return RECERLIB_STATUS
 {
+  debug("RACERlib engine deallocated. %i\n", 0);
+    fence();
+    
+    deallocate_host_component();
+    rdma_ibv_finalize(); //make sure the RDMA polling engine is done
   // Call this on kokkos finalize
   return RACERLIB_SUCCESS;
 }
@@ -113,7 +121,6 @@ int Engine<T>::finalize(
 
 template <typename T>
 Engine<T>::Engine(void * target, MPI_Comm comm_id) { 
-  start(target, comm_id);
 }
 
 template <typename T>
@@ -186,13 +193,11 @@ void Engine<T>::allocate_host_host_component() {
 
   // Dealloc all for now.
   template <typename T>
-void Engine<T>::deallocate_device_component() {
+void Engine<T>::deallocate_host_component() {
   for (RdmaScatterGatherEngine *sge : sges) {
     delete sge;
   }
 }
-template <typename T>
-  void Engine<T>::deallocate_host_component() { delete sgw; }
 
 template <typename T>
   RdmaScatterGatherWorker<T> *Engine<T>::get_worker() const { return sgw; }
@@ -202,11 +207,8 @@ template <typename T>
 
 template <typename T>
   Engine<T>::~Engine() {
-    fence();
-    deallocate_device_component();
-    deallocate_host_component();
+    
   }
-
 
 template <typename T>
   void Engine<T>::fence() {

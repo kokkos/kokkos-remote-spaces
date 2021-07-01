@@ -56,6 +56,11 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
 private:
   friend Kokkos::Experimental::NVSHMEMSpace;
 
+
+  #if defined(KOKKOS_ENABLE_RACERLIB)
+  Kokkos::Experimental::RACERlib::Engine<int> e;
+  #endif
+
   typedef SharedAllocationRecord<void, void> RecordBase;
 
   SharedAllocationRecord(const SharedAllocationRecord &) = delete;

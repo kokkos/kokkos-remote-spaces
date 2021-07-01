@@ -912,6 +912,7 @@ struct CachedDataElement<
 
   KOKKOS_INLINE_FUNCTION
   T request(int pe, uint32_t offset) const {
+    debug_2("Access:%i, %i",pe, offset);
     bool nonlocal = pe != sgw->rank;
     if (nonlocal){
       void* shm_ptr = sgw->direct_ptrs[pe];

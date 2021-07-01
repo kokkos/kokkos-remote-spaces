@@ -73,7 +73,7 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
   if (Kokkos::Profiling::profileLibraryLoaded()) {
     Kokkos::Profiling::allocateData(
         Kokkos::Profiling::SpaceHandle(arg_space.name()), arg_label, data(),
-        arg_alloc_size);
+        arg_alloc_size);   
   }
 #endif
   SharedAllocationHeader header;
@@ -108,6 +108,10 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
 
   m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
                      SharedAllocationRecord<void, void>::m_alloc_size);
+
+  #if defined(KOKKOS_ENABLE_RACERLIB)  
+  get_RACERlib_Engine().finalize();
+  #endif
 }
 
 SharedAllocationRecord<void, void> SharedAllocationRecord<
@@ -119,7 +123,7 @@ void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
   delete static_cast<SharedAllocationRecord *>(arg_rec);
 }
 
-void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
+void * SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
     allocate_tracked(const Kokkos::Experimental::NVSHMEMSpace &arg_space,
                      const std::string &arg_alloc_label,
                      const size_t arg_alloc_size) {
@@ -129,6 +133,8 @@ void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
   SharedAllocationRecord *const r =
       allocate(arg_space, arg_alloc_label, arg_alloc_size);
   RecordBase::increment(r);
+  #if defined(KOKKOS_ENABLE_RACERLIB)
+    #endif
   return r->data();
 }
 

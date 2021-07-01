@@ -50,6 +50,12 @@
 #include <RACERlib_Interface.hpp>
 #endif
 
+namespace Kokkos {
+namespace Experimental{
+    enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
+}
+}
+
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
@@ -79,8 +85,6 @@ class MPISpace;
 
 namespace Kokkos {
 namespace Experimental {
-
-enum RemoteSpaces_MemoryAllocationMode { Symmetric, Cached };
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;

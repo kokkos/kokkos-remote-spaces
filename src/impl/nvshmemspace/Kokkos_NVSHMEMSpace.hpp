@@ -108,17 +108,22 @@ public:
   void deallocate(const int *gids, void *const arg_alloc_ptr,
                   const size_t arg_alloc_size) const;
 
+  void set_allocation_mode(RemoteSpaces_MemoryAllocationMode mode)
+  {
+    allocation_mode = mode;
+  }
+
   /**\brief Return Name of the MemorySpace */
   static constexpr const char *name() { return m_name; }
 
   void fence();
-
-  int allocation_mode;
+  
   int64_t extent;
 
   void impl_set_extent(int64_t N);
 
 private:
+  int allocation_mode;
   static constexpr const char *m_name = "NVSHMEM";
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::NVSHMEMSpace, void>;

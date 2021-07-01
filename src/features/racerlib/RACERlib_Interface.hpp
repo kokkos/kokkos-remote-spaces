@@ -49,6 +49,7 @@
 #include <RDMA_Engine.hpp>
 #include <RDMA_Transport.hpp>
 #include <RDMA_Interface.hpp>
+#include <RDMA_Helpers.hpp>
 
 namespace Kokkos {
 namespace Experimental {
@@ -76,8 +77,7 @@ struct Engine {
   // Call this on Kokkos initialize.
   int init(void * target, MPI_Comm comm_id); // set communicator reference, return RACERLIB_STATUS
   // Call this on kokkos finalize
-  int finalize(
-      MPI_Comm comm_id); // finalize communicator instance, return RECERLIB_STATUS
+  int finalize( ); // finalize communicator instance, return RECERLIB_STATUS
 
   RdmaScatterGatherEngine *sge;
   RdmaScatterGatherWorker<T> *sgw;

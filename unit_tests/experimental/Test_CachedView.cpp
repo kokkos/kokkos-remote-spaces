@@ -42,8 +42,8 @@
 //@HEADER
 */
 
-#ifndef TEST_CACHED_VIEW_HPP_
-#define TEST_CACHED_VIEW_HPP_
+#ifndef TEST_CACHED_VIEW_HPP
+#define TEST_CACHED_VIEW_HPP
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -62,9 +62,9 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  int num_teams = 1;
-  int team_size = 32;
-  int thread_vector_length = 8;
+  int num_teams = 3;
+  int team_size = 1;
+  int thread_vector_length = 1;
 
   using ViewHost_1D_t =
       Kokkos::View<Data_t *, Kokkos::GlobalLayoutLeft, HostSpace_t>;
@@ -89,29 +89,29 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
   int next_rank = (my_rank + 1) % num_ranks;
 
-auto policy = Kokkos::TeamPolicy<>
+  auto policy = Kokkos::TeamPolicy<>
        (num_teams, team_size, thread_vector_length);
   using team_t = Kokkos::TeamPolicy<>::member_type;
 
   Kokkos::Experimental::remote_parallel_for(
     "Increment", policy, KOKKOS_LAMBDA(const team_t& team) {
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team,v_r.extent(0)),
-        [&] (const int64_t i) {
+        [&] (const int i) {
         int index = next_rank * v_r.extent(0) + i;
-        v_d(index) = v_r(index);       
+        v_d(i) = v_r(index);    
       });
     }, v_r);
 
+  RemoteSpace_t().fence();
   Kokkos::deep_copy(v_h, v_d);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
     ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
 }
 
-
 TEST(TEST_CATEGORY, test_cached_view) {
    // 1D
-  test_cached_view1D<int>(31);
+  test_cached_view1D<int>(16);
 }
 
-#endif /* TEST_ATOMIC_GLOBALVIEW_HPP_ */
+#endif /* TEST_ATOMIC_GLOBALVIEW_HPP */

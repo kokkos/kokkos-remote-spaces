@@ -51,13 +51,8 @@ namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-NVSHMEMSpace::NVSHMEMSpace() {
-    #if defined(KOKKOS_ENABLE_RACERLIB)
-    allocation_mode = RemoteSpaces_MemoryAllocationMode::Cached;
-    #else
-    allocation_mode = RemoteSpaces_MemoryAllocationMode::Symmetric;
-    #endif
-  }
+NVSHMEMSpace::NVSHMEMSpace():allocation_mode(RemoteSpaces_MemoryAllocationMode::Cached) 
+{}
 
 void NVSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
@@ -79,7 +74,8 @@ void * NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
       #if defined(KOKKOS_ENABLE_RACERLIB) //Do nothing for now
       int num_pes = nvshmem_n_pes();
       int my_id = nvshmem_my_pe();
-      ptr = nvshmem_malloc(arg_alloc_size);
+      //ptr = nvshmem_malloc(arg_alloc_size); //Assume that ALL NVSHMEM_SPACE Views are cached for  now.
+      cuda_safe(cuMemAlloc((CUdeviceptr *)&ptr, arg_alloc_size));
       #else
        Kokkos::abort("Cached allocation policy requested but no implementation provided.");
       #endif
@@ -97,7 +93,7 @@ void NVSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
     nvshmem_free(arg_alloc_ptr);
   } else if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Cached) {
     #if defined(KOKKOS_ENABLE_RACERLIB)
-    nvshmem_free(arg_alloc_ptr);
+    cudaFree(arg_alloc_ptr);
     #else
     Kokkos::abort("Cached allocation policy requested but not implementation provided.");
     #endif
@@ -108,7 +104,12 @@ void NVSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
 
 void NVSHMEMSpace::fence() {
   Kokkos::fence();
-  nvshmem_barrier_all();
+  #if defined(KOKKOS_ENABLE_RACERLIB)
+   e.fence();
+  #else
+    nvshmem_barrier_all();
+  #endif
+  
 }
 
 KOKKOS_FUNCTION

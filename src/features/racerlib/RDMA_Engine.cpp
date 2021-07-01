@@ -76,7 +76,7 @@ static size_t aligned_size(size_t alignment, size_t size) {
 
 static void *
 allocate_host_pinned(size_t size,
-                     size_t &real_size) //, bool host_write_optimized = false)
+                     size_t &real_size)
 {
   size_t pagesize = (size_t)sysconf(_SC_PAGE_SIZE);
   real_size = aligned_size(pagesize, size);
@@ -118,7 +118,7 @@ static void free_device(void *buf, size_t size) {
 static ibv_mr *pin_rdma_memory(Transport *tport, size_t size, void *buf) {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ;
-  debug("registering rdma memory on tport=%p, pd=%p, size=%d, buf=%p", tport,
+  debug("Registering rdma memory on tport=%p, pd=%p, size=%d, buf=%p", tport,
         (tport ? tport->pd : nullptr), int(size), buf);
   ibv_mr *mr = ibv_reg_mr(tport->pd, buf, size, mr_flags);
   return mr;
@@ -200,7 +200,7 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
                                              trip_number, window_offset);
   volatile_store(&rx_block_request_cmd_queue[idx], request);
 
-  debug("starting reply %" PRIu64 " back to %d on token %" PRIu32
+  debug("Starting reply %" PRIu64 " back to %d on token %" PRIu32
         " on index %" PRIu64 " on window %u from %p to %p",
         request, win->requester, win->reply_token, idx, window_offset,
         win->cfg.reply_tx_buf, win->cfg.reply_rx_buf);
@@ -211,7 +211,7 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
 void RdmaScatterGatherEngine::remote_window_finish_reply() {
   RdmaWorkRequest *rsp_wr = available_send_response_wrs.pop();
   if (pending_replies.empty()) {
-    Kokkos::abort("empty replies");
+    Kokkos::abort("Empty replies");
   }
   RemoteWindow *win = pending_replies.front();
   pending_replies.pop();
@@ -229,7 +229,7 @@ void RdmaScatterGatherEngine::remote_window_finish_reply() {
       (uint64_t)win->cfg.reply_rx_buf + win->offset * win->elem_size;
   sr->wr.rdma.rkey = win->cfg.reply_rx_key;
 
-  debug("finishing reply back to %d on token %" PRIu32
+  debug("Finishing reply back to %d on token %" PRIu32
         " from %p to %p of size %d",
         win->requester, win->reply_token, sge->addr, sr->wr.rdma.remote_addr,
         int(sge->length));
@@ -247,7 +247,7 @@ void RdmaScatterGatherEngine::remote_window_finish_reply() {
 
 void RdmaScatterGatherEngine::response_received(RdmaWorkRequest *req,
                                                 uint32_t token) {
-  debug("got response token=%" PRIu32, token);
+  debug("Received response token=%" PRIu32, token);
   PendingRdmaRequest &pending_req = pending_sg_requests[token];
   ack_response(pending_req);
 }
@@ -284,7 +284,7 @@ void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
 
   win->cfg = tx_remote_window_configs[pe];
   win->reply_token = available_reply_keys.pop();
-  debug("request %p with %" PRIu32 " entries at offset=%" PRIu32
+  debug("Request %p with %" PRIu32 " entries at offset=%" PRIu32
         " on token=%" PRIu32 " from pe=%d",
         win, win->num_entries, win->offset, win->reply_token, pe);
 
@@ -321,7 +321,7 @@ void RdmaScatterGatherEngine::poll(Transport *tport) {
     switch (req->type) {
     case RdmaWorkRequest::SEND_SG_REQUEST: {
       // nothing to do, just make request available again
-      debug("cleared send request %p on cq", req->buf, tport->cq);
+      debug("cleared send request %p on cq:%p", req->buf, tport->cq);
       time_safe(available_tx_windows.append((RemoteWindow *)req->buf));
       time_safe(available_send_request_wrs.append(req));
       break;
@@ -343,7 +343,7 @@ void RdmaScatterGatherEngine::poll(Transport *tport) {
     }
     case RdmaWorkRequest::SEND_SG_RESPONSE: {
       // nothing to do, just make request available again
-      debug("cleared send response on cq", tport->cq);
+      debug("cleared send response on cq: %p", tport->cq);
       time_safe(available_send_response_wrs.append(req));
       break;
     }
@@ -420,7 +420,7 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
     uint32_t pe = GET_BLOCK_PE(next_request);
     uint32_t num_entries = GET_BLOCK_SIZE(next_request);
 
-    debug("got block request of size %" PRIu32 " for pe %" PRIu32
+    debug("Got block request of size %" PRIu32 " for pe %" PRIu32
           " on idx %" PRIu64 " at offset %" PRIu64,
           num_entries, pe, tx_block_request_ctr,
           tx_element_request_sent_ctrs[pe]);
@@ -441,7 +441,7 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
   if (cleared_index == req.start_idx) {
     cleared_index += req.num_entries;
   } else {
-    debug("misordered ack %" PRIu32 ": expected %" PRIu32 ", got %" PRIu32,
+    debug("Misordered ack %" PRIu32 ": expected %" PRIu32 ", got %" PRIu32,
           req.token, cleared_index, req.start_idx);
     misordered_acks.insert(&req);
     return;
@@ -461,7 +461,7 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
     }
   }
 
-  debug("acking index on pe=%d up to index=%" PRIu64 " on token=%" PRIu32,
+  debug("Acking index on pe=%d up to index=%" PRIu64 " on token=%" PRIu32,
         req.pe, cleared_index, req.token);
 
   tx_element_request_acked_ctrs[req.pe] = cleared_index;
@@ -505,6 +505,8 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   free_device(ack_ctrs_d, num_pes * sizeof(uint64_t));
   free_device(cache.flags, cache.cache_size);
 
+  debug("Shutting down RdmaScatterGatherEngine: %i", 0);
+
   delete[] tx_element_request_acked_ctrs;
 }
 
@@ -518,10 +520,10 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
   }
 
   if (!request_tport) {
-    Kokkos::abort("request transport not initialized");
+    Kokkos::abort("Request transport not initialized");
   }
   if (!response_tport) {
-    Kokkos::abort("response transport not initialized");
+    Kokkos::abort("Response transport not initialized");
   }
 
   MPI_Comm_size(comm, &num_pes);
@@ -589,7 +591,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
   }
 
   if (request_tport->pd != response_tport->pd) {
-    Kokkos::abort("does not support request/response in different IBV "
+    Kokkos::abort("Does not support request/response in different IBV "
                   "protection domains");
   }
 
@@ -711,11 +713,11 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
     rr->num_sge = 2;
     rr->sg_list = sge;
 
-    debug("post rr=%p of size=%d, key=%" PRIu32 ", addr=%p", req,
+    debug("Post rr=%p of size=%d, key=%" PRIu32 ", addr=%p", req,
           int(sge->length), sge->lkey, sge->addr);
 
     ibv_safe(ibv_post_srq_recv(req->srq, rr, bad_rr));
-    debug("posting receive on window %p", win);
+    debug("Posting receive on window %p", win);
   }
 
   for (int r = 0; r < NUM_RECV_WRS; ++r) {
@@ -741,6 +743,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
   pthread_create(&response_thread, nullptr, run_response_thread, this);
   pthread_create(&request_thread, nullptr, run_request_thread, this);
 
+  debug("Pthreads created on rank:%i", rank);
+
   request_done_flag =
       (unsigned *)allocate_device(sizeof(unsigned) * 2, ignore_actual_size);
   response_done_flag = request_done_flag + 1;
@@ -750,6 +754,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
   memset_device(request_done_flag, 0, 2 * sizeof(unsigned));
 
   run_on_core(0);
+
+  debug("Engine init finished on rank:%i", rank);
 }
 
 RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(
@@ -765,6 +771,7 @@ void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge) {
 }
 
 void rdma_ibv_finalize() {
+  debug("rdma_ibv_finalize %i", 0);
   if (request_tport) {
     delete request_tport;
     request_tport = nullptr;

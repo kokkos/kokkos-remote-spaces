@@ -48,13 +48,15 @@ namespace Kokkos {
 namespace Experimental {
 //namespace RACERlib {
 
+#define RAW_CUDA
+
 #ifdef RAW_CUDA
 
 //ETI this
-template void pack_response<int,Kokkos::Impl::CudaTeamMember const&>(int *local_values, RdmaScatterGatherWorker<int> *sgw,
+template  __device__ void pack_response<int,Kokkos::Impl::CudaTeamMember const&>(int *local_values, RdmaScatterGatherWorker<int> *sgw,
                               unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const & team);
 
-template void aggregate_requests<int, Kokkos::Impl::CudaTeamMember const&>(RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const & team,
+template  __device__ void aggregate_requests<int, Kokkos::Impl::CudaTeamMember const&>(RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const & team,
                               unsigned num_worker_teams);
 
 template <typename T, class Team>
@@ -65,12 +67,14 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
   int total_threads = blockDim.x * blockDim.y;
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
+   
   while (completion == 0) {
     uint64_t idx = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
     if (my_thread == 0) {
       request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
     }
+
     __syncthreads();
 
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
@@ -106,9 +110,12 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
 
     if (my_thread == 0) {
       completion = volatile_load(completion_flag);
+        debug_2("pack_response: Completion_flag:%i\n",  (int)*completion_flag);
     }
     __syncthreads();
   }
+
+  debug_2("Stopping: pack_response kernel:%i\n",0);
   __syncthreads();
   if (my_thread == 0) {
     volatile_store(completion_flag, 0u);
@@ -191,9 +198,12 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
     }
     if (my_thread == 0) {
       completion = volatile_load(sgw->request_done_flag);
+      debug_2("aggregate_requests: Completion_flag:%i\n", (int)*sgw->request_done_flag);
     }
     __syncthreads();
   }
+
+  debug_2("Stopping: aggregate_requests kernel:%i\n",0);
   __syncthreads();
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);

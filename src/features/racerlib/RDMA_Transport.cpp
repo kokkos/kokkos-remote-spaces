@@ -47,6 +47,12 @@
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
+
+
+//Global vars
+ibv_pd* global_pd = nullptr;
+ibv_context* global_ctx = nullptr;
+int global_pd_ref_count = 0;
   
 Transport::Transport(MPI_Comm comm)
 {

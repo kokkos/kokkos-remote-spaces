@@ -239,7 +239,10 @@ struct RdmaScatterGatherEngine {
     return Kokkos::atomic_fetch_add(&terminate_signal, 0) == 0;
   }
 
-  void stop_running() { Kokkos::atomic_add(&terminate_signal, uint32_t(1)); }
+  void stop_running() { 
+    Kokkos::atomic_add(&terminate_signal, uint32_t(1));
+    debug_2("Stopping engine. Terminate_signal set:%i\n",0);  
+  }
 
   void fence();
 
