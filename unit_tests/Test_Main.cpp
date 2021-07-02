@@ -55,11 +55,14 @@ int main(int argc, char *argv[]) {
   shmem_init();
 #endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  #ifdef KOKKOS_ENABLE_RACERLIB
+  #else
   MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
+  nvshmemx_init_attr_t attr;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+  #endif
 #endif
 
 Kokkos::initialize(argc, argv);
@@ -71,7 +74,10 @@ int result = RUN_ALL_TESTS();
   shmem_finalize();
 #endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
+  #ifdef KOKKOS_ENABLE_RACERLIB
+  #else
+    nvshmem_finalize();
+  #endif
 #endif
   MPI_Finalize();
   return result;

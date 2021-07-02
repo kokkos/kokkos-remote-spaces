@@ -204,7 +204,6 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
   } //While loop
   
   __syncthreads();
-  debug_2("Stopping: aggregate_requests kernel:%i\n",0);
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);

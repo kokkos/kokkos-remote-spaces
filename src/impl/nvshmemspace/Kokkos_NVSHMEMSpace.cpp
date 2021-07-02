@@ -52,7 +52,15 @@ namespace Experimental {
 
 /* Default allocation mechanism */
 NVSHMEMSpace::NVSHMEMSpace():allocation_mode(RemoteSpaces_MemoryAllocationMode::Cached) 
-{}
+{
+  #ifdef KOKKOS_ENABLE_RACERLIB
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  #else
+  my_rank = nvshmem_my_pe();
+  num_ranks = nvshmem_n_pes(); 
+  #endif
+}
 
 void NVSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
@@ -67,14 +75,10 @@ void * NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
   void * ptr = 0;
   if (arg_alloc_size) {
     if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Symmetric) {
-      int num_pes = nvshmem_n_pes();
-      int my_id = nvshmem_my_pe();
       ptr = nvshmem_malloc(arg_alloc_size);
     } else if (allocation_mode == RemoteSpaces_MemoryAllocationMode::Cached) {
       #if defined(KOKKOS_ENABLE_RACERLIB) //Do nothing for now
-      int num_pes = nvshmem_n_pes();
-      int my_id = nvshmem_my_pe();
-      //ptr = nvshmem_malloc(arg_alloc_size); //Assume that ALL NVSHMEM_SPACE Views are cached for  now.
+      //Assume that ALL NVSHMEM_SPACE Views are cached for  now.
       cuda_safe(cuMemAlloc((CUdeviceptr *)&ptr, arg_alloc_size));
       #else
        Kokkos::abort("Cached allocation policy requested but no implementation provided.");
@@ -113,28 +117,14 @@ void NVSHMEMSpace::fence() {
 }
 
 KOKKOS_FUNCTION
-size_t get_num_pes() { return nvshmem_n_pes(); }
-
-KOKKOS_FUNCTION
-size_t get_my_pe() { return nvshmem_my_pe(); }
-
-KOKKOS_FUNCTION
-size_t get_block_round_up(size_t size) {
-  size_t n_pe, block;
-  n_pe = get_num_pes();
-  block = (size % get_num_pes()) ? (size + n_pe) / n_pe : size / n_pe;
-  return block;
+size_t NVSHMEMSpace::get_my_pe() const { 
+ return my_rank;
 }
 
 KOKKOS_FUNCTION
-size_t get_block_round_down(size_t size) {
-  size_t n_pe, block;
-  n_pe = get_num_pes();
-  block = size / n_pe;
-  return block;
+size_t NVSHMEMSpace::get_num_pes() const { 
+  return num_ranks;
 }
-
-size_t get_block(size_t size) { return get_block_round_up(size); }
 
 } // namespace Experimental
 

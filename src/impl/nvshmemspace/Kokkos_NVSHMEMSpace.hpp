@@ -113,6 +113,9 @@ public:
     allocation_mode = mode;
   }
 
+  int my_rank;
+  int num_ranks;
+
   /**\brief Return Name of the MemorySpace */
   static constexpr const char *name() { return m_name; }
 
@@ -127,18 +130,13 @@ private:
   static constexpr const char *m_name = "NVSHMEM";
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::NVSHMEMSpace, void>;
-};
 
+
+  KOKKOS_FUNCTION
+size_t get_num_pes() const;
 KOKKOS_FUNCTION
-size_t get_num_pes();
-KOKKOS_FUNCTION
-size_t get_my_pe();
-KOKKOS_FUNCTION
-size_t get_block(size_t size);
-KOKKOS_FUNCTION
-size_t get_block_round_up(size_t size);
-KOKKOS_FUNCTION
-size_t get_block_round_down(size_t size);
+size_t get_my_pe() const;
+};
 
 } // namespace Experimental
 } // namespace Kokkos

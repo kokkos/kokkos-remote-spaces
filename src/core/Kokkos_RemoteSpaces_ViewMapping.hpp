@@ -311,8 +311,8 @@ private:
   size_t m_offset_remote_dim;
   size_t m_corrected_dim0;
 
-  int m_num_pes;
-  int pe;
+  int num_ranks;
+  int my_rank;
 
 
 public:
@@ -353,7 +353,7 @@ public:
                     std::is_same<typename T::array_layout,
                                  Kokkos::GlobalLayoutLeft>::value)>::type * =
                   nullptr) const {
-    return m_num_pes;
+    return num_ranks;
   }
 
   KOKKOS_INLINE_FUNCTION constexpr size_t dimension_1() const {
@@ -692,7 +692,7 @@ public:
   // GlobalLayout{Left,Right} access operators
 
   struct dim0_offsets {
-    size_t pe, offset;
+    size_t my_rank, offset;
   };
 
   // TODO: move this to kokkos::view_offset (new template spec)
@@ -704,8 +704,8 @@ public:
     _pe = _dim0 != 0 ? (_i0 / _dim0) : 0;
     _dim0_mod = _dim0 != 0 ? _i0 % _dim0 : 0;
 
-    if (_pe >= m_num_pes) {
-      _pe = m_num_pes - 1;
+    if (_pe >= num_ranks) {
+      _pe = num_ranks - 1;
       _dim0_mod = _dim0 + _dim0_mod;
     }
     return dim0_offsets{_pe, _dim0_mod};
@@ -724,13 +724,13 @@ public:
                              Kokkos::GlobalLayoutStride>::value>::type * =
                 nullptr) const {
 
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element = m_handle(0, m_offset(i0));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element =
-        m_handle(_dim0_offset.pe, m_offset(_dim0_offset.offset));
+        m_handle(_dim0_offset.my_rank, m_offset(_dim0_offset.offset));
     return element;
   }
 
@@ -743,13 +743,13 @@ public:
                        Kokkos::GlobalLayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element =
-        m_handle(_dim0_offset.pe, m_offset(_dim0_offset.offset, i1));
+        m_handle(_dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1));
     return element;
   }
 
@@ -769,13 +769,13 @@ public:
                 std::is_same<typename T::array_layout,
                              Kokkos::GlobalLayoutRight>::value>::type * =
                 nullptr) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element =
-        m_handle(_dim0_offset.pe, m_offset(_dim0_offset.offset, i1, i2));
+        m_handle(_dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2));
     return element;
   }
 
@@ -789,13 +789,13 @@ public:
                        Kokkos::GlobalLayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element =
-        m_handle(_dim0_offset.pe, m_offset(_dim0_offset.offset, i1, i2, i3));
+        m_handle(_dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3));
     return element;
   }
 
@@ -810,13 +810,13 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3, i4));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element = m_handle(
-        _dim0_offset.pe, m_offset(_dim0_offset.offset, i1, i2, i3, i4));
+        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3, i4));
     return element;
   }
 
@@ -831,14 +831,14 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element = m_handle(
-        _dim0_offset.pe, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5));
+        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5));
     return element;
   }
 
@@ -853,14 +853,14 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element = m_handle(
-        _dim0_offset.pe, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5, i6));
+        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5, i6));
     return element;
   }
 
@@ -875,14 +875,14 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7) const {
-    if (m_num_pes <= 1) {
+    if (num_ranks <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
     const reference_type element =
-        m_handle(_dim0_offset.pe,
+        m_handle(_dim0_offset.my_rank,
                  m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5, i6, i7));
     return element;
   }
@@ -901,6 +901,24 @@ public:
            ~size_t(MemorySpanMask);
   }
 
+  KOKKOS_FUNCTION
+size_t get_block_round_up(size_t size) {
+  size_t n_pe, block;
+  n_pe = num_ranks;
+  block = (size % num_ranks) ? (size + n_pe) / n_pe : size / n_pe;
+  return block;
+}
+
+KOKKOS_FUNCTION
+size_t get_block_round_down(size_t size) {
+  size_t n_pe, block;
+  n_pe = num_ranks;
+  block = size / n_pe;
+  return block;
+}
+
+size_t get_block(size_t size) { return get_block_round_up(size); }
+
   /**\brief  Span, in bytes, of the required memory */
   KOKKOS_INLINE_FUNCTION
   static constexpr size_t
@@ -915,39 +933,37 @@ public:
 
   KOKKOS_INLINE_FUNCTION ViewMapping()
       : m_handle(), m_offset(), m_offset_remote_dim(0), m_corrected_dim0(0) {
-    m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
   }
 
   KOKKOS_INLINE_FUNCTION ViewMapping(const ViewMapping &rhs)
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
-        m_num_pes(rhs.m_num_pes), pe(rhs.pe),
+        num_ranks(rhs.num_ranks), my_rank(rhs.my_rank),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_corrected_dim0(rhs.m_corrected_dim0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
     m_handle = rhs.m_handle;
     m_offset = rhs.m_offset;
-    m_num_pes = rhs.m_num_pes;
+    num_ranks = rhs.num_ranks;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_corrected_dim0 = rhs.m_corrected_dim0;
-    pe = rhs.pe;
+    my_rank = rhs.my_rank;
     return *this;
   }
 
   KOKKOS_INLINE_FUNCTION ViewMapping(ViewMapping &&rhs)
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
-        m_num_pes(rhs.m_num_pes), pe(rhs.pe),
+        num_ranks(rhs.num_ranks), my_rank(rhs.my_rank),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_corrected_dim0(rhs.m_corrected_dim0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
     m_handle = rhs.m_handle;
     m_offset = rhs.m_offset;
-    m_num_pes = rhs.m_num_pes;
+    num_ranks = rhs.num_ranks;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_corrected_dim0 = rhs.m_corrected_dim0;
-    pe = rhs.pe;
+    my_rank = rhs.my_rank;
     return *this;
   }
 
@@ -976,8 +992,6 @@ public:
     set_layout(arg_layout, layout, m_corrected_dim0);
 
     m_offset = offset_type(padding(), layout);
-    m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
   }
 
   /**\brief  Assign data */
@@ -1000,10 +1014,10 @@ private:
 
     // Override: Round up for symmetric allocation
     layout.dimension[0] =
-        Kokkos::Experimental::get_block_round_up(arg_layout.dimension[0]);
+        get_block_round_up(arg_layout.dimension[0]);
     // Round down to use for proper indexing
     corrected_dim0 =
-        Kokkos::Experimental::get_block_round_down(arg_layout.dimension[0]);
+        get_block_round_down(arg_layout.dimension[0]);
   }
 
   template <typename T = Traits>
@@ -1059,9 +1073,6 @@ public:
     // Copy layout properties
     set_layout(arg_layout, layout, m_corrected_dim0);
 
-    m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
-
     m_offset = offset_type(padding(), layout);
 
     const size_t alloc_size = memory_span();
@@ -1073,6 +1084,9 @@ public:
             .value,
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
+
+    num_ranks = record->get_num_pes();
+    my_rank = record->get_my_pe();
 
     #ifdef KOKKOS_ENABLE_MPISPACE 
     if (alloc_size) {
@@ -1124,9 +1138,6 @@ public:
     // Copy layout properties
     set_layout(arg_layout, layout, m_corrected_dim0);
 
-    m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
-
     m_offset = offset_type(padding(), layout);
 
     const size_t alloc_size = memory_span();
@@ -1138,6 +1149,9 @@ public:
             .value,
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
+
+    num_ranks = record->get_num_pes();
+    my_rank = record->get_my_pe();
 
     #ifdef KOKKOS_ENABLE_MPISPACE 
     if (alloc_size) {

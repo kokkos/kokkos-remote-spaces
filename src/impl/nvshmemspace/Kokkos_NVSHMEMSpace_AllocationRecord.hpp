@@ -118,7 +118,8 @@ public:
   static void print_records(std::ostream &,
                             const Kokkos::Experimental::NVSHMEMSpace &,
                             bool detail = false);
-
+  int get_my_pe();
+  int get_num_pes();
 
   #if defined(KOKKOS_ENABLE_RACERLIB)
   Kokkos::Experimental::RACERlib::Engine<int> *  RACERlib_get_engine();

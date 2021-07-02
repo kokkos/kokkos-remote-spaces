@@ -95,6 +95,16 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
                                                sizeof(SharedAllocationHeader));
 }
 
+int SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_my_pe()
+{
+  return m_space.get_my_pe();
+};
+
+int SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_num_pes()
+{
+  return m_space.get_num_pes();
+};
+
 SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
                        void>::~SharedAllocationRecord() {
 #if defined(KOKKOS_ENABLE_PROFILING)
