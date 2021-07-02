@@ -510,7 +510,7 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   delete[] tx_element_request_acked_ctrs;
 }
 
-RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, 
+RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
                                                  size_t elem_size)                                                
     : comm(c), tx_block_request_ctr(0), rx_block_request_ctr(0),
       tx_block_reply_ctr(0), epoch(0), terminate_signal(0) {
@@ -594,7 +594,6 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
     Kokkos::abort("Does not support request/response in different IBV "
                   "protection domains");
   }
-
   // TODO
   // we are for now assuming that request/response tports are on the same pd
   all_request_mr = allocate_host_rdma_memory(
@@ -632,8 +631,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
   std::vector<RdmaScatterGatherBuffer> remote_bufs(num_pes);
   RdmaScatterGatherBuffer data;
 #ifdef KOKKOS_ENABLE_CUDA
-  ///*FIXME*/
-  //cuda_safe(cuIpcGetMemHandle(&ipc_handle, (CUdeviceptr)buf));
+  cuda_safe(cuIpcGetMemHandle(&ipc_handle, (CUdeviceptr)buffer));
   data.handle = ipc_handle;
 #endif
   data.reply_tx_buffer = tx_element_reply_queue_mr->addr;
@@ -760,9 +758,10 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c,
 
 RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(
                                                              size_t elem_size,
+                                                             void * data,
                                                              MPI_Comm comm) {
   RdmaScatterGatherEngine *sge =
-      new RdmaScatterGatherEngine(comm, elem_size);
+      new RdmaScatterGatherEngine(comm, data, elem_size);
   return sge;
 }
 

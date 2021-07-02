@@ -231,7 +231,7 @@ struct RdmaScatterGatherEngine {
 
   void ack_completed(int pe, uint64_t num_completed);
 
-  RdmaScatterGatherEngine(MPI_Comm comm, size_t elem_size);
+  RdmaScatterGatherEngine(MPI_Comm comm, void * buffer, size_t elem_size);
 
   ~RdmaScatterGatherEngine();
 

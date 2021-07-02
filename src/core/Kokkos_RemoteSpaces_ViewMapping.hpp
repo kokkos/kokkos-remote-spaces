@@ -1150,7 +1150,6 @@ public:
     #else
     if (alloc_size) {
       record->RACERlib_get_engine()->init( (void*)record->data(), MPI_COMM_WORLD);
-      record->RACERlib_get_engine()->start( (void*)record->data(), MPI_COMM_WORLD);
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),record->RACERlib_get_engine(), record->RACERlib_get_engine()->sgw);
       
     }      

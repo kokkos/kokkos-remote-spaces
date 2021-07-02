@@ -94,13 +94,12 @@ int Engine<T>::flush(void * allocation, MPI_Comm comm_id) {
 }
 
 template <typename T>
-int Engine<T>::init(void * target, MPI_Comm comm_id) // set communicator reference, return RACERLIB_STATUS
+int Engine<T>::init(void * device_data, MPI_Comm comm_id) // set communicator reference, return RACERLIB_STATUS
 {
   //Init RDMA transport layer
   rdma_ibv_init();
-
   //Init components 
-  allocate_host_device_component(target, comm_id);
+  allocate_host_device_component(device_data, comm_id);
   debug("RACERlib engine allocated. %i\n", 0);
   
   return RACERLIB_SUCCESS;
@@ -128,12 +127,12 @@ Engine<T>::Engine() {
 }
 
 template <typename T>
-void Engine<T>::allocate_host_device_component(void *p, MPI_Comm comm) {
+void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
   // Create here a persistent kernel with functor (polling)
   // Call into Feature::Worker();
   //size_t header_size = 0x1;
 
-  sge = new RdmaScatterGatherEngine(comm, sizeof(T));
+  sge = new RdmaScatterGatherEngine(comm, data, sizeof(T));
   sges.insert(sge);
 
   RdmaScatterGatherWorker<T> dev_worker;
