@@ -81,7 +81,9 @@ struct Engine {
 
   RdmaScatterGatherEngine *sge;
   RdmaScatterGatherWorker<T> *sgw;
+
   std::set<RdmaScatterGatherEngine *> sges;
+  
   Engine();
   Engine(void * target, MPI_Comm comm_id);
   void allocate_host_device_component(void *p, MPI_Comm comm);

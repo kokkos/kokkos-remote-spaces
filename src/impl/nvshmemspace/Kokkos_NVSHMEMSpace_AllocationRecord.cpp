@@ -97,12 +97,12 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
 
 int SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_my_pe()
 {
-  return m_space.get_my_pe();
+  return get_my_pe();
 };
 
 int SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_num_pes()
 {
-  return m_space.get_num_pes();
+  return get_num_pes();
 };
 
 SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,

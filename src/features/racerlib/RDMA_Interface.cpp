@@ -109,7 +109,6 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
 
     if (my_thread == 0) {
       completion = volatile_load(completion_flag);
-        debug_2("pack_response: Completion_flag:%i\n",  (int)*completion_flag);
     }
     __syncthreads();
   } //While loop

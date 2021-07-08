@@ -52,15 +52,7 @@ namespace Experimental {
 
 /* Default allocation mechanism */
 NVSHMEMSpace::NVSHMEMSpace():allocation_mode(RemoteSpaces_MemoryAllocationMode::Cached) 
-{
-  #ifdef KOKKOS_ENABLE_RACERLIB
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
-  #else
-  my_rank = nvshmem_my_pe();
-  num_ranks = nvshmem_n_pes(); 
-  #endif
-}
+{}
 
 void NVSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
@@ -116,13 +108,24 @@ void NVSHMEMSpace::fence() {
   
 }
 
-KOKKOS_FUNCTION
-size_t NVSHMEMSpace::get_my_pe() const { 
- return my_rank;
+size_t get_my_pe() { 
+ int my_rank;
+  #ifdef KOKKOS_ENABLE_RACERLIB
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  #else
+  my_rank = nvshmem_my_pe();
+  #endif
+  return my_rank;
 }
 
-KOKKOS_FUNCTION
-size_t NVSHMEMSpace::get_num_pes() const { 
+size_t get_num_pes() { 
+  int num_ranks;
+
+  #ifdef KOKKOS_ENABLE_RACERLIB
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  #else
+  num_ranks = nvshmem_n_pes(); 
+  #endif
   return num_ranks;
 }
 

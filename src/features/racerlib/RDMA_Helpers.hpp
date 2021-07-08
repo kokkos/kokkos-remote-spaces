@@ -121,11 +121,12 @@
   } while (0)
 
 #define debugf(str, ...)                                                       \
-  printf("PE %d: " str "\n", request_tport->rank, __VA_ARGS__);                \
+  assert(request_tport != NULL);                                               \
+  printf("PE %d: " str "\n", request_tport->my_rank, __VA_ARGS__);                \
   fflush(stdout)
 
-#define debugf_2(str, ...)                                                       \
- printf(str "\n", __VA_ARGS__);                                                  \
+#define debugf_2(str, ...)                                                     \
+ printf(str "\n", __VA_ARGS__);                                                \
 
 
 #ifdef KOKKOS_IBV_DEBUG
@@ -144,7 +145,7 @@
   if (!elem) {                                                                 \
     fprintf(stderr, "call failed at %s:%d\n", __FILE__, __LINE__);             \
     MPI_Abort(MPI_COMM_WORLD, 1);                                              \
-  } else
+  } else {}
 
 #define ibv_safe(...)                                                          \
   do {                                                                         \

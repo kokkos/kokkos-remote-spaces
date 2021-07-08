@@ -58,6 +58,9 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
+void rdma_ibv_init();
+void rdma_ibv_finalize();
+
 struct Transport {
 
 struct BootstrapPort {
@@ -66,8 +69,8 @@ struct BootstrapPort {
   uint32_t qp_num;
 };
 
-  int nproc;
-  int rank;
+  int num_ranks;
+  int my_rank;
   ibv_context* ctx;
   ibv_cq* cq;
   ibv_qp** qps;

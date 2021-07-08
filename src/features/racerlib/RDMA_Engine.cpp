@@ -59,8 +59,8 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-Transport *request_tport = nullptr;
-Transport *response_tport = nullptr;
+extern Transport *request_tport;
+extern Transport *response_tport;
 
 static std::vector<RdmaScatterGatherEngine *> heaps;
 
@@ -164,15 +164,6 @@ static void memset_device(void *buf, int value, size_t size) {
 #else
   ::memset(buf, value, size);
 #endif
-}
-
-void rdma_ibv_init() {
-  if (!request_tport) {
-    request_tport = new Transport(MPI_COMM_WORLD);
-  }
-  if (!response_tport) {
-    response_tport = new Transport(MPI_COMM_WORLD);
-  }
 }
 
 static void free_device_rdma_memory(ibv_mr *mr) {
@@ -416,6 +407,7 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
   uint64_t queue_idx = tx_block_request_ctr % queue_size;
   uint32_t ready_flag = MAKE_READY_FLAG(trip_number);
   uint64_t next_request = volatile_load(&tx_block_request_cmd_queue[queue_idx]);
+
   while (GET_BLOCK_FLAG(next_request) == ready_flag) {
     uint32_t pe = GET_BLOCK_PE(next_request);
     uint32_t num_entries = GET_BLOCK_SIZE(next_request);
@@ -437,7 +429,7 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
 void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
   uint64_t cleared_index = tx_element_request_acked_ctrs[req.pe];
 
-  // we have to ack things in order
+  // We have to ack things in order
   if (cleared_index == req.start_idx) {
     cleared_index += req.num_entries;
   } else {
@@ -447,8 +439,8 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
     return;
   }
 
-  // this is an ordered set of requests
-  // see if any misordered requests can now be acked
+  // This is an ordered set of requests:
+  // See if any misordered requests can now be acked
   for (auto iter = misordered_acks.begin(); iter != misordered_acks.end();
        ++iter) {
     auto tmp = iter++;
@@ -481,7 +473,7 @@ void RdmaScatterGatherEngine::fence() {
 }
 
 RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
-  // make sure everyone is done with their work
+  // Make sure everyone is done with their work
   MPI_Barrier(comm);
 
   void *ignore;
@@ -560,6 +552,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
                                                 ignore_actual_size);
   tx_element_request_acked_ctrs = new uint64_t[num_pes];
   tx_element_request_sent_ctrs = new uint64_t[num_pes];
+
   for (int pe = 0; pe < num_pes; ++pe) {
     ack_ctrs_h[pe] = 0;
     tx_element_request_acked_ctrs[pe] = 0;
@@ -595,7 +588,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
                   "protection domains");
   }
   // TODO
-  // we are for now assuming that request/response tports are on the same pd
+  // We are for now assuming that request/response tports are on the same pd
   all_request_mr = allocate_host_rdma_memory(
       request_tport, sizeof(RdmaWorkRequest) * TOTAL_NUM_WRS);
   assert_ibv(all_request_mr->addr);
@@ -754,32 +747,6 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
   run_on_core(0);
 
   debug("Engine init finished on rank:%i", rank);
-}
-
-RdmaScatterGatherEngine *allocate_rdma_scatter_gather_engine(
-                                                             size_t elem_size,
-                                                             void * data,
-                                                             MPI_Comm comm) {
-  RdmaScatterGatherEngine *sge =
-      new RdmaScatterGatherEngine(comm, data, elem_size);
-  return sge;
-}
-
-void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge) {
-  delete sge;
-}
-
-void rdma_ibv_finalize() {
-  debug("rdma_ibv_finalize %i", 0);
-  if (request_tport) {
-    delete request_tport;
-    request_tport = nullptr;
-  }
-
-  if (response_tport) {
-    delete response_tport;
-    response_tport = nullptr;
-  }
 }
 
 } // namespace RACERlib

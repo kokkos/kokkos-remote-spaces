@@ -104,7 +104,9 @@ public:
 
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
- * (sub-) view type
+ * (sub-) view type.
+ * Subview will evaluate Dim0IsNotPE to true if the leading subview dimension is a scalar
+ * irregardless of layout type
  */
 
 template <class SrcTraits, class... Args>
@@ -205,6 +207,7 @@ private:
                                typename Kokkos::Impl::ParseViewExtents<
                                    typename SrcTraits::data_type>::type,
                                Args...>::type;
+
 
   // If dim0 is scalar, use that scalar as permanent offset
   // If using permanent offset, set memory traits accordingly
@@ -901,7 +904,7 @@ public:
            ~size_t(MemorySpanMask);
   }
 
-  KOKKOS_FUNCTION
+KOKKOS_FUNCTION
 size_t get_block_round_up(size_t size) {
   size_t n_pe, block;
   n_pe = num_ranks;
@@ -1009,9 +1012,9 @@ private:
                    Kokkos::GlobalLayoutStride>::value>::type
   set_layout(typename T::array_layout const &arg_layout,
              typename T::array_layout &layout, size_t &corrected_dim0) {
-    for (int i = 0; i < T::rank; i++)
+    for (int i = 0; i < T::rank; i++){
       layout.dimension[i] = arg_layout.dimension[i];
-
+    }
     // Override: Round up for symmetric allocation
     layout.dimension[0] =
         get_block_round_up(arg_layout.dimension[0]);
@@ -1034,7 +1037,9 @@ private:
                       typename Kokkos::MemoryTraits<
                           RemoteSpaces_MemoryTraitsFlags::Dim0IsNotPE>>::value);
     for (int i = 0; i < T::rank; i++)
+    {
       layout.dimension[i] = arg_layout.dimension[i];
+    }
 
     // Override
     layout.dimension[0] = 1;
@@ -1070,9 +1075,11 @@ public:
         padding;
     typename T::array_layout layout;
 
+    num_ranks = Kokkos::Experimental::get_num_pes();
+    my_rank = Kokkos::Experimental::get_my_pe();
+
     // Copy layout properties
     set_layout(arg_layout, layout, m_corrected_dim0);
-
     m_offset = offset_type(padding(), layout);
 
     const size_t alloc_size = memory_span();
@@ -1084,9 +1091,6 @@ public:
             .value,
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
-
-    num_ranks = record->get_num_pes();
-    my_rank = record->get_my_pe();
 
     #ifdef KOKKOS_ENABLE_MPISPACE 
     if (alloc_size) {
@@ -1134,10 +1138,12 @@ public:
         unsigned, alloc_prop::allow_padding ? sizeof(value_type) : 0>
         padding;
     typename T::array_layout layout;
+     
+    num_ranks = Kokkos::Experimental::get_num_pes();
+    my_rank = Kokkos::Experimental::get_my_pe();
 
     // Copy layout properties
     set_layout(arg_layout, layout, m_corrected_dim0);
-
     m_offset = offset_type(padding(), layout);
 
     const size_t alloc_size = memory_span();
@@ -1149,9 +1155,6 @@ public:
             .value,
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
-
-    num_ranks = record->get_num_pes();
-    my_rank = record->get_my_pe();
 
     #ifdef KOKKOS_ENABLE_MPISPACE 
     if (alloc_size) {
@@ -1165,7 +1168,6 @@ public:
     if (alloc_size) {
       record->RACERlib_get_engine()->init( (void*)record->data(), MPI_COMM_WORLD);
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),record->RACERlib_get_engine(), record->RACERlib_get_engine()->sgw);
-      
     }      
     #endif
     

@@ -131,12 +131,11 @@ private:
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::NVSHMEMSpace, void>;
 
-
-  KOKKOS_FUNCTION
-size_t get_num_pes() const;
-KOKKOS_FUNCTION
-size_t get_my_pe() const;
 };
+
+size_t get_num_pes();
+size_t get_my_pe();
+
 
 } // namespace Experimental
 } // namespace Kokkos

@@ -96,23 +96,20 @@ int Engine<T>::flush(void * allocation, MPI_Comm comm_id) {
 template <typename T>
 int Engine<T>::init(void * device_data, MPI_Comm comm_id) // set communicator reference, return RACERLIB_STATUS
 {
-  //Init RDMA transport layer
-  rdma_ibv_init();
+  
   //Init components 
   allocate_host_device_component(device_data, comm_id);
-  debug("RACERlib engine allocated. %i\n", 0);
-  
+  debug("RACERlib engine allocated. %i\n", 0);  
   return RACERLIB_SUCCESS;
 }
 template <typename T>
 int Engine<T>::finalize() // finalize communicator instance, return RECERLIB_STATUS
 {
-  debug("RACERlib engine deallocated. %i\n", 0);
-    fence();
-    
-    deallocate_host_component();
-    rdma_ibv_finalize(); //make sure the RDMA polling engine is done
-  // Call this on kokkos finalize
+  
+  fence();
+  deallocate_host_component();
+  debug_2("RACERlib engine deallocated. %i\n", 0);
+  rdma_ibv_finalize();
   return RACERLIB_SUCCESS;
 }
 
@@ -128,15 +125,17 @@ Engine<T>::Engine() {
 
 template <typename T>
 void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
-  // Create here a persistent kernel with functor (polling)
-  // Call into Feature::Worker();
-  //size_t header_size = 0x1;
+  // Init RDMA transport layer
+  rdma_ibv_init();
 
+  // Create the RdmaScatterGatherEngine (Host side)
   sge = new RdmaScatterGatherEngine(comm, data, sizeof(T));
   sges.insert(sge);
 
+  // Create the device worker object and copy to device
   RdmaScatterGatherWorker<T> dev_worker;
 
+  // Configure dev_worker
   dev_worker.tx_element_request_ctrs =
   sge->tx_element_request_ctrs; // already a device buffer
   dev_worker.rx_element_reply_queue =
@@ -160,21 +159,18 @@ void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
   dev_worker.rx_block_request_cmd_queue = sge->rx_block_request_cmd_queue;
   dev_worker.rx_block_request_ctr = sge->rx_block_request_ctr;
   dev_worker.tx_element_request_ctrs = sge->tx_element_request_ctrs;
-  cuda_safe(cuMemHostGetDevicePointer((CUdeviceptr *)&dev_worker.ack_ctrs_h,
-                                  sge->ack_ctrs_h, 0));
   dev_worker.rank = sge->rank;
   dev_worker.request_done_flag = sge->request_done_flag;
   dev_worker.response_done_flag = sge->response_done_flag;
 
+  cuda_safe(cuMemHostGetDevicePointer((CUdeviceptr *)&dev_worker.ack_ctrs_h,
+                                  sge->ack_ctrs_h, 0));
   cuda_safe(cuMemHostGetDevicePointer(
   (CUdeviceptr *)&dev_worker.fence_done_flag, sge->fence_done_flag, 0));
 
   cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
-
-
   cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
               cudaMemcpyHostToDevice);
-  debug_2("Host Step 1:%p\n",sgw);
 }
 
 template <typename T>
@@ -184,10 +180,7 @@ void Engine<T>::allocate_host_host_component() {
   // Call into Feature Init(); //Here the RDMAEngine initializes
   // Assign Call backs
 
-  
-
   sgw = new RdmaScatterGatherWorker<T>;
-  debug_2("WE DO NOT CALL THIS:%p\n",sgw);
   sgw->tx_element_request_ctrs = sge->tx_element_request_ctrs;
   sgw->ack_ctrs_h = sge->ack_ctrs_h;
   sgw->tx_element_request_queue =

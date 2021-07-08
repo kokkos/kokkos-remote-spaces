@@ -73,9 +73,8 @@ namespace RACERlib {
 #define NEW_REQUEST_BIT 0
 #define NEW_REQUEST_MASK 1
 
-void rdma_ibv_init();
-
-template <class T> struct SPSC_LockFree_Pool {
+template <class T> 
+struct SPSC_LockFree_Pool {
   uint64_t read_head;
   uint64_t write_head;
   uint32_t queue_size;
@@ -219,7 +218,7 @@ struct PendingRdmaRequest {
 
 struct RdmaScatterGatherEngine {
 
-  // for optimization purposes, we have a statically sized queue
+  // For optimization purposes, we have a statically sized queue
   constexpr static uint32_t queue_size = QUEUE_SIZE;
 
   RemoteWindow *get_rx_remote_window(int idx) const {
@@ -250,8 +249,8 @@ struct RdmaScatterGatherEngine {
   void poll_responses();
   void generate_requests();
 
-  /** The data structures used on host and device */
-public: // these are public, safe to use on device
+  // Data structures used on host and device
+  public: 
   uint64_t *tx_element_request_ctrs;
   uint64_t *tx_element_reply_ctrs;
   uint32_t *tx_element_request_trip_counts;

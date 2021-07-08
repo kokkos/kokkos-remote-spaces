@@ -51,6 +51,7 @@
 
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
+
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init();
 #endif
@@ -65,10 +66,9 @@ int main(int argc, char *argv[]) {
   #endif
 #endif
 
-Kokkos::initialize(argc, argv);
-::testing::InitGoogleTest(&argc, argv);
-int result = RUN_ALL_TESTS();
-
+  Kokkos::initialize(argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
+  int result = RUN_ALL_TESTS();
   Kokkos::finalize();
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_finalize();
