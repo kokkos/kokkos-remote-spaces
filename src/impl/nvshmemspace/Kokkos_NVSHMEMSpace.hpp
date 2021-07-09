@@ -64,7 +64,6 @@ class RemoteSpaceSpecializeTag {};
 
 class NVSHMEMSpace {
 public:
-
 #if defined(KOKKOS_ENABLE_RACERLIB)
   Kokkos::Experimental::RACERlib::Engine<int> e;
 #endif
@@ -108,8 +107,7 @@ public:
   void deallocate(const int *gids, void *const arg_alloc_ptr,
                   const size_t arg_alloc_size) const;
 
-  void set_allocation_mode(RemoteSpaces_MemoryAllocationMode mode)
-  {
+  void set_allocation_mode(RemoteSpaces_MemoryAllocationMode mode) {
     allocation_mode = mode;
   }
 
@@ -120,7 +118,7 @@ public:
   static constexpr const char *name() { return m_name; }
 
   void fence();
-  
+
   int64_t extent;
 
   void impl_set_extent(int64_t N);
@@ -130,12 +128,10 @@ private:
   static constexpr const char *m_name = "NVSHMEM";
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::NVSHMEMSpace, void>;
-
 };
 
 size_t get_num_pes();
 size_t get_my_pe();
-
 
 } // namespace Experimental
 } // namespace Kokkos
@@ -143,23 +139,20 @@ size_t get_my_pe();
 namespace Kokkos {
 namespace Impl {
 
-template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+template <> struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
-template <>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+template <> struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <class ExecutionSpace>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::NVSHMEMSpace,
-                ExecutionSpace> {
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
+                Kokkos::Experimental::NVSHMEMSpace, ExecutionSpace> {
   DeepCopy(void *dst, const void *src, size_t n);
   DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n);
 };
-
 
 template <>
 struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
@@ -185,21 +178,18 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
   enum { deepcopy = true };
 };
 
-
-
 } // namespace Impl
 } // namespace Kokkos
 
-
+#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
+#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
+#include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
-#include <Kokkos_NVSHMEMSpace_Ops.hpp>
-#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
-#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
-#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 
 #endif // #define KOKKOS_NVSHMEMSPACE_HPP

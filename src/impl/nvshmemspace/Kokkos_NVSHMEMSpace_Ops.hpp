@@ -207,45 +207,46 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long,
   }
 
 #define KOKKOS_REMOTESPACES_G(type, func)                                      \
-  static inline type shmem_type_g(type *ptr, int pe) { return *ptr; }          \
+  static inline type shmem_type_g(type *ptr, int pe) { return *ptr; }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_SET(type, op)                               \
-static inline void shmem_type_atomic_set(type *ptr, type value, int pe) {      \
-  *ptr = value;                                                                \
-}
+  static inline void shmem_type_atomic_set(type *ptr, type value, int pe) {    \
+    *ptr = value;                                                              \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type, op)                             \
-static inline type shmem_type_atomic_fetch(type *ptr, int pe) { return *ptr; } 
+  static inline type shmem_type_atomic_fetch(type *ptr, int pe) { return *ptr; }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_ADD(type, op)                               \
-static inline void shmem_type_atomic_add(type *ptr, type value, int pe) {      \
-  *ptr += value;                                                               \
-}
+  static inline void shmem_type_atomic_add(type *ptr, type value, int pe) {    \
+    *ptr += value;                                                             \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(type, op)                         \
-static inline type shmem_type_atomic_fetch_add(type *ptr, type value, int pe) {\
-  T tmp = *ptr;                                                                \
-  *ptr += value;                                                               \
-  return tmp;                                                                  \
-}
+  static inline type shmem_type_atomic_fetch_add(type *ptr, type value,        \
+                                                 int pe) {                     \
+    T tmp = *ptr;                                                              \
+    *ptr += value;                                                             \
+    return tmp;                                                                \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type, op)                      \
-static inline type shmem_type_atomic_compare_swap(type *ptr, type cond,        \
-                                                  type value, int pe) {        \
-  if (cond == *ptr) {                                                          \
+  static inline type shmem_type_atomic_compare_swap(type *ptr, type cond,      \
+                                                    type value, int pe) {      \
+    if (cond == *ptr) {                                                        \
+      type tmp = *ptr;                                                         \
+      *ptr = value;                                                            \
+      return tmp;                                                              \
+    }                                                                          \
+    return *ptr;                                                               \
+  }
+
+#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type, op)                              \
+  static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {   \
     type tmp = *ptr;                                                           \
     *ptr = value;                                                              \
     return tmp;                                                                \
-  }                                                                            \
-  return *ptr;                                                                 \
-}
-
-#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type, op)                              \
-static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {     \
-  type tmp = *ptr;                                                             \
-  *ptr = value;                                                                \
-  return tmp;                                                                  \
-}
+  }
 
 #undef KOKKOS_REMOTESPACES_P
 #undef KOKKOS_REMOTESPACES_G
@@ -896,28 +897,32 @@ struct CachedDataElement {};
 template <class T, class Traits>
 struct CachedDataElement<
     T, Traits,
-    typename std::enable_if<RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached>::type> {
-  
+    typename std::enable_if<RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached>::type> {
+
   using worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
-  worker * sgw;
+  worker *sgw;
   typedef const T const_value_type;
   typedef T non_const_value_type;
   uint32_t offset;
   T *ptr;
-  int pe; 
+  int pe;
 
   KOKKOS_INLINE_FUNCTION
-  CachedDataElement(T *ptr_, worker* sgw_, int pe_, int i_) : 
-  ptr(ptr_), sgw(sgw_), pe(pe_), offset(i_) {}
+  CachedDataElement(T *ptr_, worker *sgw_, int pe_, int i_)
+      : ptr(ptr_), sgw(sgw_), pe(pe_), offset(i_) {}
 
   KOKKOS_INLINE_FUNCTION
   T request(int pe, uint32_t offset) const {
-    debug_2("Access:%i, %i",pe, offset);
-    bool nonlocal = pe != sgw->rank;
-    if (nonlocal){
-      void* shm_ptr = sgw->direct_ptrs[pe];
-      if (shm_ptr){
-        T* t = (T*) shm_ptr;
+
+    // debug_2("Access:%i, %i",pe, offset);
+
+    bool nonlocal = pe != sgw->my_rank;
+
+    if (nonlocal) {
+      void *shm_ptr = sgw->direct_ptrs[pe];
+      if (shm_ptr) {
+        T *t = (T *)shm_ptr;
         return volatile_load(&t[offset]);
       }
       return sgw->request(pe, offset);
@@ -927,113 +932,107 @@ struct CachedDataElement<
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator + (const_value_type& val) const {
+  const_value_type operator+(const_value_type &val) const {
     return request(pe, offset) + val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator - (const_value_type& val) const {
+  const_value_type operator-(const_value_type &val) const {
     return request(pe, offset) - val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator * (const_value_type& val) const {
+  const_value_type operator*(const_value_type &val) const {
     return request(pe, offset) * val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator / (const_value_type& val) const {
+  const_value_type operator/(const_value_type &val) const {
     return request(pe, offset) / val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator % (const_value_type& val) const {
+  const_value_type operator%(const_value_type &val) const {
     return request(pe, offset) & val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator ! () const {
-    return ! request(pe, offset);
-  }
+  const_value_type operator!() const { return !request(pe, offset); }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator && (const_value_type& val) const {
+  const_value_type operator&&(const_value_type &val) const {
     return request(pe, offset) && val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator || (const_value_type& val) const {
+  const_value_type operator||(const_value_type &val) const {
     return request(pe, offset) || val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator & (const_value_type& val) const {
+  const_value_type operator&(const_value_type &val) const {
     return request(pe, offset) & val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator | (const_value_type& val) const {
+  const_value_type operator|(const_value_type &val) const {
     return request(pe, offset) | val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator ^ (const_value_type& val) const {
+  const_value_type operator^(const_value_type &val) const {
     return request(pe, offset) & val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator ~ () const {
-    return ~ request(pe, offset);
-  }
+  const_value_type operator~() const { return ~request(pe, offset); }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator << (const unsigned int& val) const {
+  const_value_type operator<<(const unsigned int &val) const {
     return request(pe, offset) << val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator >> (const unsigned int& val) const {
+  const_value_type operator>>(const unsigned int &val) const {
     return request(pe, offset) >> val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator == (const_value_type& val) const {
+  bool operator==(const_value_type &val) const {
     return request(pe, offset) == val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator != (const_value_type& val) const {
+  bool operator!=(const_value_type &val) const {
     return request(pe, offset) != val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator >= (const_value_type& val) const {
+  bool operator>=(const_value_type &val) const {
     return request(pe, offset) >= val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator <= (const_value_type& val) const {
+  bool operator<=(const_value_type &val) const {
     return request(pe, offset) <= val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator < (const_value_type& val) const {
+  bool operator<(const_value_type &val) const {
     return request(pe, offset) < val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  bool operator > (const_value_type& val) const {
+  bool operator>(const_value_type &val) const {
     return request(pe, offset) > val;
   }
 
   KOKKOS_INLINE_FUNCTION
-  operator const_value_type () const {
-    return request(pe, offset);
-  }
+  operator const_value_type() const { return request(pe, offset); }
 
   KOKKOS_INLINE_FUNCTION
-  const_value_type operator = (const_value_type& val) const {
-    if (sgw->rank == pe){
+  const_value_type operator=(const_value_type &val) const {
+    if (sgw->rank == pe) {
       ptr[offset] = val;
     }
     return val;

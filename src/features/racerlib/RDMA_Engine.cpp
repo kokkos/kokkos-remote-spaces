@@ -74,10 +74,7 @@ static size_t aligned_size(size_t alignment, size_t size) {
   return npages * alignment;
 }
 
-static void *
-allocate_host_pinned(size_t size,
-                     size_t &real_size)
-{
+static void *allocate_host_pinned(size_t size, size_t &real_size) {
   size_t pagesize = (size_t)sysconf(_SC_PAGE_SIZE);
   real_size = aligned_size(pagesize, size);
   void *addr;
@@ -280,6 +277,7 @@ void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
         win, win->num_entries, win->offset, win->reply_token, pe);
 
   PendingRdmaRequest &rdma_req = pending_sg_requests[win->reply_token];
+
   rdma_req.sge = this;
   rdma_req.num_entries = win->num_entries;
   rdma_req.start_idx = tx_element_request_sent_ctrs[pe];
@@ -311,7 +309,7 @@ void RdmaScatterGatherEngine::poll(Transport *tport) {
     RdmaWorkRequest *req = (RdmaWorkRequest *)wc.wr_id;
     switch (req->type) {
     case RdmaWorkRequest::SEND_SG_REQUEST: {
-      // nothing to do, just make request available again
+      // Nothing to do, just make request available again
       debug("cleared send request %p on cq:%p", req->buf, tport->cq);
       time_safe(available_tx_windows.append((RemoteWindow *)req->buf));
       time_safe(available_send_request_wrs.append(req));
@@ -319,14 +317,14 @@ void RdmaScatterGatherEngine::poll(Transport *tport) {
     }
     case RdmaWorkRequest::RECV_SG_REQUEST: {
       time_safe(request_received(req));
-      // go ahead and put the request back into the queue
+      // Go ahead and put the request back into the queue
       ibv_safe(ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr));
       // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
       break;
     }
     case RdmaWorkRequest::RECV_SG_RESPONSE: {
       time_safe(response_received(req, wc.imm_data));
-      // go ahead and put the request back into the queue
+      // Go ahead and put the request back into the queue
       time_safe(ibv_safe(
           ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr)));
       // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
@@ -463,7 +461,8 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
 }
 
 void Cache::RemoteCache::invalidate() {
-  memset_device(flags, 0, 2 * sizeof(unsigned int) * num_pes * pe_num_entries);
+  memset_device(flags, 0,
+                2 * sizeof(unsigned int) * num_ranks * rank_num_entries);
 }
 
 void RdmaScatterGatherEngine::fence() {
@@ -489,12 +488,12 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   free_host_rdma_memory(tx_remote_windows_mr);
   free_host_rdma_memory(all_request_mr);
 
-  free_host_pinned(ack_ctrs_h, num_pes * sizeof(uint64_t));
+  free_host_pinned(ack_ctrs_h, num_ranks * sizeof(uint64_t));
   free_device_rdma_memory(tx_element_request_queue_mr);
-  free_device(tx_element_request_sent_ctrs, num_pes * sizeof(uint64_t));
-  free_device(tx_element_aggregate_ctrs, num_pes * sizeof(uint64_t));
+  free_device(tx_element_request_sent_ctrs, num_ranks * sizeof(uint64_t));
+  free_device(tx_element_aggregate_ctrs, num_ranks * sizeof(uint64_t));
 
-  free_device(ack_ctrs_d, num_pes * sizeof(uint64_t));
+  free_device(ack_ctrs_d, num_ranks * sizeof(uint64_t));
   free_device(cache.flags, cache.cache_size);
 
   debug("Shutting down RdmaScatterGatherEngine: %i", 0);
@@ -502,8 +501,8 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   delete[] tx_element_request_acked_ctrs;
 }
 
-RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
-                                                 size_t elem_size)                                                
+RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
+                                                 size_t elem_size)
     : comm(c), tx_block_request_ctr(0), rx_block_request_ctr(0),
       tx_block_reply_ctr(0), epoch(0), terminate_signal(0) {
   if (available_reply_keys.size() == 0) {
@@ -518,49 +517,49 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
     Kokkos::abort("Response transport not initialized");
   }
 
-  MPI_Comm_size(comm, &num_pes);
-  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &num_ranks);
+  MPI_Comm_rank(comm, &my_rank);
   size_t ignore_actual_size;
 
   tx_element_request_ctrs = (uint64_t *)allocate_device(
-      num_pes * sizeof(uint64_t), ignore_actual_size);
-  memset_device(tx_element_request_ctrs, 0, num_pes * sizeof(uint64_t));
+      num_ranks * sizeof(uint64_t), ignore_actual_size);
+  memset_device(tx_element_request_ctrs, 0, num_ranks * sizeof(uint64_t));
 
-  ack_ctrs_d = (uint64_t *)allocate_device(num_pes * sizeof(uint64_t),
+  ack_ctrs_d = (uint64_t *)allocate_device(num_ranks * sizeof(uint64_t),
                                            ignore_actual_size);
-  memset_device(ack_ctrs_d, 0, num_pes * sizeof(uint64_t));
+  memset_device(ack_ctrs_d, 0, num_ranks * sizeof(uint64_t));
 
   tx_element_reply_ctrs = (uint64_t *)allocate_device(
-      num_pes * sizeof(uint64_t), ignore_actual_size);
-  memset_device(tx_element_reply_ctrs, 0, num_pes * sizeof(uint64_t));
+      num_ranks * sizeof(uint64_t), ignore_actual_size);
+  memset_device(tx_element_reply_ctrs, 0, num_ranks * sizeof(uint64_t));
 
   tx_element_request_trip_counts = (uint32_t *)allocate_device(
-      queue_size * num_pes * sizeof(uint32_t), ignore_actual_size);
+      queue_size * num_ranks * sizeof(uint32_t), ignore_actual_size);
   memset_device(tx_element_request_trip_counts, 0,
-                num_pes * queue_size * sizeof(uint32_t));
+                num_ranks * queue_size * sizeof(uint32_t));
 
   tx_element_request_queue_mr = allocate_device_rdma_memory(
-      response_tport, queue_size * num_pes * sizeof(uint32_t));
+      response_tport, queue_size * num_ranks * sizeof(uint32_t));
   memset_device(tx_element_request_queue_mr->addr, 0,
-                num_pes * queue_size * sizeof(uint32_t));
+                num_ranks * queue_size * sizeof(uint32_t));
 
   tx_element_aggregate_ctrs = (uint64_t *)allocate_device(
-      num_pes * sizeof(uint64_t), ignore_actual_size);
-  memset_device(tx_element_aggregate_ctrs, 0, num_pes * sizeof(uint64_t));
+      num_ranks * sizeof(uint64_t), ignore_actual_size);
+  memset_device(tx_element_aggregate_ctrs, 0, num_ranks * sizeof(uint64_t));
 
-  ack_ctrs_h = (uint64_t *)allocate_host_pinned(num_pes * sizeof(uint64_t),
+  ack_ctrs_h = (uint64_t *)allocate_host_pinned(num_ranks * sizeof(uint64_t),
                                                 ignore_actual_size);
-  tx_element_request_acked_ctrs = new uint64_t[num_pes];
-  tx_element_request_sent_ctrs = new uint64_t[num_pes];
+  tx_element_request_acked_ctrs = new uint64_t[num_ranks];
+  tx_element_request_sent_ctrs = new uint64_t[num_ranks];
 
-  for (int pe = 0; pe < num_pes; ++pe) {
+  for (int pe = 0; pe < num_ranks; ++pe) {
     ack_ctrs_h[pe] = 0;
     tx_element_request_acked_ctrs[pe] = 0;
     tx_element_request_sent_ctrs[pe] = 0;
   }
 
-  // these will both get pinned so need to be page-aligned
-  size_t reply_size = elem_size * num_pes * queue_size;
+  // These will both get pinned so need to be page-aligned
+  size_t reply_size = elem_size * num_ranks * queue_size;
 
   rx_element_reply_queue_mr =
       allocate_device_rdma_memory(response_tport, reply_size);
@@ -579,7 +578,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
                                          w * sizeof(RemoteWindow));
     win->elem_size = elem_size;
     win->local_key = tx_remote_windows_mr->lkey;
-    win->requester = rank;
+    win->requester = my_rank;
     available_tx_windows.fill_append(win);
   }
 
@@ -587,6 +586,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
     Kokkos::abort("Does not support request/response in different IBV "
                   "protection domains");
   }
+
   // TODO
   // We are for now assuming that request/response tports are on the same pd
   all_request_mr = allocate_host_rdma_memory(
@@ -603,13 +603,13 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
   available_recv_response_wrs.fill_from_storage(
       NUM_RECV_WRS, all_requests + START_RECV_RESPONSE_WRS);
 
-  int pe_num_entries = 1 << 18;
+  int rank_num_entries = 1 << 18;
 
-  cache.init(num_pes, pe_num_entries, elem_size);
+  cache.init(num_ranks, rank_num_entries, elem_size);
   void *cache_arr = allocate_device(cache.cache_size, ignore_actual_size);
   cache.flags = (unsigned int *)cache_arr;
-  cache.waiting = ((unsigned int *)cache_arr) + num_pes * pe_num_entries;
-  cache.values = ((unsigned int *)cache_arr) + 2 * num_pes * pe_num_entries;
+  cache.waiting = ((unsigned int *)cache_arr) + num_ranks * rank_num_entries;
+  cache.values = ((unsigned int *)cache_arr) + 2 * num_ranks * rank_num_entries;
 
   tx_block_request_cmd_queue = (uint64_t *)allocate_host_pinned(
       queue_size * sizeof(uint64_t), ignore_actual_size);
@@ -621,7 +621,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
   memset(rx_block_request_cmd_queue, 0, queue_size * sizeof(uint64_t));
   memset(tx_block_reply_cmd_queue, 0, queue_size * sizeof(uint64_t));
 
-  std::vector<RdmaScatterGatherBuffer> remote_bufs(num_pes);
+  std::vector<RdmaScatterGatherBuffer> remote_bufs(num_ranks);
   RdmaScatterGatherBuffer data;
 #ifdef KOKKOS_ENABLE_CUDA
   cuda_safe(cuIpcGetMemHandle(&ipc_handle, (CUdeviceptr)buffer));
@@ -631,16 +631,16 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
   data.reply_tx_key =
       tx_element_reply_queue_mr->lkey; // I want my local key sent back to me
   gethostname(data.hostname, 64);
-  // we need to share what our actual remote buffer
+  // We need to share what our actual remote buffer
   MPI_Allgather(&data, sizeof(RdmaScatterGatherBuffer), MPI_BYTE,
                 remote_bufs.data(), sizeof(RdmaScatterGatherBuffer), MPI_BYTE,
                 comm);
 
-  direct_ptrs_h = new void *[num_pes];
-  for (int pe = 0; pe < num_pes; ++pe) {
+  direct_ptrs_h = new void *[num_ranks];
+  for (int pe = 0; pe < num_ranks; ++pe) {
     if (::strcmp(data.hostname, remote_bufs[pe].hostname) == 0) {
 #ifdef KOKKOS_ENABLE_CUDA
-      if (pe != rank) {
+      if (pe != my_rank) {
         char *peer_buf;
         cuda_safe(cuIpcOpenMemHandle((CUdeviceptr *)&peer_buf,
                                      remote_bufs[pe].handle,
@@ -657,14 +657,14 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
     }
   }
   direct_ptrs_d =
-      (void **)allocate_device(num_pes * sizeof(void *), ignore_actual_size);
+      (void **)allocate_device(num_ranks * sizeof(void *), ignore_actual_size);
 
-  memcpy_to_device(direct_ptrs_d, direct_ptrs_h, num_pes * sizeof(void *));
+  memcpy_to_device(direct_ptrs_d, direct_ptrs_h, num_ranks * sizeof(void *));
 
   size_t reply_buffer_stride = elem_size * queue_size;
-  tx_remote_window_configs.resize(num_pes);
-  for (int pe = 0; pe < num_pes; ++pe) {
-    if (pe == rank)
+  tx_remote_window_configs.resize(num_ranks);
+  for (int pe = 0; pe < num_ranks; ++pe) {
+    if (pe == my_rank)
       continue;
 
     RemoteWindowConfig &cfg = tx_remote_window_configs[pe];
@@ -673,8 +673,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
     cfg.reply_rx_key =
         rx_element_reply_queue_mr
             ->rkey; // remote processes will put here, send remote key
-    cfg.reply_tx_buf =
-        ((char *)remote_bufs[pe].reply_tx_buffer + reply_buffer_stride * rank);
+    cfg.reply_tx_buf = ((char *)remote_bufs[pe].reply_tx_buffer +
+                        reply_buffer_stride * my_rank);
     cfg.reply_tx_key = remote_bufs[pe].reply_tx_key;
     debug("pe=%d tx_reply=%p:%" PRIu32 " rx_reply=%p:%" PRIu32, pe,
           cfg.reply_tx_buf, cfg.reply_tx_key, cfg.reply_rx_buf,
@@ -734,7 +734,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
   pthread_create(&response_thread, nullptr, run_response_thread, this);
   pthread_create(&request_thread, nullptr, run_request_thread, this);
 
-  debug("Pthreads created on rank:%i", rank);
+  debug("Pthreads created on my_rank:%i", my_rank);
 
   request_done_flag =
       (unsigned *)allocate_device(sizeof(unsigned) * 2, ignore_actual_size);
@@ -746,7 +746,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void * buffer,
 
   run_on_core(0);
 
-  debug("Engine init finished on rank:%i", rank);
+  debug("Engine init finished on my_rank:%i", my_rank);
 }
 
 } // namespace RACERlib

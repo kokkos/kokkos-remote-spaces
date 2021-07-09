@@ -48,13 +48,11 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-
-  //ETI this
+// ETI this
 template class RdmaScatterGatherWorker<int>;
 template class RdmaScatterGatherWorker<double>;
 template class RdmaScatterGatherWorker<size_t>;
-//etc.
-
+// etc.
 
 template <class T>
 KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
@@ -63,7 +61,8 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   uint32_t trip_number = idx / queue_size;
   uint32_t buf_slot = idx % queue_size;
   uint64_t global_buf_slot = pe * queue_size + buf_slot;
-  // if we have wrapped around the queue, wait for it to be free
+
+  // If we have wrapped around the queue, wait for it to be free
   // this is a huge amount of extra storage, but it's the only way
   // to do it. I can't just use the ack counter to know when a slot
   // is free because I could overwrite the value before thread reads it
@@ -72,16 +71,18 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
          trip_number)
     ;
 
-  // enough previous requests are cleared that we can join the queue
+  // Enough previous requests are cleared that we can join the queue
   uint32_t *req_ptr = &tx_element_request_queue[global_buf_slot];
-  // the queue begins as all zeroes
+
+  // The queue begins as all zeroes
   // on even passes we set a flag bit of 1 to indicate this is a new request
   // on odd passes we set a flag bit of 0 to indicate this is a new request
   // the requested offset is a combination of the actual offset
   // and flag indicate that this is a new request
   uint32_t offset_request = MAKE_ELEMENT_REQUEST(offset, trip_number);
   volatile_store(req_ptr, offset_request);
-  // we now have to spin waiting for the request to be satisfied
+
+  // We now have to spin waiting for the request to be satisfied
   // we wil get the signal that this is ready when the ack count
   // exceeds our request idx
 
@@ -100,10 +101,12 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   return ret;
 }
 
+//#define KOKKOS_DISABLE_CACHE
+
 template <class T>
 KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {
 #ifdef KOKKOS_DISABLE_CACHE
-  return get<T>(pe, offset);
+  return get(pe, offset);
 #else
   return cache.get<T>(pe, offset, this);
 #endif

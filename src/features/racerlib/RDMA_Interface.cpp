@@ -46,22 +46,27 @@
 
 namespace Kokkos {
 namespace Experimental {
-//namespace RACERlib {
+// namespace RACERlib {
 
 #define RAW_CUDA
 
 #ifdef RAW_CUDA
 
-//ETI this
-template  __device__ void pack_response<int,Kokkos::Impl::CudaTeamMember const&>(int *local_values, RdmaScatterGatherWorker<int> *sgw,
-                              unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const & team);
+// ETI this
+template __device__ void
+pack_response_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
+    int *local_values, RdmaScatterGatherWorker<int> *sgw,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team);
 
-template  __device__ void aggregate_requests<int, Kokkos::Impl::CudaTeamMember const&>(RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const & team,
-                              unsigned num_worker_teams);
+template __device__ void
+aggregate_requests_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
+    RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const &team,
+    unsigned num_worker_teams);
 
 template <typename T, class Team>
-__device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                              unsigned *completion_flag, Team &&team) {
+__device__ void pack_response_kernel(T *local_values,
+                                     RdmaScatterGatherWorker<T> *sgw,
+                                     unsigned *completion_flag, Team &&team) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
@@ -75,7 +80,7 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
       request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
     }
     __syncthreads();
-    
+
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       uint32_t num_requests = GET_BLOCK_SIZE(request);
       uint32_t pe = GET_BLOCK_PE(request);
@@ -111,19 +116,20 @@ __device__ void pack_response(T *local_values, RdmaScatterGatherWorker<T> *sgw,
       completion = volatile_load(completion_flag);
     }
     __syncthreads();
-  } //While loop
+  } // While loop
 
   __syncthreads();
-  debug_2("Stopping: pack_response kernel:%i\n",0);
-  
+  debug_2("Stopping: pack_response_kernel:%i\n", 0);
+
   if (my_thread == 0) {
     volatile_store(completion_flag, 0u);
   }
 }
 
 template <typename T, class Team>
-__device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
-                                   unsigned num_worker_teams) {
+__device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
+                                          Team &&team,
+                                          unsigned num_worker_teams) {
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
   int total_threads = blockDim.x * blockDim.y;
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
@@ -131,15 +137,14 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
   static constexpr uint32_t max_mtu_stalls = 4;
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
-  KOKKOS_REMOTE_SHARED int
-      misses[32]; // TODO, make this an array
+  KOKKOS_REMOTE_SHARED int misses[32]; // TODO, make this an array
   for (int i = 0; i < 32; ++i)
     misses[i] = 0;
   completion = 0;
   __syncthreads();
-  
+
   while (completion < num_worker_teams) {
-    for (int pe = 0; pe < sgw->num_pes; ++pe) {
+    for (int pe = 0; pe < sgw->num_ranks; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
       if (my_thread == 0) {
         uint64_t last_cleared_on_device = sgw->ack_ctrs_d[pe];
@@ -200,9 +205,10 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
       completion = volatile_load(sgw->request_done_flag);
     }
     __syncthreads();
-  } //While loop
-  
+  } // While loop
+
   __syncthreads();
+  debug_2("Stopping: aggregate_requests_kernel:%i\n", 0);
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
@@ -212,9 +218,9 @@ __device__ void aggregate_requests(RdmaScatterGatherWorker<T> *sgw, Team &&team,
 #else
 
 template <class Team>
-KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
-                                               Team &&team,
-                                               unsigned num_worker_teams) {
+KOKKOS_INLINE_FUNCTION void
+aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
+                          unsigned num_worker_teams) {
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
   static constexpr uint32_t mtu = 16384; // try to at least send 16K elements
   static constexpr uint32_t max_mtu_stalls = 4;
@@ -227,7 +233,7 @@ KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
   completion = 0;
   team.team_barrier();
   while (completion < num_worker_teams) {
-    for (int pe = 0; pe < sgw->num_pes; ++pe) {
+    for (int pe = 0; pe < sgw->num_ranks; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
         total_requests = 0;
@@ -303,6 +309,9 @@ KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
     team.team_barrier();
   }
   team.team_barrier();
+
+  debug_2("Stopping: aggregate_requests_kernel:%i\n", 0);
+
   Kokkos::single(Kokkos::PerTeam(team), [&]() {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
@@ -310,9 +319,9 @@ KOKKOS_INLINE_FUNCTION void aggregate_requests(RdmaScatterGatherWorker *sgw,
 }
 
 template <typename T, class Team>
-KOKKOS_FUNCTION void pack_response(T *local_values,
-                                   RdmaScatterGatherWorker *sgw,
-                                   unsigned *completion_flag, Team &&team) {
+KOKKOS_FUNCTION void
+pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
+                     unsigned *completion_flag, Team &&team) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
   completion = 0;
@@ -369,10 +378,12 @@ KOKKOS_FUNCTION void pack_response(T *local_values,
     team.team_barrier();
   }
   team.team_barrier();
+
+  debug_2("Stopping: pack_response_kernel:%i\n", 0);
+
   Kokkos::single(Kokkos::PerTeam(team),
                  [&]() { volatile_store(completion_flag, 0u); });
 }
-
 
 #endif // RAW_CUDA
 

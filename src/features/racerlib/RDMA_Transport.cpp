@@ -54,7 +54,7 @@ ibv_pd* global_pd = nullptr;
 ibv_context* global_ctx = nullptr;
 // Ref counter
 int global_pd_ref_count = 0;
-
+// Global Transport instances
 Transport *request_tport = nullptr;
 Transport *response_tport = nullptr;
 
@@ -66,10 +66,12 @@ void rdma_ibv_init() {
   if (!response_tport) {
     response_tport = new Transport(MPI_COMM_WORLD);
   }
+
+  debug_2("Transport allocated. %i\n", 0);
 }
 
 void rdma_ibv_finalize() {
-  debug_2("rdma_ibv_finalize %i", 0);
+  
   if (request_tport) {
     delete request_tport;
     request_tport = nullptr;
@@ -79,6 +81,7 @@ void rdma_ibv_finalize() {
     delete response_tport;
     response_tport = nullptr;
   }
+  debug_2("Transport deallocated. %i\n", 0);
 }
 
 Transport::Transport(MPI_Comm comm)
@@ -173,15 +176,16 @@ Transport::Transport(MPI_Comm comm)
     }
   }
 
-  // exchange the data out-of-band using MPI for queue pairs
+  // Exchange the data out-of-band using MPI for queue pairs
   global_ports.resize(local_ports.size());
 
   MPI_Alltoall(local_ports.data(), sizeof(BootstrapPort), MPI_BYTE,
                global_ports.data(), sizeof(BootstrapPort), MPI_BYTE,
                comm);
 
-  //now put all the queue pairs into a ready state
+  // Put all the queue pairs into a ready state
   for (int pe=0; pe < num_ranks; ++pe){
+
     //if (pe == my_rank) continue;
 
     ibv_qp_attr attr;

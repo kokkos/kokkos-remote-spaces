@@ -45,16 +45,15 @@
 #define KOKKOS_REMOTESPACES_HPP
 #include <Kokkos_Core.hpp>
 
-
 #ifdef KOKKOS_ENABLE_RACERLIB
 #include <RACERlib_Interface.hpp>
 #endif
 
 namespace Kokkos {
-namespace Experimental{
-    enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
+namespace Experimental {
+enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
 }
-}
+} // namespace Kokkos
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
 namespace Kokkos {

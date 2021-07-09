@@ -80,27 +80,27 @@ static inline uint32_t warp_id() { return 0; }
 struct RemoteCache {
 
   RemoteCache()
-      : flags(nullptr), values(nullptr), waiting(nullptr), num_pes(0),
-        pe_num_entries(0), modulo_mask(0) {}
+      : flags(nullptr), values(nullptr), waiting(nullptr), num_ranks(0),
+        rank_num_entries(0), modulo_mask(0) {}
 
-  void init(int npes, int pe_ne, size_t elem_sz) {
-    num_pes = npes;
-    pe_num_entries = pe_ne;
-    modulo_mask = pe_num_entries - 1;
+  void init(int nranks, int rank_ne, size_t elem_sz) {
+    num_ranks = nranks;
+    rank_num_entries = rank_ne;
+    modulo_mask = rank_num_entries - 1;
     elem_size = elem_sz;
 
-    bool not_power_of_two = pe_ne & (pe_ne - 1);
+    bool not_power_of_two = rank_num_entries & (rank_num_entries - 1);
     if (not_power_of_two) {
-      Kokkos::abort("number of entries in cache must be a power of 2");
+      Kokkos::abort("Number of entries in cache must be a power of 2");
     }
 
     cache_size =
-        pe_num_entries * num_pes * (2 * sizeof(unsigned int) + elem_size);
+        rank_num_entries * num_ranks * (2 * sizeof(unsigned int) + elem_size);
   }
 
   KOKKOS_INLINE_FUNCTION
-  int global_cache_slot(int pe, uint32_t slot) {
-    return pe * pe_num_entries + slot;
+  int global_cache_slot(int rank, uint32_t slot) {
+    return rank * rank_num_entries + slot;
   }
 
   template <class T, class Fallback>
@@ -145,39 +145,48 @@ struct RemoteCache {
     auto glbl_cache_slot = global_cache_slot(pe, pe_cache_slot);
 
     T *values_T = reinterpret_cast<T *>(values);
-    cache_debug("Pe %d, offset %" PRIu32 " maps to global slot %d - %x\n", pe,
+    cache_debug("Rank %d, offset %" PRIu32 " maps to global slot %d - %x\n", pe,
                 offset, glbl_cache_slot, modulo_mask);
 
-    // try to claim the slot
-    unsigned int empty_sentinel = 0;
-    // the very last bit is used to indicate that the cache slot is pending
+    // Try to claim the slot
+    // The very last bit is used to indicate that the cache slot is pending
     // attempt to claim the cache slot
+    unsigned int empty_sentinel = 0;   
     auto ready = ready_flag(offset);
     auto new_claim = claim_flag(offset);
     auto slot_value = atomic_compare_exchange(&flags[glbl_cache_slot],
                                               empty_sentinel, new_claim);
     if (slot_value == ready) {
+
       cache_debug("Returning existing value at offset %" PRIu32 "\n", offset);
       return glbl_cache_slot;
+
     } else if (slot_value == new_claim) {
-      // we have claimed the cache line, but have not yet filled the value
+
+      // We have claimed the cache line, but have not yet filled the value
       auto ticket_number = atomic_fetch_add(&waiting[glbl_cache_slot], 1);
       cache_debug("Got ticket %u at offset %" PRIu32
                   " for slot %d from claim %u\n",
                   ticket_number, offset, glbl_cache_slot, new_claim);
+
       if (ticket_number == 0) {
         // I am responsible for initiating the RDMA get
         T ret = fb->get(pe, offset);
-        // store the value in the cache first
+
+        // Store the value in the cache first
         volatile_store(&values_T[glbl_cache_slot], ret);
-        // make sure value is written before ready flag
+
+        // Make sure value is written before ready flag
         KOKKOS_REMOTE_THREADFENCE();
-        // now let all other threads know the cache entry is ready to read
+
+        // Now let all other threads know the cache entry is ready to read
         volatile_store(&flags[glbl_cache_slot], ready);
         cache_debug("Filled cache slot at offset %" PRIu32 " on warp %" PRIu32
                     " on slot %d = %12.8f\n",
                     offset, warp_id(), glbl_cache_slot, ret);
+
         return glbl_cache_slot;
+
       } else {
         return -glbl_cache_slot;
       }
@@ -201,12 +210,13 @@ struct RemoteCache {
 
   unsigned int *flags;
   unsigned int *waiting;
-  // assume 64-bit values for now, we will cast as appropriate
+
+  // Assume 64-bit values for now, we will cast as appropriate
   void *values;
 
-  int num_pes;
+  int num_ranks;
   int modulo_mask;
-  int pe_num_entries;
+  int rank_num_entries;
   size_t cache_size;
   size_t elem_size;
 };

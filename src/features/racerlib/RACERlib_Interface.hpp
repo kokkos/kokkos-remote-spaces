@@ -47,9 +47,9 @@
 
 #include <Kokkos_Core.hpp>
 #include <RDMA_Engine.hpp>
-#include <RDMA_Transport.hpp>
-#include <RDMA_Interface.hpp>
 #include <RDMA_Helpers.hpp>
+#include <RDMA_Interface.hpp>
+#include <RDMA_Transport.hpp>
 
 namespace Kokkos {
 namespace Experimental {
@@ -57,35 +57,35 @@ namespace RACERlib {
 
 #define RACERLIB_SUCCESS 1
 
-template <typename T>
-struct Engine;
+template <typename T> struct Engine;
 
 // Todo: template this on Feature for generic Engine feature support
-template <typename T>
-struct Engine {
+template <typename T> struct Engine {
 
-  void put(void * target, T & value, int PE, int offset, MPI_Comm comm_id);
-  T get(void * target, int PE, int offset, MPI_Comm comm_id);
+  void put(void *target, T &value, int PE, int offset, MPI_Comm comm_id);
+  T get(void *target, int PE, int offset, MPI_Comm comm_id);
 
   // Call this at View memory allocation (allocation record)
-  int start(void * target, MPI_Comm comm_id);
+  int start(void *target, MPI_Comm comm_id);
   // Call this at View memory deallocation (~allocation record);
-  int stop(void * target, MPI_Comm comm_id);
+  int stop(void *target, MPI_Comm comm_id);
   // Call this on fence. We need to make sure that at sychronization points,
   // caches are empty
-  int flush(void * allocation, MPI_Comm comm_id);
+  int flush(void *allocation, MPI_Comm comm_id);
   // Call this on Kokkos initialize.
-  int init(void * target, MPI_Comm comm_id); // set communicator reference, return RACERLIB_STATUS
+  int init(
+      void *target,
+      MPI_Comm comm_id); // set communicator reference, return RACERLIB_STATUS
   // Call this on kokkos finalize
-  int finalize( ); // finalize communicator instance, return RECERLIB_STATUS
+  int finalize(); // finalize communicator instance, return RECERLIB_STATUS
 
   RdmaScatterGatherEngine *sge;
   RdmaScatterGatherWorker<T> *sgw;
 
   std::set<RdmaScatterGatherEngine *> sges;
-  
+
   Engine();
-  Engine(void * target, MPI_Comm comm_id);
+  Engine(void *target, MPI_Comm comm_id);
   void allocate_host_device_component(void *p, MPI_Comm comm);
   void allocate_host_host_component();
   // Dealloc all for now.
@@ -101,4 +101,4 @@ struct Engine {
 } // namespace Experimental
 } // namespace Kokkos
 
-#endif //RACERLIB_INTERFACE
+#endif // RACERLIB_INTERFACE

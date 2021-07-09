@@ -58,12 +58,10 @@ class ViewMapping<DstTraits, SrcTraits,
                   Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 private:
   enum {
-    is_assignable_space =
-        Kokkos::Impl::MemorySpaceAccess<
-            typename DstTraits::memory_space,
-            typename SrcTraits::memory_space>::assignable
+    is_assignable_space = Kokkos::Impl::MemorySpaceAccess<
+        typename DstTraits::memory_space,
+        typename SrcTraits::memory_space>::assignable
   };
-
 
   enum {
     is_assignable_value_type =
@@ -101,12 +99,11 @@ public:
   };
 };
 
-
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
  * (sub-) view type.
- * Subview will evaluate Dim0IsNotPE to true if the leading subview dimension is a scalar
- * irregardless of layout type
+ * Subview will evaluate Dim0IsNotPE to true if the leading subview dimension is
+ * a scalar irregardless of layout type
  */
 
 template <class SrcTraits, class... Args>
@@ -207,7 +204,6 @@ private:
                                typename Kokkos::Impl::ParseViewExtents<
                                    typename SrcTraits::data_type>::type,
                                Args...>::type;
-
 
   // If dim0 is scalar, use that scalar as permanent offset
   // If using permanent offset, set memory traits accordingly
@@ -316,7 +312,6 @@ private:
 
   int num_ranks;
   int my_rank;
-
 
 public:
   typedef void printable_label_typedef;
@@ -797,8 +792,8 @@ public:
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
-    const reference_type element =
-        m_handle(_dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3));
+    const reference_type element = m_handle(
+        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3));
     return element;
   }
 
@@ -840,8 +835,9 @@ public:
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
-    const reference_type element = m_handle(
-        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5));
+    const reference_type element =
+        m_handle(_dim0_offset.my_rank,
+                 m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5));
     return element;
   }
 
@@ -862,8 +858,9 @@ public:
       return element;
     }
     dim0_offsets _dim0_offset = compute_dim0_offsets(m_offset_remote_dim + i0);
-    const reference_type element = m_handle(
-        _dim0_offset.my_rank, m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5, i6));
+    const reference_type element =
+        m_handle(_dim0_offset.my_rank,
+                 m_offset(_dim0_offset.offset, i1, i2, i3, i4, i5, i6));
     return element;
   }
 
@@ -904,23 +901,23 @@ public:
            ~size_t(MemorySpanMask);
   }
 
-KOKKOS_FUNCTION
-size_t get_block_round_up(size_t size) {
-  size_t n_pe, block;
-  n_pe = num_ranks;
-  block = (size % num_ranks) ? (size + n_pe) / n_pe : size / n_pe;
-  return block;
-}
+  KOKKOS_FUNCTION
+  size_t get_block_round_up(size_t size) {
+    size_t n_pe, block;
+    n_pe = num_ranks;
+    block = (size % num_ranks) ? (size + n_pe) / n_pe : size / n_pe;
+    return block;
+  }
 
-KOKKOS_FUNCTION
-size_t get_block_round_down(size_t size) {
-  size_t n_pe, block;
-  n_pe = num_ranks;
-  block = size / n_pe;
-  return block;
-}
+  KOKKOS_FUNCTION
+  size_t get_block_round_down(size_t size) {
+    size_t n_pe, block;
+    n_pe = num_ranks;
+    block = size / n_pe;
+    return block;
+  }
 
-size_t get_block(size_t size) { return get_block_round_up(size); }
+  size_t get_block(size_t size) { return get_block_round_up(size); }
 
   /**\brief  Span, in bytes, of the required memory */
   KOKKOS_INLINE_FUNCTION
@@ -935,8 +932,7 @@ size_t get_block(size_t size) { return get_block_round_up(size); }
   KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping()
-      : m_handle(), m_offset(), m_offset_remote_dim(0), m_corrected_dim0(0) {
-  }
+      : m_handle(), m_offset(), m_offset_remote_dim(0), m_corrected_dim0(0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping(const ViewMapping &rhs)
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
@@ -1012,15 +1008,13 @@ private:
                    Kokkos::GlobalLayoutStride>::value>::type
   set_layout(typename T::array_layout const &arg_layout,
              typename T::array_layout &layout, size_t &corrected_dim0) {
-    for (int i = 0; i < T::rank; i++){
+    for (int i = 0; i < T::rank; i++) {
       layout.dimension[i] = arg_layout.dimension[i];
     }
     // Override: Round up for symmetric allocation
-    layout.dimension[0] =
-        get_block_round_up(arg_layout.dimension[0]);
+    layout.dimension[0] = get_block_round_up(arg_layout.dimension[0]);
     // Round down to use for proper indexing
-    corrected_dim0 =
-        get_block_round_down(arg_layout.dimension[0]);
+    corrected_dim0 = get_block_round_down(arg_layout.dimension[0]);
   }
 
   template <typename T = Traits>
@@ -1036,8 +1030,7 @@ private:
         !std::is_same<typename T::memory_traits,
                       typename Kokkos::MemoryTraits<
                           RemoteSpaces_MemoryTraitsFlags::Dim0IsNotPE>>::value);
-    for (int i = 0; i < T::rank; i++)
-    {
+    for (int i = 0; i < T::rank; i++) {
       layout.dimension[i] = arg_layout.dimension[i];
     }
 
@@ -1053,10 +1046,11 @@ public:
    *  return that record for allocation tracking.
    */
   template <class... P, typename T = Traits>
-  Kokkos::Impl::SharedAllocationRecord<> *allocate_shared(
-      Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-      typename Traits::array_layout const &arg_layout,
-      typename std::enable_if<!RemoteSpaces_MemoryTraits<typename T::memory_traits>::is_cached>::type * = NULL) {
+  Kokkos::Impl::SharedAllocationRecord<> *
+  allocate_shared(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
+                  typename Traits::array_layout const &arg_layout,
+                  typename std::enable_if<!RemoteSpaces_MemoryTraits<
+                      typename T::memory_traits>::is_cached>::type * = NULL) {
 
     typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
 
@@ -1092,85 +1086,20 @@ public:
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
 
-    #ifdef KOKKOS_ENABLE_MPISPACE 
+#ifdef KOKKOS_ENABLE_MPISPACE
     if (alloc_size) {
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
-      record->win);
-      #ifdef KOKKOS_ENABLE_RACERLIB 
+                             record->win);
+#ifdef KOKKOS_ENABLE_RACERLIB
       Kokkos::abort("Feature not supported.");
-      #endif
+#endif
     }
-    #else
+#else
     if (alloc_size) {
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));
-    }      
-    #endif
-
-        //  Only initialize if the allocation is non-zero.
-    //  May be zero if one of the dimensions is zero.
-    if (alloc_size && alloc_prop::initialize) {
-      // Construct values
-      record->m_destroy.construct_shared_allocation();
     }
+#endif
 
-    return record;
-  }
-
-  template <class... P, typename T = Traits>
-  Kokkos::Impl::SharedAllocationRecord<> *allocate_shared(
-      Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-      typename Traits::array_layout const &arg_layout, 
-      typename std::enable_if<RemoteSpaces_MemoryTraits<typename T::memory_traits>::is_cached>::type * = NULL) {
-
-    typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
-
-    typedef typename alloc_prop::execution_space execution_space;
-    typedef typename T::memory_space memory_space;
-    typedef typename T::value_type value_type;
-    typedef ViewValueFunctor<execution_space, value_type> functor_type;
-    typedef Kokkos::Impl::SharedAllocationRecord<memory_space, functor_type>
-        record_type;
-
-    // Query the mapping for byte-size of allocation.
-    // If padding is allowed then pass in sizeof value type
-    // for padding computation.
-    typedef std::integral_constant<
-        unsigned, alloc_prop::allow_padding ? sizeof(value_type) : 0>
-        padding;
-    typename T::array_layout layout;
-     
-    num_ranks = Kokkos::Experimental::get_num_pes();
-    my_rank = Kokkos::Experimental::get_my_pe();
-
-    // Copy layout properties
-    set_layout(arg_layout, layout, m_corrected_dim0);
-    m_offset = offset_type(padding(), layout);
-
-    const size_t alloc_size = memory_span();
-
-    // Create shared memory tracking record with allocate memory from the memory
-    // space
-    record_type *const record = record_type::allocate(
-        ((Kokkos::Impl::ViewCtorProp<void, memory_space> const &)arg_prop)
-            .value,
-        ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
-        alloc_size);
-
-    #ifdef KOKKOS_ENABLE_MPISPACE 
-    if (alloc_size) {
-      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
-      record->win);
-      #ifdef KOKKOS_ENABLE_RACERLIB 
-      Kokkos::abort("Feature not supported.");
-      #endif
-    }
-    #else
-    if (alloc_size) {
-      record->RACERlib_get_engine()->init( (void*)record->data(), MPI_COMM_WORLD);
-      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),record->RACERlib_get_engine(), record->RACERlib_get_engine()->sgw);
-    }      
-    #endif
-    
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
     if (alloc_size && alloc_prop::initialize) {
@@ -1181,8 +1110,76 @@ public:
     return record;
   }
 
-  template <class ExecSpace>
-  void clear_fence(ExecSpace&& e) const {
+  template <class... P, typename T = Traits>
+  Kokkos::Impl::SharedAllocationRecord<> *
+  allocate_shared(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
+                  typename Traits::array_layout const &arg_layout,
+                  typename std::enable_if<RemoteSpaces_MemoryTraits<
+                      typename T::memory_traits>::is_cached>::type * = NULL) {
+
+    typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
+
+    typedef typename alloc_prop::execution_space execution_space;
+    typedef typename T::memory_space memory_space;
+    typedef typename T::value_type value_type;
+    typedef ViewValueFunctor<execution_space, value_type> functor_type;
+    typedef Kokkos::Impl::SharedAllocationRecord<memory_space, functor_type>
+        record_type;
+
+    // Query the mapping for byte-size of allocation.
+    // If padding is allowed then pass in sizeof value type
+    // for padding computation.
+    typedef std::integral_constant<
+        unsigned, alloc_prop::allow_padding ? sizeof(value_type) : 0>
+        padding;
+    typename T::array_layout layout;
+
+    num_ranks = Kokkos::Experimental::get_num_pes();
+    my_rank = Kokkos::Experimental::get_my_pe();
+
+    // Copy layout properties
+    set_layout(arg_layout, layout, m_corrected_dim0);
+    m_offset = offset_type(padding(), layout);
+
+    const size_t alloc_size = memory_span();
+
+    // Create shared memory tracking record with allocate memory from the memory
+    // space
+    record_type *const record = record_type::allocate(
+        ((Kokkos::Impl::ViewCtorProp<void, memory_space> const &)arg_prop)
+            .value,
+        ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
+        alloc_size);
+
+#ifdef KOKKOS_ENABLE_MPISPACE
+    if (alloc_size) {
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
+                             record->win);
+#ifdef KOKKOS_ENABLE_RACERLIB
+      Kokkos::abort("Feature not supported.");
+#endif
+    }
+#else
+    if (alloc_size) {
+      record->RACERlib_get_engine()->init((void *)record->data(),
+                                          MPI_COMM_WORLD);
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
+                             record->RACERlib_get_engine(),
+                             record->RACERlib_get_engine()->sgw);
+    }
+#endif
+
+    //  Only initialize if the allocation is non-zero.
+    //  May be zero if one of the dimensions is zero.
+    if (alloc_size && alloc_prop::initialize) {
+      // Construct values
+      record->m_destroy.construct_shared_allocation();
+    }
+
+    return record;
+  }
+
+  template <class ExecSpace> void clear_fence(ExecSpace &&e) const {
     volatile_store(m_handle.e->sge->fence_done_flag, 1u);
     e.fence();
   }

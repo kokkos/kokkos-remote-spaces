@@ -56,6 +56,8 @@ using HostSpace_t = Kokkos::HostSpace;
 
 using RemoteTraits = Kokkos::RemoteSpaces_MemoryTraitsFlags;
 
+// This unit test covers our use-case in CGSOLVE
+// We do not test for puts as we do not have that capability in RACERlib yet.
 template <class Data_t> void test_cached_view1D(int dim0) {
   int my_rank;
   int num_ranks;
@@ -78,13 +80,6 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   ViewDevice_1D_t v_d = ViewDevice_1D_t(v_r.data(),v_r.extent(0));
   ViewDevice_1D_t v_d_out = ViewDevice_1D_t("DataView", v_r.extent(0));
   ViewHost_1D_t v_h   = ViewHost_1D_t("HostView", v_r.extent(0));
-
-  printf("v_r extent: %i, %i, %p\n", v_r.extent(0), dim0, v_r.data());
-
-  // Init
-  // for (int i = 0; i < v_h.extent(0); ++i)
-  //  v_h(i) = my_rank * v_h.extent(0) + i;
-  //Kokkos::Experimental::deep_copy(v_r, v_h);
 
   int next_rank = (my_rank + 1) % num_ranks;
 
@@ -116,7 +111,9 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
 TEST(TEST_CATEGORY, test_cached_view) {
    // 1D
-  test_cached_view1D<int>(1024);
+  test_cached_view1D<int>(256);
+  // test_cached_view1D<int>(1024);
+  // test_cached_view1D<int>(1173);
 }
 
 #endif /* TEST_ATOMIC_GLOBALVIEW_HPP */

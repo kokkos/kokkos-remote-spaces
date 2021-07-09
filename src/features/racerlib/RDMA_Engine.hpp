@@ -52,9 +52,9 @@
 
 #include <RACERlib_Config.hpp>
 #include <RDMA_Access_Cache.hpp>
+#include <RDMA_Helpers.hpp>
 #include <RDMA_Transport.hpp>
 #include <RDMA_Worker.hpp>
-#include <RDMA_Helpers.hpp>
 
 #include <infiniband/verbs.h>
 #include <iostream>
@@ -65,7 +65,6 @@
 #include <set>
 #include <vector>
 
-
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
@@ -73,8 +72,7 @@ namespace RACERlib {
 #define NEW_REQUEST_BIT 0
 #define NEW_REQUEST_MASK 1
 
-template <class T> 
-struct SPSC_LockFree_Pool {
+template <class T> struct SPSC_LockFree_Pool {
   uint64_t read_head;
   uint64_t write_head;
   uint32_t queue_size;
@@ -133,8 +131,8 @@ struct SPSC_LockFree_Pool {
   }
 
   void append(T t) {
-    // we guarantee to only put in what was there at the beginning
-    // we therefore don't need to check for overruns
+    // We guarantee to only put in what was there at the beginning
+    // We therefore don't need to check for overruns
     auto idx = write_head % queue_size;
     queue[idx] = t;
     atomic_add(&write_head, uint64_t(1));
@@ -230,7 +228,7 @@ struct RdmaScatterGatherEngine {
 
   void ack_completed(int pe, uint64_t num_completed);
 
-  RdmaScatterGatherEngine(MPI_Comm comm, void * buffer, size_t elem_size);
+  RdmaScatterGatherEngine(MPI_Comm comm, void *buffer, size_t elem_size);
 
   ~RdmaScatterGatherEngine();
 
@@ -238,9 +236,9 @@ struct RdmaScatterGatherEngine {
     return Kokkos::atomic_fetch_add(&terminate_signal, 0) == 0;
   }
 
-  void stop_running() { 
+  void stop_running() {
     Kokkos::atomic_add(&terminate_signal, uint32_t(1));
-    debug_2("Stopping engine. Terminate_signal set:%i\n",0);  
+    debug_2("Stopping engine. Terminate_signal set:%i\n", 0);
   }
 
   void fence();
@@ -250,7 +248,7 @@ struct RdmaScatterGatherEngine {
   void generate_requests();
 
   // Data structures used on host and device
-  public: 
+public:
   uint64_t *tx_element_request_ctrs;
   uint64_t *tx_element_reply_ctrs;
   uint32_t *tx_element_request_trip_counts;
@@ -270,8 +268,8 @@ struct RdmaScatterGatherEngine {
   unsigned *response_done_flag;
   unsigned *fence_done_flag;
   MPI_Comm comm;
-  int num_pes;
-  int rank;
+  int num_ranks;
+  int my_rank;
   Cache::RemoteCache cache;
 
   uint64_t *tx_block_request_cmd_queue;
@@ -338,9 +336,7 @@ private:
   void ack_response(PendingRdmaRequest &req);
 };
 
-                                                             
 void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge);
-
 
 #define heisenbug                                                              \
   printf("%s:%d\n", __FILE__, __LINE__);                                       \
