@@ -197,7 +197,7 @@ struct RemoteCache {
   }
 
   void invalidate();
-
+  
   KOKKOS_INLINE_FUNCTION uint32_t hash32shift(uint32_t key) {
     key = ~key + (key << 15);
     key = key ^ (key >> 12);

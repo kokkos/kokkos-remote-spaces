@@ -65,7 +65,7 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   int num_teams = 3;
-  int team_size = 1;
+  int team_size = 1024;
   int thread_vector_length = 1;
 
   using ViewHost_1D_t =
@@ -110,10 +110,12 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 }
 
 TEST(TEST_CATEGORY, test_cached_view) {
-   // 1D
-  test_cached_view1D<int>(256);
-  // test_cached_view1D<int>(1024);
-  // test_cached_view1D<int>(1173);
+  // 1D
+  test_cached_view1D<int>(21048);
+  //Don't run multiple tests as we do not tear down the Transports for now
+  //test_cached_view1D<int>(128); 
+  //test_cached_view1D<int>(1024);
+   
 }
 
 #endif /* TEST_ATOMIC_GLOBALVIEW_HPP */

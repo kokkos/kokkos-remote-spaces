@@ -101,7 +101,8 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   return ret;
 }
 
-//#define KOKKOS_DISABLE_CACHE
+#define KOKKOS_DISABLE_CACHE
+///////// CACHE DISABLED!!
 
 template <class T>
 KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {

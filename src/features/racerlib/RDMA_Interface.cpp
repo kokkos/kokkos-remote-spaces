@@ -56,17 +56,18 @@ namespace Experimental {
 template __device__ void
 pack_response_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
     int *local_values, RdmaScatterGatherWorker<int> *sgw,
-    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team);
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team, bool final);
 
 template __device__ void
 aggregate_requests_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
     RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const &team,
     unsigned num_worker_teams);
 
+
 template <typename T, class Team>
 __device__ void pack_response_kernel(T *local_values,
                                      RdmaScatterGatherWorker<T> *sgw,
-                                     unsigned *completion_flag, Team &&team) {
+                                     unsigned *completion_flag, Team &&team, bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
@@ -94,7 +95,7 @@ __device__ void pack_response_kernel(T *local_values,
       while (num_packed < num_requests) {
         uint32_t my_index = num_packed + my_thread;
         if (my_index < num_requests) {
-          // this needs to be volatile to force visibility from the IB send
+          // This needs to be volatile to force visibility from the IB send
           uint32_t offset =
               GET_ELEMENT_OFFSET(volatile_load(&offsets[my_index]));
           reply_tx_buffer_T[my_index] = local_values[offset];
@@ -105,7 +106,7 @@ __device__ void pack_response_kernel(T *local_values,
         ++sgw->rx_block_request_ctr;
         sgw->tx_element_reply_ctrs[pe] += num_requests;
       }
-      // force visibility
+      // Force visibility
       __threadfence_system();
       if (my_thread == 0) {
         volatile_store(&sgw->tx_block_reply_cmd_queue[idx], request);
@@ -180,13 +181,13 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
               next_request =
                   volatile_load(&sgw->tx_element_request_queue[req_slot]);
             }
-            // this looks stupid, but is necessary to make visible to peer
+            // This looks stupid, but is necessary to make visible to peer
             // devices
             sgw->tx_element_request_queue[req_slot] = next_request;
           }
           requests_done += total_threads;
         }
-        // we have written the requests, now make them peer visible
+        // We have written the requests, now make them peer visible
         __threadfence_system();
 
         if (my_thread == 0) {
@@ -282,12 +283,12 @@ aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
                       next_request = volatile_load(
                           &sgw->tx_element_request_queue[req_slot]);
                     }
-                    // this looks stupid, but is necessary to make visible to
+                    // This looks stupid, but is necessary to make visible to
                     // peer devices
                     sgw->tx_element_request_queue[req_slot] = next_request;
                   });
             });
-        // we have written the requests, now make them peer visible
+        // We have written the requests, now make them peer visible
         KOKKOS_REMOTE_THREADFENCE_SYSTEM();
 
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
@@ -347,22 +348,22 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
       if (num_requests % vec_length)
         num_passes++;
       Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 0, num_passes),
-                           [&](const int64_t pass) {
-                             uint64_t start = pass * vec_length;
-                             uint64_t stop = start + vec_length;
-                             if (stop > num_requests)
-                               stop = num_requests;
-                             Kokkos::parallel_for(
-                                 Kokkos::ThreadVectorRange(team, start, stop),
-                                 [=](uint64_t my_index) {
-                                   // this needs to be volatile to force
-                                   // visibility from the IB send
-                                   uint32_t offset = GET_ELEMENT_OFFSET(
-                                       volatile_load(&offsets[my_index]));
-                                   reply_tx_buffer_T[my_index] =
-                                       local_values[offset];
-                                 });
-                           });
+        [&](const int64_t pass) {
+          uint64_t start = pass * vec_length;
+          uint64_t stop = start + vec_length;
+          if (stop > num_requests)
+            stop = num_requests;
+          Kokkos::parallel_for(
+              Kokkos::ThreadVectorRange(team, start, stop),
+              [=](uint64_t my_index) {
+                // This needs to be volatile to force
+                // visibility from the IB send
+                uint32_t offset = GET_ELEMENT_OFFSET(
+                    volatile_load(&offsets[my_index]));
+                reply_tx_buffer_T[my_index] =
+                    local_values[offset];
+              });
+        });
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
         ++sgw->rx_block_request_ctr;
         sgw->tx_element_reply_ctrs[pe] += num_requests;

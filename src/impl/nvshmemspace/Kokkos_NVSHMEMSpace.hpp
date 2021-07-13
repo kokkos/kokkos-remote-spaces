@@ -72,6 +72,8 @@ public:
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
   using execution_space = Kokkos::Threads;
+#elif defined(KOKKOS_ENABLE_CUDA)
+  using execution_space = Kokkos::Cuda;
 #elif defined(KOKKOS_ENABLE_OPENMP)
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_THREADS)
@@ -118,6 +120,8 @@ public:
   static constexpr const char *name() { return m_name; }
 
   void fence();
+
+  void mem_fence();
 
   int64_t extent;
 
@@ -181,15 +185,15 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
 } // namespace Impl
 } // namespace Kokkos
 
-#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
-#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
-#include <Kokkos_NVSHMEMSpace_Ops.hpp>
-#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
+#include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
+#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
+#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 
 #endif // #define KOKKOS_NVSHMEMSPACE_HPP

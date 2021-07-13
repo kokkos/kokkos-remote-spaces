@@ -155,7 +155,6 @@ void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
                                       sge->ack_ctrs_h, 0));
   cuda_safe(cuMemHostGetDevicePointer(
       (CUdeviceptr *)&dev_worker.fence_done_flag, sge->fence_done_flag, 0));
-
   // Device malloc of worker and copy
   cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
   cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
@@ -202,8 +201,10 @@ template <typename T> RdmaScatterGatherEngine *Engine<T>::get_engine() const {
 template <typename T> Engine<T>::~Engine() {}
 
 template <typename T> void Engine<T>::fence() {
+  //printf("\n");
+  
   for (RdmaScatterGatherEngine *sge : sges) {
-    sge->fence();
+    sge->fence();    
   }
 }
 

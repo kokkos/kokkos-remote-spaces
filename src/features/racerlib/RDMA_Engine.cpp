@@ -467,7 +467,9 @@ void Cache::RemoteCache::invalidate() {
 
 void RdmaScatterGatherEngine::fence() {
   cache.invalidate();
-  MPI_Barrier(comm);
+  //printf(">>> BARRIER (Engine)");
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   epoch++;
 }
 
@@ -734,7 +736,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   pthread_create(&response_thread, nullptr, run_response_thread, this);
   pthread_create(&request_thread, nullptr, run_request_thread, this);
 
-  debug("Pthreads created on my_rank:%i", my_rank);
+  debug("Pthreads created on rank:%i", my_rank);
 
   request_done_flag =
       (unsigned *)allocate_device(sizeof(unsigned) * 2, ignore_actual_size);
