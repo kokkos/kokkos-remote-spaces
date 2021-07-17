@@ -58,7 +58,7 @@ private:
 
 
   #if defined(KOKKOS_ENABLE_RACERLIB)
-  Kokkos::Experimental::RACERlib::Engine<int> e;
+  Kokkos::Experimental::RACERlib::Engine<double> e;
   #endif
 
   typedef SharedAllocationRecord<void, void> RecordBase;
@@ -122,11 +122,9 @@ public:
   int get_num_pes();
 
   #if defined(KOKKOS_ENABLE_RACERLIB)
-  Kokkos::Experimental::RACERlib::Engine<int> *  RACERlib_get_engine();
+  Kokkos::Experimental::RACERlib::Engine<double> *  RACERlib_get_engine();
   #endif
 };
-
-
 
 } // namespace Impl
 } // namespace Kokkos

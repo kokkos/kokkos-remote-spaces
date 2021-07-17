@@ -67,7 +67,7 @@ void rdma_ibv_init() {
     response_tport = new Transport(MPI_COMM_WORLD);
   }
 
-  debug_2("Transport allocated. %i\n", 0);
+  debug_2("Transport allocated.\n");
 }
 
 void rdma_ibv_finalize() {
@@ -81,7 +81,7 @@ void rdma_ibv_finalize() {
     delete response_tport;
     response_tport = nullptr;
   }
-  debug_2("Transport deallocated. %i\n", 0);
+  debug_2("Transport deallocated.\n");
 }
 
 Transport::Transport(MPI_Comm comm)

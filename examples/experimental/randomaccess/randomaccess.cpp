@@ -63,7 +63,7 @@
 using RemoteSpace_t =  Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t = Kokkos::View<ORDINAL_T **, RemoteSpace_t>;
 using Generator_t = Kokkos::Random_XorShift64_Pool<>;
-using TeamPolicy = Kokkos::TeamPolicy<>;
+using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
 /*
   Uncomment to select between random or linear access pattern. 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
   
   {
     Kokkos::ScopeGuard guard(argc, argv);
-    TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);  
+    TeamPolicy_t policy = TeamPolicy_t(league_size, team_size, vec_len);  
   
     ORDINAL_T num_elems_per_rank;
     ORDINAL_T iters_per_team;
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 
       Kokkos::parallel_for(
           "Outer", policy,
-          KOKKOS_LAMBDA(const TeamPolicy::member_type &team) {
+          KOKKOS_LAMBDA(const TeamPolicy_t::member_type &team) {
             Generator_t::generator_type g = gen_pool.get_state();
             Kokkos::parallel_for(              
                 Kokkos::TeamThreadRange(team, my_rank * iters_per_team, 

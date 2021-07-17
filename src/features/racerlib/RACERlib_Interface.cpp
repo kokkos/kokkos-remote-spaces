@@ -186,7 +186,7 @@ template <typename T> void Engine<T>::deallocate_host_component() {
   for (RdmaScatterGatherEngine *sge : sges) {
     delete sge;
   }
-  debug_2("Host engine deallocated. %i\n", 0);
+  debug_2("Host engine deallocated. \n");
 }
 
 template <typename T>

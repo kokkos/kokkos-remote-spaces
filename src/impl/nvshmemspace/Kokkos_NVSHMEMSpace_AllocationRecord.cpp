@@ -209,7 +209,7 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_record(
 }
 
 #if defined(KOKKOS_ENABLE_RACERLIB)
-Kokkos::Experimental::RACERlib::Engine<int> *
+Kokkos::Experimental::RACERlib::Engine<double> *
 SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::RACERlib_get_engine()
 {
   return & m_space.e;

@@ -54,13 +54,13 @@ namespace Experimental {
 
 // ETI this
 template __device__ void
-pack_response_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
-    int *local_values, RdmaScatterGatherWorker<int> *sgw,
+pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
+    double *local_values, RdmaScatterGatherWorker<double> *sgw,
     unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team, bool final);
 
 template __device__ void
-aggregate_requests_kernel<int, Kokkos::Impl::CudaTeamMember const &>(
-    RdmaScatterGatherWorker<int> *sgw, Kokkos::Impl::CudaTeamMember const &team,
+aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
+    RdmaScatterGatherWorker<double> *sgw, Kokkos::Impl::CudaTeamMember const &team,
     unsigned num_worker_teams);
 
 
@@ -120,7 +120,7 @@ __device__ void pack_response_kernel(T *local_values,
   } // While loop
 
   __syncthreads();
-  debug_2("Stopping: pack_response_kernel:%i\n", 0);
+  debug_2("Stopping: pack_response_kernel\n");
 
   if (my_thread == 0) {
     volatile_store(completion_flag, 0u);
@@ -209,7 +209,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   } // While loop
 
   __syncthreads();
-  debug_2("Stopping: aggregate_requests_kernel:%i\n", 0);
+  debug_2("Stopping: aggregate_requests_kernel\n");
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
@@ -311,7 +311,7 @@ aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
   }
   team.team_barrier();
 
-  debug_2("Stopping: aggregate_requests_kernel:%i\n", 0);
+  debug_2("Stopping: aggregate_requests_kernel");
 
   Kokkos::single(Kokkos::PerTeam(team), [&]() {
     volatile_store(sgw->request_done_flag, 0u);
@@ -380,7 +380,7 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
   }
   team.team_barrier();
 
-  debug_2("Stopping: pack_response_kernel:%i\n", 0);
+  debug_2("Stopping: pack_response_kernel");
 
   Kokkos::single(Kokkos::PerTeam(team),
                  [&]() { volatile_store(completion_flag, 0u); });

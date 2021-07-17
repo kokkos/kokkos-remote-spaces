@@ -238,7 +238,7 @@ struct RdmaScatterGatherEngine {
 
   void stop_running() {
     Kokkos::atomic_add(&terminate_signal, uint32_t(1));
-    debug_2("Stopping engine. Terminate_signal set:%i\n", 0);
+    debug_2("Stopping engine. Terminate_signal set\n");
   }
 
   void fence();

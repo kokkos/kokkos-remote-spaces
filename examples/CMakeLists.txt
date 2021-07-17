@@ -1,5 +1,5 @@
 add_subdirectory(cgsolve)
 add_subdirectory(benchmarks)
-if (Kokkos_ENABLE_EXPERIMENTAL)
+if (Kokkos_ENABLE_RACERLIB)
  add_subdirectory(experimental)
 endif()

@@ -65,7 +65,10 @@ class RemoteSpaceSpecializeTag {};
 class NVSHMEMSpace {
 public:
 #if defined(KOKKOS_ENABLE_RACERLIB)
-  Kokkos::Experimental::RACERlib::Engine<int> e;
+
+  // Refactor to use base class for default type
+  // Move to AllocationRecord (likely)
+  Kokkos::Experimental::RACERlib::Engine<double> e;
 #endif
 
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)

@@ -105,19 +105,16 @@ void NVSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
 void NVSHMEMSpace::mem_fence() {
 #if defined(KOKKOS_ENABLE_RACERLIB)
   MPI_Barrier(MPI_COMM_WORLD);  
-  //printf(">>> BARRIER Space Instance \n");
   e.fence();
 #else
   nvshmem_barrier_all();
 #endif
 }
 
-
 void NVSHMEMSpace::fence() {
-  Kokkos::fence();
+  execution_space().fence();
 #if defined(KOKKOS_ENABLE_RACERLIB)
   MPI_Barrier(MPI_COMM_WORLD);
-  //printf(">>> BARRIER+FENCE Space Instance \n");
   e.fence();
 #else
   nvshmem_barrier_all();
