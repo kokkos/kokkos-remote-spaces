@@ -74,7 +74,9 @@ __device__ void pack_response_kernel(T *local_values,
   int total_threads = blockDim.x * blockDim.y;
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
 
-  while (completion == 0) {
+  completion = 0;
+  request = 0;
+  while (completion < 1) {
     uint64_t idx = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
     if (my_thread == 0) {
@@ -119,10 +121,14 @@ __device__ void pack_response_kernel(T *local_values,
     __syncthreads();
   } // While loop
 
+
+
   __syncthreads();
-  debug_2("Stopping: pack_response_kernel\n");
+
+ // debug_2("Stopping: pack_response_kernel\n");
 
   if (my_thread == 0) {
+    
     volatile_store(completion_flag, 0u);
   }
 }
@@ -209,7 +215,9 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   } // While loop
 
   __syncthreads();
-  debug_2("Stopping: aggregate_requests_kernel\n");
+
+  // debug_2("Stopping: aggregate_requests_kernel\n");
+  
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
@@ -311,9 +319,8 @@ aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
   }
   team.team_barrier();
 
-  debug_2("Stopping: aggregate_requests_kernel");
-
   Kokkos::single(Kokkos::PerTeam(team), [&]() {
+    debug_2("Stopping: aggregate_requests_kernel");
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
   });
@@ -380,7 +387,7 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
   }
   team.team_barrier();
 
-  debug_2("Stopping: pack_response_kernel");
+  // debug_2("Stopping: pack_response_kernel");
 
   Kokkos::single(Kokkos::PerTeam(team),
                  [&]() { volatile_store(completion_flag, 0u); });

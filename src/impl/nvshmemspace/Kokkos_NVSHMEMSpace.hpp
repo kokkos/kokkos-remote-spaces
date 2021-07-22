@@ -68,7 +68,7 @@ public:
 
   // Refactor to use base class for default type
   // Move to AllocationRecord (likely)
-  Kokkos::Experimental::RACERlib::Engine<double> e;
+ // Kokkos::Experimental::RACERlib::Engine<double> e;
 #endif
 
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)

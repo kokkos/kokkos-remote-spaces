@@ -201,7 +201,7 @@ template <typename T> RdmaScatterGatherEngine *Engine<T>::get_engine() const {
 template <typename T> Engine<T>::~Engine() {}
 
 template <typename T> void Engine<T>::fence() {
-  //printf("\n");
+  
   
   for (RdmaScatterGatherEngine *sge : sges) {
     sge->fence();    

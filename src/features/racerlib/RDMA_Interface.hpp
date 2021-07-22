@@ -94,9 +94,8 @@ template <class Policy, class Lambda, class RemoteView> struct Worker {
       team.team_barrier();
       Kokkos::single(
           Kokkos::PerTeam(team), KOKKOS_LAMBDA() {
-            // Terminate
-            atomic_fetch_add(sgw->request_done_flag, 1);
             debug_2("User kernel 3 done\n");
+            atomic_fetch_add(sgw->request_done_flag, 1);
           });
     }
   }
@@ -117,7 +116,6 @@ template <class Policy, class RemoteView> struct Respond_worker {
   operator()(const typename Policy::member_type &team) const {
     RdmaScatterGatherWorker<double> *sgw = m_view(0).sgw;
     debug_2("Starting FINAL kernel (pack_response_kernel)\n");
-    //*sgw->fence_done_flag = 1u;
     pack_response_kernel(m_view(0).ptr, sgw, sgw->fence_done_flag, team, true);
   }
 
@@ -150,38 +148,25 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   Worker<PolicyType, LambdaType, RemoteView> worker(
       std::forward<Lambda>(lambda), view);
 
-  debug_2(">>>>>>>Start kernel triplet\n");
-
   // *** Launch kernel triplet ***
   Kokkos::parallel_for(name, worker_policy, worker);  
 
-  debug_2(">>>>>>>1\n");
-
-  exec_space().fence(); 
-
-  debug_2(">>>>>>>2\n");
+  exec_space().fence();  //CudaDeviceSync.
 
   auto respond_policy =
       Kokkos::TeamPolicy<>(1, policy.team_size() * vector_length);
 
-
   Respond_worker<PolicyType, RemoteView> respond_worker(view);
-
 
   // *** Launch final respond_worker ***
   Kokkos::parallel_for("respond", respond_policy, respond_worker);
-
-  debug_2(">>>>>>>3\n");
-
-  // Barrier and invalidate cache 
-  // Do not fence the exec space here
-
-  remote_space().mem_fence();
-
-  debug_2(">>>>>>>4\n");
   
-  // Terminate respond_worker
-  view.impl_map().clear_fence(exec_space{});  //calls MPI barrier
+  //Fence the Engine (flush cache)
+  view.impl_map().fence(exec_space{}); 
+  
+  remote_space().fence(); //MPIBarier
+  view.impl_map().clear_fence(exec_space{}); //Cache invalidate
+  exec_space().fence(); 
 }
 
 } // namespace Experimental

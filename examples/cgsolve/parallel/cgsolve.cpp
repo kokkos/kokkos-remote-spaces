@@ -117,7 +117,7 @@ void spmv(YType y, AType A, XType x) {
             });
       });
 
-  RemoteMemSpace_t().fence();
+  Kokkos::fence();
 }
 
 

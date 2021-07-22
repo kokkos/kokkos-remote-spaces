@@ -467,6 +467,7 @@ void Cache::RemoteCache::invalidate() {
 
 void RdmaScatterGatherEngine::fence() {
   cache.invalidate();
+  MPI_Barrier(comm);
   epoch++;
 }
 

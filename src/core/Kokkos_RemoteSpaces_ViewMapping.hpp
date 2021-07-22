@@ -304,7 +304,7 @@ private:
                      void>
       offset_type;
 
-  handle_type m_handle;
+  
   offset_type m_offset;
 
   size_t m_offset_remote_dim;
@@ -314,6 +314,7 @@ private:
   int my_rank;
 
 public:
+handle_type m_handle;
   typedef void printable_label_typedef;
   enum { is_managed = Traits::is_managed };
 
@@ -1179,9 +1180,19 @@ public:
     return record;
   }
 
+  template <class ExecSpace> void fence(ExecSpace &&e) const {
+    //Flush cache
+    m_handle.e->fence();
+  }
+
   template <class ExecSpace> void clear_fence(ExecSpace &&e) const {
+    //Notify final pack_response_kernel to stop
     volatile_store(m_handle.e->sge->fence_done_flag, 1u);
-    e.fence();
+  }
+
+  size_t extent_0(const int i) const {
+    //Return the corrected dim0
+    return m_corrected_dim0;
   }
 };
 

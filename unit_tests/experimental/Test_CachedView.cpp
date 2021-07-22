@@ -59,10 +59,10 @@ using RemoteTraits = Kokkos::RemoteSpaces_MemoryTraitsFlags;
 // This unit test covers our use-case in CGSOLVE
 // We do not test for puts as we do not have that capability in RACERlib yet.
 template <class Data_t> void test_cached_view1D(int dim0) {
-  int my_rank;
-  int num_ranks;
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  int myRank;
+  int numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -81,23 +81,25 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   ViewDevice_1D_t v_d_out_3 = ViewDevice_1D_t("DataView", v_r.extent(0));
   ViewHost_1D_t v_h   = ViewHost_1D_t("HostView", v_r.extent(0));
 
-  int next_rank = (my_rank + 1) % num_ranks;
+  int next_rank = (myRank + 1) % numRanks;
 
-  int num_teams = 10;
+  int num_teams = 3;
   int num_teams_adjusted = num_teams - 2;
   int elements_per_team = v_r.extent(0) / num_teams_adjusted;
   int elements_per_team_mod = v_r.extent(0) % num_teams_adjusted;
-  int team_size = 128;
+  int team_size = 1;
   int thread_vector_length = 1;
+  int data_block = dim0 / numRanks;
 
   auto policy = Kokkos::TeamPolicy<>
        (num_teams, team_size, thread_vector_length);
   using team_t = Kokkos::TeamPolicy<>::member_type;
 
- Kokkos::parallel_for("Init",  v_r.extent(0), KOKKOS_LAMBDA(const int i){
-   v_d(i) = my_rank * v_r.extent(0) + i;
+ Kokkos::parallel_for("Init", v_r.extent(0), KOKKOS_LAMBDA(const int i){
+   v_d(i) = myRank * data_block + i;
   });
 
+  Kokkos::fence(); 
   RemoteSpace_t().fence();
 
   Kokkos::Experimental::remote_parallel_for(
@@ -107,40 +109,34 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_block),
         [&] (const int i) {
-        int index = next_rank * v_r.extent(0) + start + i;
+        int index = next_rank * data_block + start + i;        
         v_d_out_1(start+i) = v_r(index);    
         v_d_out_2(start+i) = v_r(index);    
         v_d_out_3(start+i) = v_r(index);    
       });
     }, v_r);
 
+  Kokkos::fence(); 
   RemoteSpace_t().fence();
+
   Kokkos::deep_copy(v_h, v_d_out_1);
+  for (int i = 0; i < data_block; ++i)
+    ASSERT_EQ(v_h(i), next_rank * data_block + i);
 
-  for (int i = 0; i < dim0 / num_ranks; ++i)
-    ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
+  Kokkos::deep_copy(v_h, v_d_out_2);
+  for (int i = 0; i <data_block; ++i)
+    ASSERT_EQ(v_h(i), next_rank * data_block + i);
 
-
-    Kokkos::deep_copy(v_h, v_d_out_2);
-
-  for (int i = 0; i < dim0 / num_ranks; ++i)
-    ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
-
-    Kokkos::deep_copy(v_h, v_d_out_3);
-
-  for (int i = 0; i < dim0 / num_ranks; ++i)
-    ASSERT_EQ(v_h(i), next_rank * v_r.extent(0) + i);
+  Kokkos::deep_copy(v_h, v_d_out_3);
+  for (int i = 0; i < data_block; ++i)
+    ASSERT_EQ(v_h(i), next_rank * data_block + i);
 }
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
-  test_cached_view1D<double>(1001048);
-  //test_cached_view1D<double>(101201048);
-  printf("==========\n");
-  //test_cached_view1D<double>(201048); 
-  printf("==========\n");
-  //test_cached_view1D<double>(10204);
-   
+  test_cached_view1D<double>(123456);
+  test_cached_view1D<double>(654321); 
+  test_cached_view1D<double>(12321);
 }
 
-#endif /* TEST_ATOMIC_GLOBALVIEW_HPP */
+#endif /* TEST_CACHED_VIEW_HPP */
