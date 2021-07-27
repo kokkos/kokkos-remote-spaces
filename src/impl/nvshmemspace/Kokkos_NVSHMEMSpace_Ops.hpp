@@ -914,9 +914,6 @@ struct CachedDataElement<
 
   KOKKOS_INLINE_FUNCTION
   T request(int pe, uint32_t offset) const {
-
-    //debug_2("Access:%i, %i",pe, offset); 
-
     bool nonlocal = pe != sgw->my_rank;
 
     if (nonlocal) {

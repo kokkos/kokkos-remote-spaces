@@ -914,6 +914,13 @@ public:
   size_t get_block_round_down(size_t size) {
     size_t n_pe, block;
     n_pe = num_ranks;
+
+    //if size < n_pe then block = 0
+    //and all accesses we lead to access of rank zero.
+
+    //Addional logic can be made to make size mod n_pe 
+    //be distributed among the forst m ranks.
+
     block = size / n_pe;
     return block;
   }

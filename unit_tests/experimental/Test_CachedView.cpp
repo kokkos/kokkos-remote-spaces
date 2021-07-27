@@ -81,22 +81,25 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   ViewDevice_1D_t v_d_out_3 = ViewDevice_1D_t("DataView", v_r.extent(0));
   ViewHost_1D_t v_h   = ViewHost_1D_t("HostView", v_r.extent(0));
 
+  int num_teams = 10000;
+  int num_teams_adjusted = num_teams - 2;
+  int team_size = 64;
+  int thread_vector_length = 1;
   int next_rank = (myRank + 1) % numRanks;
 
-  int num_teams = 3;
-  int num_teams_adjusted = num_teams - 2;
-  int elements_per_team = v_r.extent(0) / num_teams_adjusted;
-  int elements_per_team_mod = v_r.extent(0) % num_teams_adjusted;
-  int team_size = 1;
-  int thread_vector_length = 1;
-  int data_block = dim0 / numRanks;
-
+  // Uniformly distributed as per documentation. 
+  // Note: Adding dim0 mod numRanks to the last rank would be an error (segfault)
+  // Note: if dim0 < numRanks, the kernels will perform 0 work
+  int size_per_rank = dim0 / numRanks;
+  int size_per_team = size_per_rank / num_teams_adjusted;
+  int size_per_team_mod = size_per_rank % num_teams_adjusted;
+     
   auto policy = Kokkos::TeamPolicy<>
        (num_teams, team_size, thread_vector_length);
   using team_t = Kokkos::TeamPolicy<>::member_type;
 
- Kokkos::parallel_for("Init", v_r.extent(0), KOKKOS_LAMBDA(const int i){
-   v_d(i) = myRank * data_block + i;
+ Kokkos::parallel_for("Init", size_per_rank, KOKKOS_LAMBDA(const int i){
+   v_d(i) = myRank * size_per_rank + i;
   });
 
   Kokkos::fence(); 
@@ -104,12 +107,14 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
   Kokkos::Experimental::remote_parallel_for(
     "Increment", policy, KOKKOS_LAMBDA(const team_t& team) {
-    int start = team.league_rank() * elements_per_team;
-    int team_block = team.league_rank() == team.league_size()-1 ?  elements_per_team + elements_per_team_mod : elements_per_team;
 
-    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,team_block),
+    int start = team.league_rank() * size_per_team;
+    int block = team.league_rank() == team.league_size()-1 ? 
+                                   size_per_team + size_per_team_mod : size_per_team;
+
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,block),
         [&] (const int i) {
-        int index = next_rank * data_block + start + i;        
+        int index = next_rank * size_per_rank + start + i;        
         v_d_out_1(start+i) = v_r(index);    
         v_d_out_2(start+i) = v_r(index);    
         v_d_out_3(start+i) = v_r(index);    
@@ -120,23 +125,22 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   RemoteSpace_t().fence();
 
   Kokkos::deep_copy(v_h, v_d_out_1);
-  for (int i = 0; i < data_block; ++i)
-    ASSERT_EQ(v_h(i), next_rank * data_block + i);
+  for (int i = 0; i < size_per_rank; ++i)
+    ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
 
   Kokkos::deep_copy(v_h, v_d_out_2);
-  for (int i = 0; i <data_block; ++i)
-    ASSERT_EQ(v_h(i), next_rank * data_block + i);
+  for (int i = 0; i <size_per_rank; ++i)
+    ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
 
   Kokkos::deep_copy(v_h, v_d_out_3);
-  for (int i = 0; i < data_block; ++i)
-    ASSERT_EQ(v_h(i), next_rank * data_block + i);
+  for (int i = 0; i < size_per_rank; ++i)
+    ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
 }
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
-  test_cached_view1D<double>(123456);
-  test_cached_view1D<double>(654321); 
-  test_cached_view1D<double>(12321);
+  test_cached_view1D<double>(1234321);
+  test_cached_view1D<double>(87654321); //~700 MB
 }
 
 #endif /* TEST_CACHED_VIEW_HPP */

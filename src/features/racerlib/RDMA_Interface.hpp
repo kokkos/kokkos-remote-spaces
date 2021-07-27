@@ -49,8 +49,7 @@
 
 namespace Kokkos {
 namespace Experimental {
-
-using namespace RACERlib;
+namespace RACERlib{
 
 #ifdef RAW_CUDA
 template <typename T, class Team>
@@ -88,13 +87,13 @@ template <class Policy, class Lambda, class RemoteView> struct Worker {
       debug_2("Starting kernel 1 (pack_response_kernel)\n");
       pack_response_kernel(m_view(0).ptr, sgw, sgw->response_done_flag, team, false);
     } else {
-      debug_2("Starting kernel 3 (user)\n");
+     // debug_2("Starting kernel 3 (user)\n");
       auto new_team = team.shrink_league(2);
       m_lambda(new_team);
       team.team_barrier();
       Kokkos::single(
           Kokkos::PerTeam(team), KOKKOS_LAMBDA() {
-            debug_2("User kernel 3 done\n");
+          // debug_2("User kernel 3 done\n");
             atomic_fetch_add(sgw->request_done_flag, 1);
           });
     }
@@ -123,6 +122,10 @@ private:
   RemoteView m_view;
 };
 
+} // namespace RACERlib
+
+using namespace RACERlib;
+
 template <class Policy, class Lambda, class RemoteView>
 void remote_parallel_for(const std::string &name, Policy &&policy,
                          Lambda &&lambda, const RemoteView &view) {
@@ -149,9 +152,11 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
       std::forward<Lambda>(lambda), view);
 
   // *** Launch kernel triplet ***
+  debug_2("Launch workers\n");
   Kokkos::parallel_for(name, worker_policy, worker);  
 
-  exec_space().fence();  //CudaDeviceSync.
+  exec_space().fence();  //CudaDeviceSync
+  debug_2("Workers finished\n");
 
   auto respond_policy =
       Kokkos::TeamPolicy<>(1, policy.team_size() * vector_length);
@@ -166,7 +171,8 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   
   remote_space().fence(); //MPIBarier
   view.impl_map().clear_fence(exec_space{}); //Cache invalidate
-  exec_space().fence(); 
+  exec_space().fence(); //CudaDeviceSync.
+  debug_2("Respond worker finished\n");
 }
 
 } // namespace Experimental

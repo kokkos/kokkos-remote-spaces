@@ -62,6 +62,8 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   uint32_t buf_slot = idx % queue_size;
   uint64_t global_buf_slot = pe * queue_size + buf_slot;
 
+  assert(trip_number < 1000);
+
   // If we have wrapped around the queue, wait for it to be free
   // this is a huge amount of extra storage, but it's the only way
   // to do it. I can't just use the ack counter to know when a slot
@@ -70,6 +72,7 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
              unsigned int *)&tx_element_request_trip_counts[global_buf_slot]) !=
          trip_number)
     ;
+
 
   // Enough previous requests are cleared that we can join the queue
   uint32_t *req_ptr = &tx_element_request_queue[global_buf_slot];
@@ -101,7 +104,7 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   return ret;
 }
 
-//#define KOKKOS_DISABLE_CACHE
+#define KOKKOS_DISABLE_CACHE
 
 template <class T>
 KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {
