@@ -81,9 +81,9 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   ViewDevice_1D_t v_d_out_3 = ViewDevice_1D_t("DataView", v_r.extent(0));
   ViewHost_1D_t v_h   = ViewHost_1D_t("HostView", v_r.extent(0));
 
-  int num_teams = 10000;
+  int num_teams = 3;
   int num_teams_adjusted = num_teams - 2;
-  int team_size = 64;
+  int team_size = 4;
   int thread_vector_length = 1;
   int next_rank = (myRank + 1) % numRanks;
 
@@ -114,7 +114,8 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team,block),
         [&] (const int i) {
-        int index = next_rank * size_per_rank + start + i;        
+        int index = next_rank * size_per_rank + start + i;     
+       // printf("Index:%i\n", index);   
         v_d_out_1(start+i) = v_r(index);    
         v_d_out_2(start+i) = v_r(index);    
         v_d_out_3(start+i) = v_r(index);    
@@ -139,8 +140,8 @@ template <class Data_t> void test_cached_view1D(int dim0) {
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
-  test_cached_view1D<double>(1234321);
   test_cached_view1D<double>(87654321); //~700 MB
+  //Do not repeat tests here - the ipc mem alloc might fail (to be fixed)
 }
 
 #endif /* TEST_CACHED_VIEW_HPP */

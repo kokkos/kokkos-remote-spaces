@@ -67,7 +67,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 template <typename T, class Team>
 KOKKOS_FUNCTION void
 pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                     unsigned *completion_flag, Team &&team);
+                     unsigned *completion_flag, Team &&team, bool final);
 
 template <typename T, class Team>
 KOKKOS_INLINE_FUNCTION void
@@ -87,13 +87,13 @@ template <class Policy, class Lambda, class RemoteView> struct Worker {
       debug_2("Starting kernel 1 (pack_response_kernel)\n");
       pack_response_kernel(m_view(0).ptr, sgw, sgw->response_done_flag, team, false);
     } else {
-     // debug_2("Starting kernel 3 (user)\n");
+      debug_2("Starting kernel 3 (user)\n");
       auto new_team = team.shrink_league(2);
       m_lambda(new_team);
       team.team_barrier();
       Kokkos::single(
           Kokkos::PerTeam(team), KOKKOS_LAMBDA() {
-          // debug_2("User kernel 3 done\n");
+           debug_2("User kernel 3 done\n");
             atomic_fetch_add(sgw->request_done_flag, 1);
           });
     }
@@ -166,11 +166,17 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   // *** Launch final respond_worker ***
   Kokkos::parallel_for("respond", respond_policy, respond_worker);
   
-  //Fence the Engine (flush cache)
+  //Fence the Engine (cache invalidate, MPI barrier, epoch++)
   view.impl_map().fence(exec_space{}); 
   
-  remote_space().fence(); //MPIBarier
-  view.impl_map().clear_fence(exec_space{}); //Cache invalidate
+  remote_space().fence(); //MPI barier
+
+  //Notify final kernel to finish response packing as we guarantee that no 
+  //remote kernels will be requesting local data
+  //This only works if request messages and MPI barrier maintain ordering
+  view.impl_map().clear_fence(exec_space{}); 
+
+  //Wait for packing kernel to finish
   exec_space().fence(); //CudaDeviceSync.
   debug_2("Respond worker finished\n");
 }

@@ -48,8 +48,6 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-#define RAW_CUDA
-
 #ifdef RAW_CUDA
 
 // ETI this
@@ -236,9 +234,21 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 
 #else
 
-template <class Team>
-KOKKOS_INLINE_FUNCTION void
-aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
+// ETI this
+template KOKKOS_FUNCTION void
+pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
+    double *local_values, RdmaScatterGatherWorker<double> *sgw,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team, bool final);
+
+template KOKKOS_FUNCTION void
+aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
+    RdmaScatterGatherWorker<double> *sgw, Kokkos::Impl::CudaTeamMember const &team,
+    unsigned num_worker_teams);
+
+
+template <class T, class Team>
+KOKKOS_FUNCTION void
+aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw, Team &&team,
                           unsigned num_worker_teams) {
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
   static constexpr uint32_t mtu = 16384; // try to at least send 16K elements
@@ -277,7 +287,7 @@ aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
       });
       team.team_barrier();
       if (total_requests > 0) {
-        auto vec_length = team.vector_length();
+        auto vec_length = 1;//team.vector_length();
         uint64_t num_passes = total_requests / vec_length;
         if (total_requests % vec_length)
           num_passes++;
@@ -339,8 +349,8 @@ aggregate_requests_kernel(RdmaScatterGatherWorker *sgw, Team &&team,
 
 template <typename T, class Team>
 KOKKOS_FUNCTION void
-pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
-                     unsigned *completion_flag, Team &&team) {
+pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
+                     unsigned *completion_flag, Team &&team, bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
 
@@ -363,7 +373,7 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker *sgw,
       uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
       T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
 
-      auto vec_length = team.vector_length();
+      auto vec_length = 1;//team.vector_length();
       uint64_t num_passes = num_requests / vec_length;
       if (num_requests % vec_length)
         num_passes++;
