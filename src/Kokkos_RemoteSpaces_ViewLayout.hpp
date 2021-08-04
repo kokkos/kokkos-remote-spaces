@@ -52,64 +52,64 @@
 
 namespace Kokkos {
 
-struct GlobalLayoutLeft {
+struct PartitionedLayoutLeft {
   //! Tag this class as a kokkos array layout
-  using array_layout = GlobalLayoutLeft;
+  using array_layout = PartitionedLayoutLeft;
 
   size_t dimension[ARRAY_LAYOUT_MAX_RANK];
 
   enum : bool { is_extent_constructible = true };
 
-  GlobalLayoutLeft(GlobalLayoutLeft const &) = default;
-  GlobalLayoutLeft(GlobalLayoutLeft &&) = default;
-  GlobalLayoutLeft &operator=(GlobalLayoutLeft const &) = default;
-  GlobalLayoutLeft &operator=(GlobalLayoutLeft &&) = default;
+  PartitionedLayoutLeft(PartitionedLayoutLeft const &) = default;
+  PartitionedLayoutLeft(PartitionedLayoutLeft &&) = default;
+  PartitionedLayoutLeft &operator=(PartitionedLayoutLeft const &) = default;
+  PartitionedLayoutLeft &operator=(PartitionedLayoutLeft &&) = default;
 
   KOKKOS_INLINE_FUNCTION
-  explicit constexpr GlobalLayoutLeft(size_t N0 = 0, size_t N1 = 0,
+  explicit constexpr PartitionedLayoutLeft(size_t N0 = 0, size_t N1 = 0,
                                       size_t N2 = 0, size_t N3 = 0,
                                       size_t N4 = 0, size_t N5 = 0,
                                       size_t N6 = 0, size_t N7 = 0)
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7} {}
 };
 
-struct GlobalLayoutRight {
+struct PartitionedLayoutRight {
   //! Tag this class as a kokkos array layout
-  using array_layout = GlobalLayoutRight;
+  using array_layout = PartitionedLayoutRight;
 
   size_t dimension[ARRAY_LAYOUT_MAX_RANK];
 
   enum : bool { is_extent_constructible = true };
 
-  GlobalLayoutRight(GlobalLayoutRight const &) = default;
-  GlobalLayoutRight(GlobalLayoutRight &&) = default;
-  GlobalLayoutRight &operator=(GlobalLayoutRight const &) = default;
-  GlobalLayoutRight &operator=(GlobalLayoutRight &&) = default;
+  PartitionedLayoutRight(PartitionedLayoutRight const &) = default;
+  PartitionedLayoutRight(PartitionedLayoutRight &&) = default;
+  PartitionedLayoutRight &operator=(PartitionedLayoutRight const &) = default;
+  PartitionedLayoutRight &operator=(PartitionedLayoutRight &&) = default;
 
   KOKKOS_INLINE_FUNCTION
-  explicit constexpr GlobalLayoutRight(size_t N0 = 0, size_t N1 = 0,
+  explicit constexpr PartitionedLayoutRight(size_t N0 = 0, size_t N1 = 0,
                                        size_t N2 = 0, size_t N3 = 0,
                                        size_t N4 = 0, size_t N5 = 0,
                                        size_t N6 = 0, size_t N7 = 0)
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7} {}
 };
 
-/// \struct GlobalLayoutStride
+/// \struct PartitionedLayoutStride
 /// \brief  Memory layout tag indicated arbitrarily strided
 ///         multi-index mapping into contiguous memory.
-struct GlobalLayoutStride {
+struct PartitionedLayoutStride {
   //! Tag this class as a kokkos array layout
-  using array_layout = GlobalLayoutStride;
+  using array_layout = PartitionedLayoutStride;
 
   size_t dimension[ARRAY_LAYOUT_MAX_RANK];
   size_t stride[ARRAY_LAYOUT_MAX_RANK];
 
   enum : bool { is_extent_constructible = false };
 
-  GlobalLayoutStride(GlobalLayoutStride const &) = default;
-  GlobalLayoutStride(GlobalLayoutStride &&) = default;
-  GlobalLayoutStride &operator=(GlobalLayoutStride const &) = default;
-  GlobalLayoutStride &operator=(GlobalLayoutStride &&) = default;
+  PartitionedLayoutStride(PartitionedLayoutStride const &) = default;
+  PartitionedLayoutStride(PartitionedLayoutStride &&) = default;
+  PartitionedLayoutStride &operator=(PartitionedLayoutStride const &) = default;
+  PartitionedLayoutStride &operator=(PartitionedLayoutStride &&) = default;
 
   /** \brief  Compute strides from ordered dimensions.
    *
@@ -119,10 +119,10 @@ struct GlobalLayoutStride {
    *  Order = {...,2,1,0} is LayoutRight
    */
   template <typename iTypeOrder, typename iTypeDimen>
-  KOKKOS_INLINE_FUNCTION static GlobalLayoutStride
+  KOKKOS_INLINE_FUNCTION static PartitionedLayoutStride
   order_dimensions(int const rank, iTypeOrder const *const order,
                    iTypeDimen const *const dimen) {
-    GlobalLayoutStride tmp;
+    PartitionedLayoutStride tmp;
     // Verify valid rank order:
     int check_input = ARRAY_LAYOUT_MAX_RANK < rank ? 0 : int(1 << rank) - 1;
     for (int r = 0; r < ARRAY_LAYOUT_MAX_RANK; ++r) {
@@ -144,7 +144,7 @@ struct GlobalLayoutStride {
   }
 
   KOKKOS_INLINE_FUNCTION
-  explicit constexpr GlobalLayoutStride(
+  explicit constexpr PartitionedLayoutStride(
       size_t N0 = 0, size_t S0 = 0, size_t N1 = 0, size_t S1 = 0, size_t N2 = 0,
       size_t S2 = 0, size_t N3 = 0, size_t S3 = 0, size_t N4 = 0, size_t S4 = 0,
       size_t N5 = 0, size_t S5 = 0, size_t N6 = 0, size_t S6 = 0, size_t N7 = 0,
@@ -160,8 +160,8 @@ namespace Impl {
 
 template <int RankDest, int RankSrc, int CurrentArg, class Arg,
           class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft,
-                                   Kokkos::GlobalLayoutLeft, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutLeft,
+                                   Kokkos::PartitionedLayoutLeft, RankDest, RankSrc,
                                    CurrentArg, Arg, SubViewArgs...> {
   enum {
     value = (((CurrentArg == RankDest - 1) &&
@@ -172,14 +172,14 @@ struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft,
              ((CurrentArg == 0) &&
               (Kokkos::Impl::is_integral_extent_type<Arg>::value))) &&
             (SubviewLegalArgsCompileTime<
-                Kokkos::GlobalLayoutLeft, Kokkos::GlobalLayoutLeft, RankDest,
+                Kokkos::PartitionedLayoutLeft, Kokkos::PartitionedLayoutLeft, RankDest,
                 RankSrc, CurrentArg + 1, SubViewArgs...>::value)
   };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class Arg>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft,
-                                   Kokkos::GlobalLayoutLeft, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutLeft,
+                                   Kokkos::PartitionedLayoutLeft, RankDest, RankSrc,
                                    CurrentArg, Arg> {
   enum {
     value = ((CurrentArg == RankDest - 1) || (std::is_integral<Arg>::value)) &&
@@ -191,8 +191,8 @@ struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft,
 
 template <int RankDest, int RankSrc, int CurrentArg, class Arg,
           class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
-                                   Kokkos::GlobalLayoutRight, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
+                                   Kokkos::PartitionedLayoutRight, RankDest, RankSrc,
                                    CurrentArg, Arg, SubViewArgs...> {
   enum {
     value = (((CurrentArg == RankSrc - RankDest) &&
@@ -202,14 +202,14 @@ struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
              ((CurrentArg >= RankSrc - RankDest) &&
               (std::is_same<Arg, Kokkos::Impl::ALL_t>::value))) &&
             (SubviewLegalArgsCompileTime<
-                Kokkos::GlobalLayoutRight, Kokkos::GlobalLayoutRight, RankDest,
+                Kokkos::PartitionedLayoutRight, Kokkos::PartitionedLayoutRight, RankDest,
                 RankSrc, CurrentArg + 1, SubViewArgs...>::value)
   };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class Arg>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
-                                   Kokkos::GlobalLayoutRight, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
+                                   Kokkos::PartitionedLayoutRight, RankDest, RankSrc,
                                    CurrentArg, Arg> {
   enum {
     value = ((CurrentArg == RankSrc - 1) &&
@@ -221,7 +221,7 @@ struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
 struct SubviewLegalArgsCompileTime<Kokkos::LayoutStride,
-                                   Kokkos::GlobalLayoutLeft, RankDest, RankSrc,
+                                   Kokkos::PartitionedLayoutLeft, RankDest, RankSrc,
                                    CurrentArg, SubViewArgs...> {
   enum : bool { value = false };
 };
@@ -229,28 +229,28 @@ struct SubviewLegalArgsCompileTime<Kokkos::LayoutStride,
 // We probably need to update / refine this
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
-                                   Kokkos::GlobalLayoutRight, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
+                                   Kokkos::PartitionedLayoutRight, RankDest, RankSrc,
                                    CurrentArg, SubViewArgs...> {
   enum : bool { value = true };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft,
-                                   Kokkos::GlobalLayoutLeft, RankDest, RankSrc,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutLeft,
+                                   Kokkos::PartitionedLayoutLeft, RankDest, RankSrc,
                                    CurrentArg, SubViewArgs...> {
   enum : bool { value = true };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutRight,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
                                    Kokkos::LayoutRight, RankDest, RankSrc,
                                    CurrentArg, SubViewArgs...> {
   enum : bool { value = true };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft, Kokkos::LayoutLeft,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutLeft, Kokkos::LayoutLeft,
                                    RankDest, RankSrc, CurrentArg,
                                    SubViewArgs...> {
   enum : bool { value = true };
@@ -258,13 +258,13 @@ struct SubviewLegalArgsCompileTime<Kokkos::GlobalLayoutLeft, Kokkos::LayoutLeft,
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
 struct SubviewLegalArgsCompileTime<Kokkos::LayoutRight,
-                                   Kokkos::GlobalLayoutRight, RankDest, RankSrc,
+                                   Kokkos::PartitionedLayoutRight, RankDest, RankSrc,
                                    CurrentArg, SubViewArgs...> {
   enum : bool { value = false };
 };
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::LayoutLeft, Kokkos::GlobalLayoutLeft,
+struct SubviewLegalArgsCompileTime<Kokkos::LayoutLeft, Kokkos::PartitionedLayoutLeft,
                                    RankDest, RankSrc, CurrentArg,
                                    SubViewArgs...> {
   enum : bool { value = false };

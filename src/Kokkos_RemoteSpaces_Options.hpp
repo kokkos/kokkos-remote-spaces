@@ -51,19 +51,19 @@
 namespace Kokkos {
 
 enum RemoteSpaces_MemoryTraitsFlags {
-  GlobalIndex = 1 < 0x128,
-  Dim0IsNotPE = 1 < 0x192
+  /*GlobalIndex = 1 < 0x128,*/
+  Dim0IsPE = 1 < 0x192
 };
 
 template <typename T> struct RemoteSpaces_MemoryTraits;
 
 template <unsigned T> struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
-  enum : bool {
+ /* enum : bool {
     is_global_index = (unsigned(0) != (T & unsigned(GlobalIndex)))
-  };
+  };*/
 
   enum : bool {
-    is_dim0_is_not_pe = (unsigned(0) != (T & unsigned(Dim0IsNotPE)))
+    dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE)))
   };
 
   enum : int { state = T };

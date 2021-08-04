@@ -59,9 +59,9 @@ template <class Data_t> void test_globalview1D(int dim0) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_1D_t =
-      Kokkos::View<Data_t *, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t *, Kokkos::HostSpace>;
   using ViewRemote_1D_t =
-      Kokkos::View<Data_t *, Kokkos::GlobalLayoutRight, RemoteSpace_t>;
+      Kokkos::View<Data_t *, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
@@ -99,9 +99,9 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t **, Kokkos::HostSpace>;
   using ViewRemote_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, RemoteSpace_t>;
+      Kokkos::View<Data_t **, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
@@ -141,9 +141,9 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t ***, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, RemoteSpace_t>;
+      Kokkos::View<Data_t ***, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);

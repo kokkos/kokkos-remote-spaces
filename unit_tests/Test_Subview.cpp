@@ -60,8 +60,8 @@ void test_subview1D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_1D_t = Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -99,8 +99,8 @@ template <class Data_t> void test_subview2D(int i1, int i2, int sub1) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -140,8 +140,8 @@ void test_subview3D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewRemote3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -181,8 +181,8 @@ template <class Data_t> void test_subview2D_byRank(int i1, int i2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -218,8 +218,8 @@ template <class Data_t> void test_subview2D_byMulitpleRanks(int i1, int i2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -257,9 +257,9 @@ template <class Data_t> void test_subview2D_GlobalLayout(int i1, int i2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t **, Kokkos::HostSpace>;
   using ViewRemote_2D_t =
-      Kokkos::View<Data_t **, Kokkos::GlobalLayoutRight, RemoteSpace_t>;
+      Kokkos::View<Data_t **, RemoteSpace_t>;
 
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -308,9 +308,9 @@ void test_subview3D_GlobalLayout(int i1, int i2, int i3) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_2D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, Kokkos::HostSpace>;
+      Kokkos::View<Data_t ***, Kokkos::HostSpace>;
   using ViewRemote_2D_t =
-      Kokkos::View<Data_t ***, Kokkos::GlobalLayoutRight, RemoteSpace_t>;
+      Kokkos::View<Data_t ***, RemoteSpace_t>;
 
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -358,7 +358,7 @@ void test_subview3D_GlobalLayout(int i1, int i2, int i3) {
 
 TEST(TEST_CATEGORY, test_subview) {
   // 1D subview
-  test_subview1D<int>(50, 20, 0, 0);
+ /* test_subview1D<int>(50, 20, 0, 0);
   test_subview1D<int>(50, 20, 8, 12);
   test_subview1D<int>(255, 20, 49, 19);
 
@@ -372,11 +372,11 @@ TEST(TEST_CATEGORY, test_subview) {
   test_subview3D<int>(30, 120, 3, 10);
   test_subview3D<int>(70, 20, 0, 19);
 
-  // 1D subview split by dim0
+  // 2D subview split by dim0
   test_subview2D_byRank<int>(10, 10);
   test_subview2D_byRank<int>(55, 20);
   test_subview2D_byRank<int>(50, 77);
-
+*/
   test_subview2D_byMulitpleRanks<int>(10, 10);
   test_subview2D_byMulitpleRanks<int>(55, 221);
   test_subview2D_byMulitpleRanks<int>(108, 37);

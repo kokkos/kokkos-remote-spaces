@@ -48,6 +48,133 @@
 #include <Kokkos_RemoteSpaces.hpp>
 
 namespace Kokkos {
+
+namespace  Impl {
+
+
+template <class DstType, class SrcType/*, typename std::enable_if<
+  std::is_same<typename SrcType::array_layout, Kokkos::PartitionedLayoutRight>::value || 
+  std::is_same<typename SrcType::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
+  std::is_same<typename SrcType::array_layout, Kokkos::PartitionedLayoutStride>::value>::type*/>
+void view_copy_(const DstType& dst, const SrcType& src) {
+  using dst_execution_space = typename DstType::execution_space;
+  using src_execution_space = typename SrcType::execution_space;
+  using dst_memory_space    = typename DstType::memory_space;
+  using src_memory_space    = typename SrcType::memory_space;
+
+  enum {
+    DstExecCanAccessSrc =
+        Kokkos::SpaceAccessibility<dst_execution_space,
+                                   src_memory_space>::accessible
+  };
+
+  enum {
+    SrcExecCanAccessDst =
+        Kokkos::SpaceAccessibility<src_execution_space,
+                                   dst_memory_space>::accessible
+  };
+
+  if (!DstExecCanAccessSrc && !SrcExecCanAccessDst) {
+    std::string message(
+        "Error: Kokkos::deep_copy with no available copy mechanism: ");
+    message += src.label();
+    message += " to ";
+    message += dst.label();
+    Kokkos::Impl::throw_runtime_exception(message);
+  }
+
+  // Figure out iteration order in case we need it
+  int64_t strides[DstType::Rank + 1];
+  dst.stride(strides);
+  Kokkos::Iterate iterate;
+  if (Kokkos::is_layouttiled<typename DstType::array_layout>::value) {
+    iterate = Kokkos::layout_iterate_type_selector<
+        typename DstType::array_layout>::outer_iteration_pattern;
+  } else if (std::is_same<typename DstType::array_layout,
+                          Kokkos::PartitionedLayoutRight>::value) {
+    iterate = Kokkos::Iterate::Right;
+  } else if (std::is_same<typename DstType::array_layout,
+                          Kokkos::PartitionedLayoutLeft>::value) {
+    iterate = Kokkos::Iterate::Left;
+  } else if (std::is_same<typename DstType::array_layout,
+                          Kokkos::PartitionedLayoutStride>::value) {
+    if (strides[0] > strides[DstType::Rank - 1])
+      iterate = Kokkos::Iterate::Right;
+    else
+      iterate = Kokkos::Iterate::Left;
+  } else {
+    if (std::is_same<typename DstType::execution_space::array_layout,
+                     Kokkos::LayoutRight>::value)
+      iterate = Kokkos::Iterate::Right;
+    else
+      iterate = Kokkos::Iterate::Left;
+  }
+
+  if ((dst.span() >= size_t(std::numeric_limits<int>::max())) ||
+      (src.span() >= size_t(std::numeric_limits<int>::max()))) {
+
+    //Fixme: Here we need to make sure that DstExecCanAccessSrc is set correctly
+
+    if (DstExecCanAccessSrc /*FIXMEEE:: Here we need to call into src or dst*/ ) {
+      if (iterate == Kokkos::Iterate::Right)
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutRight, dst_execution_space, DstType::Rank, int64_t>(
+            dst, src);
+      else
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutLeft, dst_execution_space, DstType::Rank, int64_t>(
+            dst, src);
+    } else {
+      if (iterate == Kokkos::Iterate::Right)
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutRight, src_execution_space, DstType::Rank, int64_t>(
+            dst, src);
+      else
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutLeft, src_execution_space, DstType::Rank, int64_t>(
+            dst, src);
+    }
+  } else {
+    if (DstExecCanAccessSrc) {
+      if (iterate == Kokkos::Iterate::Right)
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutRight, dst_execution_space, DstType::Rank, int>(dst,
+                                                                          src);
+      else
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutLeft, dst_execution_space, DstType::Rank, int>(dst,
+                                                                         src);
+    } else {
+      if (iterate == Kokkos::Iterate::Right)
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutRight, src_execution_space, DstType::Rank, int>(dst,
+                                                                          src);
+      else
+        Kokkos::Impl::ViewCopy<
+            typename DstType::uniform_runtime_nomemspace_type,
+            typename SrcType::uniform_runtime_const_nomemspace_type,
+            Kokkos::LayoutLeft, src_execution_space, DstType::Rank, int>(dst,
+                                                                         src);
+    }
+  }
+}
+
+}
+
 namespace Experimental {
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
@@ -61,6 +188,7 @@ typedef MPISpace DefaultRemoteMemorySpace;
 #endif
 #endif
 #endif
+
 
 //----------------------------------------------------------------------------
 /** \brief  A deep copy between views of the default specialization, compatible
@@ -267,9 +395,10 @@ inline void deep_copy(
     }
     DefaultRemoteMemorySpace().fence();
   } else {
+    //Element-wise copy here
     DefaultRemoteMemorySpace().fence();
-    // Kokkos::Impl::view_copy(dst, src); //not implemented
-    Kokkos::abort("Error: Not implemented.");
+    Kokkos::Impl::view_copy_<typeof(dst), typeof(src)>(dst, src); //not implemented
+    //Kokkos::abort("Error: Not implemented.");
     DefaultRemoteMemorySpace().fence();
   }
 #if defined(KOKKOS_ENABLE_PROFILING)
@@ -483,9 +612,10 @@ inline void deep_copy(
     }
     DefaultRemoteMemorySpace().fence();
   } else {
+    //Element-wise copy here
     DefaultRemoteMemorySpace().fence();
-    // Kokkos::Impl::view_copy(dst, src); //not implemented
-    Kokkos::abort("Error: Not implemented.");
+    Kokkos::Impl::view_copy_<typeof(dst), typeof(src)>(dst, src); //not implemented
+    //Kokkos::abort("Error: Not implemented.");
     DefaultRemoteMemorySpace().fence();
   }
 #if defined(KOKKOS_ENABLE_PROFILING)

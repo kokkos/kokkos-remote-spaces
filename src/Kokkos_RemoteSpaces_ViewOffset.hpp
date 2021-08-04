@@ -57,7 +57,7 @@ namespace Impl {
 // LayoutLeft AND ( 1 >= rank OR 0 == rank_dynamic ) : no padding / no striding
 template <class Dimension>
 struct ViewOffset<
-    Dimension, Kokkos::GlobalLayoutLeft,
+    Dimension, Kokkos::PartitionedLayoutLeft,
     typename std::enable_if<(1 >= Dimension::rank ||
                              0 == Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
@@ -65,7 +65,7 @@ struct ViewOffset<
 
   using size_type = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::GlobalLayoutLeft;
+  using array_layout = Kokkos::PartitionedLayoutLeft;
 
   dimension_type m_dim;
 
@@ -280,12 +280,12 @@ struct ViewOffset<
   template <unsigned TrivialScalarSize>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
       std::integral_constant<unsigned, TrivialScalarSize> const &,
-      Kokkos::GlobalLayoutLeft const &arg_layout)
+      Kokkos::PartitionedLayoutLeft const &arg_layout)
       : m_dim(arg_layout.dimension[0], 0, 0, 0, 0, 0, 0, 0) {}
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutLeft, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutLeft, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7) {
     static_assert(int(DimRHS::rank) == int(dimension_type::rank),
@@ -295,7 +295,7 @@ struct ViewOffset<
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutRight, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutRight, void> &rhs)
       : m_dim(rhs.m_dim.N0, 0, 0, 0, 0, 0, 0, 0) {
     static_assert((DimRHS::rank == 0 && dimension_type::rank == 0) ||
                       (DimRHS::rank == 1 && dimension_type::rank == 1 &&
@@ -319,7 +319,7 @@ struct ViewOffset<
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutLeft, void> &,
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutLeft, void> &,
       const SubviewExtents<DimRHS::rank, dimension_type::rank> &sub)
       : m_dim(sub.range_extent(0), 0, 0, 0, 0, 0, 0, 0) {
     static_assert((0 == dimension_type::rank_dynamic) ||
@@ -333,7 +333,7 @@ struct ViewOffset<
 // LayoutLeft AND ( 1 < rank AND 0 < rank_dynamic ) : has padding / striding
 template <class Dimension>
 struct ViewOffset<
-    Dimension, Kokkos::GlobalLayoutLeft,
+    Dimension, Kokkos::PartitionedLayoutLeft,
     typename std::enable_if<(1 < Dimension::rank &&
                              0 < Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
@@ -341,7 +341,7 @@ struct ViewOffset<
 
   using size_type = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::LayoutLeft;
+  using array_layout = Kokkos::PartitionedLayoutLeft;
 
   dimension_type m_dim;
   size_type m_stride;
@@ -595,7 +595,7 @@ public:
   template <unsigned TrivialScalarSize>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
       std::integral_constant<unsigned, TrivialScalarSize> const &,
-      Kokkos::GlobalLayoutLeft const &arg_layout)
+      Kokkos::PartitionedLayoutLeft const &arg_layout)
       : m_dim(arg_layout.dimension[0], arg_layout.dimension[1],
               arg_layout.dimension[2], arg_layout.dimension[3],
               arg_layout.dimension[4], arg_layout.dimension[5],
@@ -604,7 +604,7 @@ public:
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutLeft, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutLeft, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7),
         m_stride(rhs.stride_1()) {
@@ -662,7 +662,7 @@ public:
 // LayoutRight AND ( 1 >= rank OR 0 == rank_dynamic ) : no padding / striding
 template <class Dimension>
 struct ViewOffset<
-    Dimension, Kokkos::GlobalLayoutRight,
+    Dimension, Kokkos::PartitionedLayoutRight,
     typename std::enable_if<(1 >= Dimension::rank ||
                              0 == Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
@@ -670,7 +670,7 @@ struct ViewOffset<
 
   using size_type = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::GlobalLayoutRight;
+  using array_layout = Kokkos::PartitionedLayoutRight;
 
   dimension_type m_dim;
 
@@ -896,12 +896,12 @@ struct ViewOffset<
   template <unsigned TrivialScalarSize>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
       std::integral_constant<unsigned, TrivialScalarSize> const &,
-      Kokkos::GlobalLayoutRight const &arg_layout)
+      Kokkos::PartitionedLayoutRight const &arg_layout)
       : m_dim(arg_layout.dimension[0], 0, 0, 0, 0, 0, 0, 0) {}
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutRight, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutRight, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7) {
     static_assert(int(DimRHS::rank) == int(dimension_type::rank),
@@ -911,7 +911,7 @@ struct ViewOffset<
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutLeft, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutLeft, void> &rhs)
       : m_dim(rhs.m_dim.N0, 0, 0, 0, 0, 0, 0, 0) {
     static_assert((DimRHS::rank == 0 && dimension_type::rank == 0) ||
                       (DimRHS::rank == 1 && dimension_type::rank == 1 &&
@@ -930,7 +930,7 @@ struct ViewOffset<
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutRight, void> &,
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutRight, void> &,
       const SubviewExtents<DimRHS::rank, dimension_type::rank> &sub)
       : m_dim(sub.range_extent(0), 0, 0, 0, 0, 0, 0, 0) {
     static_assert((0 == dimension_type::rank_dynamic) ||
@@ -944,7 +944,7 @@ struct ViewOffset<
 // LayoutRight AND ( 1 < rank AND 0 < rank_dynamic ) : has padding / striding
 template <class Dimension>
 struct ViewOffset<
-    Dimension, Kokkos::GlobalLayoutRight,
+    Dimension, Kokkos::PartitionedLayoutRight,
     typename std::enable_if<(1 < Dimension::rank &&
                              0 < Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
@@ -952,7 +952,7 @@ struct ViewOffset<
 
   using size_type = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::GlobalLayoutRight;
+  using array_layout = Kokkos::PartitionedLayoutRight;
 
   dimension_type m_dim;
   size_type m_stride;
@@ -1210,7 +1210,7 @@ public:
   template <unsigned TrivialScalarSize>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
       std::integral_constant<unsigned, TrivialScalarSize> const &,
-      Kokkos::GlobalLayoutRight const &arg_layout)
+      Kokkos::PartitionedLayoutRight const &arg_layout)
       : m_dim(arg_layout.dimension[0], arg_layout.dimension[1],
               arg_layout.dimension[2], arg_layout.dimension[3],
               arg_layout.dimension[4], arg_layout.dimension[5],
@@ -1247,7 +1247,7 @@ public:
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutRight, void> &rhs)
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutRight, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7),
         m_stride(rhs.stride_0()) {
@@ -1286,7 +1286,7 @@ public:
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::GlobalLayoutRight, void> &rhs,
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutRight, void> &rhs,
       const SubviewExtents<DimRHS::rank, dimension_type::rank> &sub)
       : m_dim(sub.range_extent(0), sub.range_extent(1), sub.range_extent(2),
               sub.range_extent(3), sub.range_extent(4), sub.range_extent(5),
@@ -1310,7 +1310,7 @@ public:
 };
 
 template <class Dimension>
-struct ViewOffset<Dimension, Kokkos::GlobalLayoutStride, void> {
+struct ViewOffset<Dimension, Kokkos::PartitionedLayoutStride, void> {
 private:
   using stride_type = ViewStride<Dimension::rank>;
 
@@ -1320,7 +1320,7 @@ public:
 
   using size_type = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::GlobalLayoutStride;
+  using array_layout = Kokkos::PartitionedLayoutStride;
 
   dimension_type m_dim;
   stride_type m_stride;
@@ -1546,7 +1546,7 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   constexpr ViewOffset(std::integral_constant<unsigned, 0> const &,
-                       Kokkos::GlobalLayoutStride const &rhs)
+                       Kokkos::PartitionedLayoutStride const &rhs)
       : m_dim(rhs.dimension[0], rhs.dimension[1], rhs.dimension[2],
               rhs.dimension[3], rhs.dimension[4], rhs.dimension[5],
               rhs.dimension[6], rhs.dimension[7]),
