@@ -4,7 +4,7 @@
 
 Kokkos Remote Spaces adds distributed shared memory (DSM) support to the Kokkos parallel programming model. This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
-Under the hood, a new memory space type, namely the `DefaultRemoteMemorySpace` type, represent a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer. 
+In particular, a new memory space type, namely the `DefaultRemoteMemorySpace` type, represent a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer. 
 
 Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows the fit of Kokkos Remote Spaces into the landscape of Kokkos and PGAS libraries.
 
@@ -20,7 +20,7 @@ We have included more examples in the source code distribution namely RandomAcce
 
 The following charts provide a perspective on performance and development complexity. They show measured performance expressed as bandwidth (GB/sec) and quantify development complexity with Kokkos Remote Spaces compared to other programming models by comparing LOC (lines of code). We compare different executions on the Lassen supercomputer and against a reference implementation with MPI+Cuda. Here, the executions correspond to configurations with one, two, and four Nvidia V100 GPUs. It can be observed that executions on >2 GPUs result in fine-grained memory accesses over the inter-processor communication interface which is significantly slower (~4x) than the NVLink interface connecting 2 GPUs each (NVLink complex). Reducing the access granularity by presorting remote non-regular accesses to the distributed data structure and moving data in bulk using local deep copies would be the appropriate optimization strategy in this case. 
 
-<img width="1301" alt="image" src="https://user-images.githubusercontent.com/755191/120720459-5a54c280-c489-11eb-96d0-842a26272019.png">
+<img width="1301" alt="image" src="https://user-images.githubusercontent.com/755191/132418921-c5b7210d-52a1-42ce-ae9f-c04f31923a55.png">
 
 In this chart, GI (global indexing) and LI (local indexing) mark two implementations of CGSolve where one implementation uses Kokkos views with global layout (`GlobalLayoutLeft` and where the other uses `LayoutLeft` and thus relies on the programmer to compute the PE index. In the latter case, this computation can be implemented with a binary left-shift which yields a slight performance advantage. 
 
