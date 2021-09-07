@@ -71,25 +71,20 @@ template <class Data_t> void test_globalview1D(int dim0) {
   int next_rank = (my_rank + 1) % num_ranks;
   int start = next_rank * block;
   int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + (dim0 % num_ranks) : end;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
     v_h(i) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
-  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", end - start, KOKKOS_LAMBDA(const int i) { v(start + i)++; });
 
-  Kokkos::fence();
-  RemoteSpace_t().fence();
-  Kokkos::Experimental::deep_copy(v_h, v);
-
-  block = (my_rank == next_rank) ? block + (dim0 % num_ranks) : block;
+  Kokkos::deep_copy(v_h, v);
+  
   for (int i = 0; i < block; ++i)
-    ASSERT_EQ(v_h(i), 1);
+      ASSERT_EQ(v_h(i), 1);
 }
 
 template <class Data_t> void test_globalview2D(int dim0, int dim1) {
@@ -111,23 +106,21 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
   int next_rank = (my_rank + 1) % num_ranks;
   int start = next_rank * block;
   int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + (dim0 % num_ranks) : end;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       v_h(i, j) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
+
   Kokkos::parallel_for(
       "Increment", end - start, KOKKOS_LAMBDA(const int i) {
         for (int k = 0; k < dim1; ++k)
           v(start + i, k)++;
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
-
-  block = (my_rank == next_rank) ? block + (dim0 % num_ranks) : block;
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < block; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
@@ -153,7 +146,6 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
   int next_rank = (my_rank + 1) % num_ranks;
   int start = next_rank * block;
   int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + (dim0 % num_ranks) : end;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -161,7 +153,7 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
       for (int l = 0; l < v_h.extent(2); ++l)
         v_h(i, j, l) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", end - start, KOKKOS_LAMBDA(const int i) {
@@ -170,9 +162,7 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
             v(start + i, k, l)++;
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
-
-  block = (my_rank == next_rank) ? block + (dim0 % num_ranks) : block;
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < block; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
@@ -184,6 +174,8 @@ TEST(TEST_CATEGORY, test_globalview) {
   // 1D
   test_globalview1D<int>(0);
   test_globalview1D<int>(1);
+  test_globalview1D<int>(3);
+  test_globalview1D<int>(5);
   test_globalview1D<int>(31);
 
   // 2D

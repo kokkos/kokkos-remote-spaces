@@ -84,7 +84,7 @@ void test_localdeepcopy(
         });
       });
 
-  Kokkos::Experimental::deep_copy(v_H, v_R_cpy);
+  Kokkos::deep_copy(v_H, v_R_cpy);
   ASSERT_EQ(0x123, v_H(0, 0));
 }
 
@@ -124,7 +124,7 @@ void test_localdeepcopy(
         });
       });
 
-  Kokkos::Experimental::deep_copy(v_H, v_R_cpy);
+  Kokkos::deep_copy(v_H, v_R_cpy);
   for (int j = 0; j < i1; ++j)
     ASSERT_EQ(0x123, v_H(0, j));
 }
@@ -166,7 +166,7 @@ void test_localdeepcopy(
         });
       });
 
-  Kokkos::Experimental::deep_copy(v_H, v_R_cpy);
+  Kokkos::deep_copy(v_H, v_R_cpy);
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
       ASSERT_EQ(0x123, v_H(0, i, j));

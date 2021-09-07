@@ -75,14 +75,15 @@ void test_subview1D(int i1, int i2, int sub1, int sub2) {
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, sub2);
   auto v_sub_2 = ViewRemote_1D_t(v, Kokkos::ALL, sub1, sub2);
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
+
   Kokkos::parallel_for(
       "Increment", 1, KOKKOS_LAMBDA(const int i) {
-        v_sub_1(my_rank)++;
-        v_sub_2(my_rank)++;
+       v_sub_1(my_rank)++;
+       v_sub_2(my_rank)++;
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
@@ -114,15 +115,15 @@ template <class Data_t> void test_subview2D(int i1, int i2, int sub1) {
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, Kokkos::ALL);
   auto v_sub_2 = ViewRemote_2D_t(v, Kokkos::ALL, sub1, Kokkos::ALL);
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(1), KOKKOS_LAMBDA(const int i) {
         v_sub_1(my_rank, i)++;
         v_sub_2(my_rank, i)++;
       });
-
-  Kokkos::Experimental::deep_copy(v_h, v);
+  
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
@@ -155,7 +156,7 @@ void test_subview3D(int i1, int i2, int sub1, int sub2) {
   auto v_sub_1 =
       Kokkos::subview(v, Kokkos::ALL, Kokkos::ALL, std::make_pair(sub1, sub2));
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(1), KOKKOS_LAMBDA(const int i) {
@@ -164,7 +165,7 @@ void test_subview3D(int i1, int i2, int sub1, int sub2) {
         }
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
@@ -195,7 +196,7 @@ template <class Data_t> void test_subview2D_byRank(int i1, int i2) {
 
   auto v_sub_1 =
       Kokkos::subview(v, (my_rank + 1) % num_ranks, Kokkos::ALL, Kokkos::ALL);
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
@@ -204,7 +205,7 @@ template <class Data_t> void test_subview2D_byRank(int i1, int i2) {
         }
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
@@ -234,7 +235,7 @@ template <class Data_t> void test_subview2D_byMulitpleRanks(int i1, int i2) {
 
   auto v_sub_1 = Kokkos::subview(v, std::make_pair(next_rank, next_rank),
                                  Kokkos::ALL, Kokkos::ALL);
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(1), KOKKOS_LAMBDA(const int i) {
@@ -243,7 +244,7 @@ template <class Data_t> void test_subview2D_byMulitpleRanks(int i1, int i2) {
         }
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
@@ -281,7 +282,7 @@ template <class Data_t> void test_subview2D_GlobalLayout(int i1, int i2) {
     for (int j = 0; j < v_h.extent(1); ++j)
       v_h(i, j) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
@@ -291,7 +292,7 @@ template <class Data_t> void test_subview2D_GlobalLayout(int i1, int i2) {
         }
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   block = (my_rank == next_rank) ? block + (i1 % num_ranks) : block;
 
@@ -335,7 +336,7 @@ void test_subview3D_GlobalLayout(int i1, int i2, int i3) {
       for (int k = 0; k < v_h.extent(2); ++k)
         v_h(i, j, k) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int j) {
@@ -346,7 +347,7 @@ void test_subview3D_GlobalLayout(int i1, int i2, int i3) {
           }
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   block = (my_rank == next_rank) ? block + (i1 % num_ranks) : block;
 
@@ -358,7 +359,7 @@ void test_subview3D_GlobalLayout(int i1, int i2, int i3) {
 
 TEST(TEST_CATEGORY, test_subview) {
   // 1D subview
- /* test_subview1D<int>(50, 20, 0, 0);
+  test_subview1D<int>(4, 4, 0, 0);
   test_subview1D<int>(50, 20, 8, 12);
   test_subview1D<int>(255, 20, 49, 19);
 
@@ -376,7 +377,7 @@ TEST(TEST_CATEGORY, test_subview) {
   test_subview2D_byRank<int>(10, 10);
   test_subview2D_byRank<int>(55, 20);
   test_subview2D_byRank<int>(50, 77);
-*/
+
   test_subview2D_byMulitpleRanks<int>(10, 10);
   test_subview2D_byMulitpleRanks<int>(55, 221);
   test_subview2D_byMulitpleRanks<int>(108, 37);

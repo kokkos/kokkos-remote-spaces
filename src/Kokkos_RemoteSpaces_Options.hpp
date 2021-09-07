@@ -58,10 +58,6 @@ enum RemoteSpaces_MemoryTraitsFlags {
 template <typename T> struct RemoteSpaces_MemoryTraits;
 
 template <unsigned T> struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
- /* enum : bool {
-    is_global_index = (unsigned(0) != (T & unsigned(GlobalIndex)))
-  };*/
-
   enum : bool {
     dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE)))
   };

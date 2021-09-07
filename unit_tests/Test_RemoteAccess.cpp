@@ -75,7 +75,7 @@ template <class Data_t, class Space_t> void test_remote_accesses(int size) {
               v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;         
       });
 
-  Kokkos::Experimental::deep_copy(v_H, v_R);
+  Kokkos::deep_copy(v_H, v_R);
 
   Data_t check(0), ref(0);
   for (int i = 0; i < size; i++) {

@@ -71,11 +71,12 @@ void test_deepcopy(
   Kokkos::TeamPolicy<Space_B> team_policy(1, 1, 1);
 
   RemoteSpace_t().fence();
+  
   Kokkos::parallel_for(
       "Team", 1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, 0) = 0x123; });
 
   RemoteSpace_t().fence();
-  Kokkos::Experimental::deep_copy(v_H, v_R);
+  Kokkos::deep_copy(v_H, v_R);
   ASSERT_EQ(0x123, v_H(0, 0));
 }
 
@@ -102,7 +103,7 @@ void test_deepcopy(
       "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
 
   RemoteSpace_t().fence();
-  Kokkos::Experimental::deep_copy(v_H, v_R);
+  Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i)
     ASSERT_EQ(0x123, v_H(0, i));
 }
@@ -132,7 +133,7 @@ void test_deepcopy(
           v_R(my_rank, i, j) = 0x123;
       });
 
-  Kokkos::Experimental::deep_copy(v_H, v_R);
+  Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
       ASSERT_EQ(0x123, v_H(0, i, j));
@@ -155,7 +156,7 @@ void test_deepcopy(
   v_H(0, 0) = 0x123;
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
 
-  Kokkos::Experimental::deep_copy(v_R, v_H);
+  Kokkos::deep_copy(v_R, v_H);
   
   Kokkos::parallel_for(
       "Team", 1,
@@ -182,7 +183,7 @@ void test_deepcopy(
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
 
-  Kokkos::Experimental::deep_copy(v_R, v_H);
+  Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
       "Team", i1,
@@ -211,7 +212,7 @@ void test_deepcopy(
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
 
-  Kokkos::Experimental::deep_copy(v_R, v_H);
+  Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) {

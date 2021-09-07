@@ -53,6 +53,7 @@
 namespace Kokkos {
 namespace Impl {
 
+
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
  * (sub-) view type
@@ -158,7 +159,7 @@ private:
                                Args...>::type;
 
   // If dim0 is range and PartitionedLayout, dim0 is PE
-  // We copute the offset to that subview during assign
+  // We compute the offset to that subview during assign
   enum { is_required_Dim0IsPE = R0 };
 
 public:
@@ -220,9 +221,9 @@ public:
     dst.m_corrected_dim0 = src.m_corrected_dim0;
 
     // Set offset for dim0 manually in order to support remote copy-ctr'ed views
-    // and subviews of type PartitionedLayout
-
+    // and subviews
     dst.m_offset_remote_dim = extents.domain_offset(0);
+    dst.dim0_is_pe = R0;
 
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
@@ -262,6 +263,11 @@ private:
   size_t m_offset_remote_dim;
   size_t m_corrected_dim0;
 
+  //We need this dynamic property as we do not derive the 
+  //type specialization at view construction through the
+  //subview ctr.
+  size_t dim0_is_pe;
+
   int m_num_pes;
   int pe;
 
@@ -287,10 +293,10 @@ public:
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION constexpr size_t
   dimension_0(typename std::enable_if<
-                  !(std::is_same<typename T::array_layout,
-                               Kokkos::PartitionedLayoutRight>::value ||
                   std::is_same<typename T::array_layout,
-                               Kokkos::PartitionedLayoutLeft>::value)>::type * =
+                               Kokkos::LayoutRight>::value ||
+                  std::is_same<typename T::array_layout,
+                               Kokkos::LayoutLeft>::value>::type * =
                   nullptr) const {
     return m_offset.dimension_0();
   }
@@ -515,7 +521,6 @@ public:
   //----------------------------------------
   // PartitionedLayout{Left,Right,Strided} access operators where dim0 is not PE
   // This occurs on subiew creation
-
   template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0,
@@ -526,8 +531,21 @@ public:
                         Kokkos::PartitionedLayoutStride>::value) &&
           !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
               dim0_is_pe>::type * = nullptr) const {
-    const reference_type element = m_handle(m_offset_remote_dim, m_offset(i0));
-    return element;
+
+    //We need this dynamic check as we do not derive the 
+    //type specialization at view construction through the
+    //subview ctr (only through Kokkos::subview(...)). This adds support
+    //for auto sub_v = View_t(v,...).
+
+    if(dim0_is_pe)
+    {
+      const reference_type element = m_handle(m_offset_remote_dim + i0, 0);
+      return element;
+    }else
+    {
+      const reference_type element = m_handle(m_offset_remote_dim, m_offset(i0));
+      return element;
+    }
   }
 
   template <typename I0, typename I1, typename T = Traits>
@@ -540,9 +558,18 @@ public:
                         Kokkos::PartitionedLayoutStride>::value) &&
           !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
               dim0_is_pe>::type * = nullptr) const {
+
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1));
+    return element;}
+    else{
+      
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(i0, i1));
     return element;
+
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename T = Traits>
@@ -555,9 +582,17 @@ public:
                         Kokkos::PartitionedLayoutStride>::value) &&
           !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
               dim0_is_pe>::type * = nullptr) const {
+
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2));
     return element;
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename I3,
@@ -570,9 +605,16 @@ public:
               typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3) const {
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3));
     return element;
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
@@ -586,9 +628,16 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4) const {
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4));
     return element;
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
@@ -602,9 +651,16 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5) const {
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5));
     return element;
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
@@ -618,9 +674,16 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6) const {
+    if(dim0_is_pe)
+    {    const reference_type element =
+        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6));
     return element;
+    }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
@@ -634,9 +697,16 @@ public:
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7) const {
+    if(dim0_is_pe)
+    {        const reference_type element = m_handle(
+        m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
+    return element;
+    }
+    else{
     const reference_type element =
         m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
     return element;
+    }
   }
 
   //----------------------------------------
@@ -660,6 +730,7 @@ public:
       _pe = m_num_pes - 1;
       _dim0_mod = _dim0 + _dim0_mod;
     }
+
     return dim0_offsets{_pe, _dim0_mod};
   }
 
@@ -866,7 +937,8 @@ public:
 
   KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
   KOKKOS_INLINE_FUNCTION ViewMapping()
-      : m_handle(), m_offset(), m_offset_remote_dim(0), m_corrected_dim0(0) {
+      : m_handle(), m_offset(), m_offset_remote_dim(0), m_corrected_dim0(0),
+      dim0_is_pe(0) {
     m_num_pes = Kokkos::Experimental::get_num_pes();
     pe = Kokkos::Experimental::get_my_pe();
   }
@@ -875,7 +947,8 @@ public:
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
         m_num_pes(rhs.m_num_pes), pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
-        m_corrected_dim0(rhs.m_corrected_dim0) {}
+        m_corrected_dim0(rhs.m_corrected_dim0),
+        dim0_is_pe(rhs.dim0_is_pe) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
     m_handle = rhs.m_handle;
@@ -883,6 +956,7 @@ public:
     m_num_pes = rhs.m_num_pes;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_corrected_dim0 = rhs.m_corrected_dim0;
+    dim0_is_pe = rhs.dim0_is_pe;
     pe = rhs.pe;
     return *this;
   }
@@ -891,15 +965,17 @@ public:
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
         m_num_pes(rhs.m_num_pes), pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
-        m_corrected_dim0(rhs.m_corrected_dim0) {}
+        m_corrected_dim0(rhs.m_corrected_dim0),
+        dim0_is_pe(0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
     m_handle = rhs.m_handle;
     m_offset = rhs.m_offset;
     m_num_pes = rhs.m_num_pes;
+    pe = rhs.pe;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_corrected_dim0 = rhs.m_corrected_dim0;
-    pe = rhs.pe;
+    dim0_is_pe = rhs.dim0_is_pe;
     return *this;
   }
 
@@ -966,11 +1042,7 @@ private:
       type
       set_layout(typename T::array_layout const &arg_layout,
                  typename T::array_layout &layout, size_t &corrected_dim0) {
-
-    /*static_assert(
-        std::is_same<typename T::memory_traits,
-                      typename Kokkos::MemoryTraits<
-                          RemoteSpaces_MemoryTraitsFlags::Dim0IsPE>>::value);*/
+                                            
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
 

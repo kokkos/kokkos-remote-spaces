@@ -138,6 +138,7 @@ size_t get_my_pe() {
   return rank;
 }
 
+KOKKOS_FUNCTION
 size_t get_block_round_up(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
@@ -145,12 +146,15 @@ size_t get_block_round_up(size_t size) {
   return block;
 }
 
+KOKKOS_FUNCTION
 size_t get_block_round_down(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
   block = size / n_pe;
+  block = block  == 0 ? 1 : block;
   return block;
 }
+
 
 size_t get_block(size_t size) { return get_block_round_up(size); }
 

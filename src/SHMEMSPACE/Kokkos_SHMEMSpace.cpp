@@ -110,6 +110,7 @@ size_t get_block_round_down(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
   block = size / n_pe;
+  block = block  == 0 ? 1 : block;
   return block;
 }
 

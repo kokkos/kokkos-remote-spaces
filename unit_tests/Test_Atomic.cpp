@@ -72,12 +72,12 @@ template <class Data_t> void test_atomic_globalview1D(int dim0) {
   for (int i = 0; i < v_h.extent(0); ++i)
     v_h(i) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
     ASSERT_EQ(v_h(i), num_ranks);
@@ -104,7 +104,7 @@ template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
     for (int j = 0; j < v_h.extent(1); ++j)
       v_h(i, j) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
@@ -112,7 +112,7 @@ template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
           v(i, j)++;
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
@@ -141,7 +141,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
       for (int l = 0; l < v_h.extent(2); ++l)
         v_h(i, j, l) = 0;
 
-  Kokkos::Experimental::deep_copy(v, v_h);
+  Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
@@ -150,7 +150,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
             v(i, j, k)++;
       });
 
-  Kokkos::Experimental::deep_copy(v_h, v);
+  Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < dim0 / num_ranks; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
