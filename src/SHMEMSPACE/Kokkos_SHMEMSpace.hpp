@@ -176,10 +176,10 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
 } // namespace Impl
 } // namespace Kokkos
 
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_SHMEMSpace_Ops.hpp>

@@ -62,10 +62,17 @@ int main(int argc, char** argv)
 {
   MPI_Init(&argc,&argv);
   MPI_Comm mpi_comm;
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_init();
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr (NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+#endif
 
   int rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
