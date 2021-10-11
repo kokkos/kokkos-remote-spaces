@@ -54,15 +54,18 @@ namespace Impl {
 #define KOKKOS_REMOTESPACES_P(type, mpi_type)                                  \
   static KOKKOS_INLINE_FUNCTION void mpi_type_p(                               \
       const type val, const size_t offset, const int pe, const MPI_Win &win) { \
-    /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                             \
+    assert(win != MPI_WIN_NULL);                                               \
+    int _typesize;                                                             \
+    MPI_Type_size(mpi_type, &_typesize);                                       \
+    /*MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win); */                            \
     MPI_Put(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * sizeof(mpi_type), 1,     \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
             mpi_type, win);                                                    \
-    /*MPI_Win_unlock(0, win);*/                                                \
+   /* MPI_Win_unlock(pe, win);  */                                             \
     MPI_Win_flush(0, win);                                                     \
   }
 
-KOKKOS_REMOTESPACES_P(char, MPI_UNSIGNED_CHAR)
+KOKKOS_REMOTESPACES_P(char, MPI_SIGNED_CHAR)
 KOKKOS_REMOTESPACES_P(unsigned char, MPI_UNSIGNED_CHAR)
 KOKKOS_REMOTESPACES_P(short, MPI_SHORT)
 KOKKOS_REMOTESPACES_P(unsigned short, MPI_UNSIGNED_SHORT)
@@ -80,15 +83,18 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
 #define KOKKOS_REMOTESPACES_G(type, mpi_type)                                  \
   static KOKKOS_INLINE_FUNCTION void mpi_type_g(                               \
       type &val, const size_t offset, const int pe, const MPI_Win &win) {      \
+    assert(win != MPI_WIN_NULL);                                               \
+    int _typesize;                                                             \
+    MPI_Type_size(mpi_type, &_typesize);                                       \
     /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                             \
     MPI_Get(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * sizeof(mpi_type), 1,     \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
             mpi_type, win);                                                    \
     /*MPI_Win_unlock(0, win);*/                                                \
     MPI_Win_flush(0, win);                                                     \
   }
 
-KOKKOS_REMOTESPACES_G(char, MPI_UNSIGNED_CHAR)
+KOKKOS_REMOTESPACES_G(char, MPI_SIGNED_CHAR)
 KOKKOS_REMOTESPACES_G(unsigned char, MPI_UNSIGNED_CHAR)
 KOKKOS_REMOTESPACES_G(short, MPI_SHORT)
 KOKKOS_REMOTESPACES_G(unsigned short, MPI_UNSIGNED_SHORT)
@@ -264,7 +270,7 @@ struct MPIDataElement {};
 template <class T, class Traits>
 struct MPIDataElement<
     T, Traits,
-    typename std::enable_if<Traits::memory_traits::is_atomic>::type> {
+    typename std::enable_if<!Traits::memory_traits::is_atomic>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   const MPI_Win *win;
@@ -565,7 +571,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp = T();
+    T tmp = T();    
     mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }
@@ -575,7 +581,7 @@ struct MPIDataElement<
 template <class T, class Traits>
 struct MPIDataElement<
     T, Traits,
-    typename std::enable_if<!Traits::memory_traits::is_atomic>::type> {
+    typename std::enable_if<Traits::memory_traits::is_atomic>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   const MPI_Win *win;

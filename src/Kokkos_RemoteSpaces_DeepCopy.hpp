@@ -513,7 +513,7 @@ inline void deep_copy(
 
 
 //----------------------------------------------------------------------------
-/** \brief  A deep copy between views of the default specialization, compatible
+/** \brief  A deep copy between views of compatible
  * type, same non-zero rank, same contiguous layout.
  */
 template <class DT, class... DP, class ST, class... SP>
@@ -666,7 +666,6 @@ inline void deep_copy(
 
   // If same type, equal layout, equal dimensions, equal span, and contiguous
   // memory then can byte-wise copy
-
   if (std::is_same<typename dst_type::value_type,
                    typename src_type::non_const_value_type>::value &&
       (std::is_same<typename dst_type::array_layout,
@@ -699,8 +698,8 @@ inline void deep_copy(
       ((dst_type::rank < 8) || (dst.stride_7() == src.stride_7()))) {
     const size_t nbytes = sizeof(typename dst_type::value_type) * dst.span();
     Kokkos::fence(
-        "Kokkos::deep_copy: copy between contiguous views, pre view equality "
-        "check");
+        "Kokkos::deep_copy: copy between contiguous views, pre deep copy "
+        "fence");
 
     DefaultRemoteMemorySpace().fence();
 
@@ -731,7 +730,7 @@ inline void deep_copy(
 }
 
 //----------------------------------------------------------------------------
-/** \brief  A deep copy between views of the default specialization, compatible
+/** \brief  A deep copy between views of compatible
  * type, same non-zero rank
  */
 template <class ExecSpace, class DT, class... DP, class ST, class... SP>
@@ -746,6 +745,13 @@ inline void deep_copy(
          unsigned(ViewTraits<ST, SP...>::rank) != 0))>::type* = nullptr) {
   using dst_type = View<DT, DP...>;
   using src_type = View<ST, SP...>;
+  using dst_execution_space = typename dst_type::execution_space;
+  using src_execution_space = typename src_type::execution_space;
+  using dst_memory_space    = typename dst_type::memory_space;
+  using src_memory_space    = typename src_type::memory_space;
+  using dst_value_type      = typename dst_type::value_type;
+  using src_value_type      = typename src_type::value_type;
+
 
   static_assert(std::is_same<typename dst_type::value_type,
                              typename dst_type::non_const_value_type>::value,
@@ -754,12 +760,6 @@ inline void deep_copy(
   static_assert((unsigned(dst_type::rank) == unsigned(src_type::rank)),
                 "deep_copy requires Views of equal rank");
 
-  using dst_execution_space = typename dst_type::execution_space;
-  using src_execution_space = typename src_type::execution_space;
-  using dst_memory_space    = typename dst_type::memory_space;
-  using src_memory_space    = typename src_type::memory_space;
-  using dst_value_type      = typename dst_type::value_type;
-  using src_value_type      = typename src_type::value_type;
 
   if (Kokkos::Tools::Experimental::get_callbacks().begin_deep_copy != nullptr) {
     Kokkos::Profiling::beginDeepCopy(
@@ -877,12 +877,27 @@ inline void deep_copy(
 
   // If same type, equal layout, equal dimensions, equal span, and contiguous
   // memory then can byte-wise copy
-
   if (std::is_same<typename dst_type::value_type,
                    typename src_type::non_const_value_type>::value &&
       (std::is_same<typename dst_type::array_layout,
                     typename src_type::array_layout>::value ||
-       (dst_type::rank == 1 && src_type::rank == 1)) &&
+      ((std::is_same<typename dst_type::array_layout,
+                    typename Kokkos::PartitionedLayoutRight>::value &&  
+      std::is_same<typename src_type::array_layout,
+                    typename Kokkos::LayoutRight>::value) ||
+      (std::is_same<typename dst_type::array_layout,
+                    typename Kokkos::PartitionedLayoutLeft>::value &&  
+      std::is_same<typename src_type::array_layout,
+                    typename Kokkos::LayoutLeft>::value) ||            
+      (std::is_same<typename src_type::array_layout,
+                    typename Kokkos::PartitionedLayoutRight>::value &&  
+      std::is_same<typename dst_type::array_layout,
+                    typename Kokkos::LayoutRight>::value) ||
+      (std::is_same<typename src_type::array_layout,
+                    typename Kokkos::PartitionedLayoutLeft>::value &&  
+      std::is_same<typename dst_type::array_layout,
+                    typename Kokkos::LayoutLeft>::value))) ||
+       (dst_type::rank == 1 && src_type::rank == 1) &&
       dst.span_is_contiguous() && src.span_is_contiguous() &&
       ((dst_type::rank < 1) || (dst.stride_0() == src.stride_0())) &&
       ((dst_type::rank < 2) || (dst.stride_1() == src.stride_1())) &&
@@ -894,8 +909,13 @@ inline void deep_copy(
       ((dst_type::rank < 8) || (dst.stride_7() == src.stride_7()))) {
     const size_t nbytes = sizeof(typename dst_type::value_type) * dst.span();
     if ((void*)dst.data() != (void*)src.data()) {
+      
+      DefaultRemoteMemorySpace().fence();
+
       Kokkos::Impl::DeepCopy<dst_memory_space, src_memory_space, ExecSpace>(
           exec_space, dst.data(), src.data(), nbytes);
+
+      DefaultRemoteMemorySpace().fence();
     }
   } else {
     // Copying data between views in accessible memory spaces and either
@@ -911,7 +931,7 @@ inline void deep_copy(
           "copy");
       
       DefaultRemoteMemorySpace().fence();          
-      
+
       Impl::view_copy(cpy_exec_space(), dst, src);
       cpy_exec_space().fence(
           "Kokkos::deep_copy: view-to-view noncontiguous copy on space, post "

@@ -52,7 +52,7 @@ namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-SHMEMSpace::SHMEMSpace() : allocation_mode(Symmetric) {}
+SHMEMSpace::SHMEMSpace() : allocation_mode(Kokkos::Experimental::Symmetric) {}
 
 void SHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;
@@ -70,7 +70,6 @@ void *SHMEMSpace::allocate(const size_t arg_alloc_size) const {
 
   void *ptr = 0;
   if (arg_alloc_size) {
-
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       int num_pes = shmem_n_pes();
       int my_id = shmem_my_pe();
@@ -91,13 +90,9 @@ void SHMEMSpace::fence() {
   shmem_barrier_all();
 }
 
-KOKKOS_FUNCTION
 size_t get_num_pes() { return shmem_n_pes(); }
-
-KOKKOS_FUNCTION
 size_t get_my_pe() { return shmem_my_pe(); }
 
-KOKKOS_FUNCTION
 size_t get_block_round_up(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
@@ -105,7 +100,6 @@ size_t get_block_round_up(size_t size) {
   return block;
 }
 
-KOKKOS_FUNCTION
 size_t get_block_round_down(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
@@ -114,7 +108,6 @@ size_t get_block_round_down(size_t size) {
   return block;
 }
 
-KOKKOS_FUNCTION
 size_t get_block(size_t size) { return get_block_round_up(size); }
 
 } // namespace Experimental
@@ -125,7 +118,11 @@ namespace Impl
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace>
 ::DeepCopy(void *dst, const void *src, size_t n) {
   Kokkos::Experimental::SHMEMSpace().fence();
-    memcpy(dst, src, n);
+      for(int i = 0; i < n / 4; i++)
+    printf("%i,%i\n", ((int*)src)[i],((int*)dst)[i]);
+  memcpy(dst, src, n);
+  for(int i = 0; i < n / 4; i++)
+    printf("%i,%i\n", ((int*)src)[i],((int*)dst)[i]);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace>

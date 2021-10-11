@@ -1013,7 +1013,6 @@ public:
   void assign_data(pointer_type arg_ptr) { m_handle = handle_type(arg_ptr); }
 
 private:
-  // Apply partiotioning as in PartitionedLayoutLeft
   template <typename T = Traits>
   KOKKOS_FUNCTION typename std::enable_if<
       std::is_same<typename T::array_layout,

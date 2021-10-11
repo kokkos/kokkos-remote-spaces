@@ -88,14 +88,13 @@ SharedAllocationRecord<Kokkos::Experimental::MPISpace,
 #if defined(KOKKOS_ENABLE_PROFILING)
   if (Kokkos::Profiling::profileLibraryLoaded()) {
     SharedAllocationHeader header;
-    /*Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
-    &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));*/
-
     Kokkos::Profiling::deallocateData(
-        Kokkos::Profiling::SpaceHandle(Kokkos::Experimental::MPISpace::name()),
+        Kokkos::Profiling::SpaceHandle(
+            Kokkos::Experimental::SHMEMSpace::name()),
         header.m_label, data(), size());
   }
 #endif
+
   m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
                      SharedAllocationRecord<void, void>::m_alloc_size);
 }

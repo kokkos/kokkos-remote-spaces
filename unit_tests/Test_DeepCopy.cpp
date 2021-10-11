@@ -100,12 +100,16 @@ void test_deepcopy(
   Kokkos::TeamPolicy<Space_B> team_policy(1, Kokkos::AUTO, 1);
 
   Kokkos::parallel_for(
-      "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
+      "Team", i1, KOKKOS_LAMBDA(const int i) { 
+        v_R(my_rank, i) = 0x123; 
+        });
 
   RemoteSpace_t().fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i)
+  {
     ASSERT_EQ(0x123, v_H(0, i));
+  }
 }
 
 template <class Data_t, class Space_A, class Space_B>
@@ -182,12 +186,12 @@ void test_deepcopy(
     v_H(0, i) = 0x123;
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
-
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
       "Team", i1,
-      KOKKOS_LAMBDA(const int i) { assert(v_R(my_rank, i) == (Data_t)0x123); });
+      KOKKOS_LAMBDA(const int i) { 
+        assert(v_R(my_rank, i) == (Data_t)0x123);});
 }
 
 template <class Data_t, class Space_A, class Space_B>
@@ -231,8 +235,8 @@ TEST(TEST_CATEGORY, test_deepcopy) {
   test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();
 
   // 1D
+  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(10);
   test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>(100);
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(100);
   test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>(200);
   test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200);
   test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(300);

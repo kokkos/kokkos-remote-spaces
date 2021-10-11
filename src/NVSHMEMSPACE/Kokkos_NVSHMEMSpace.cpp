@@ -50,7 +50,7 @@ namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-NVSHMEMSpace::NVSHMEMSpace() : allocation_mode(Symmetric) {}
+NVSHMEMSpace::NVSHMEMSpace() : allocation_mode(Kokkos::Experimental::Symmetric) {}
 
 void NVSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;

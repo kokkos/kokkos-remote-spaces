@@ -78,7 +78,6 @@ SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
   // Fill in the Header information
   RecordBase::m_alloc_ptr->m_record =
       static_cast<SharedAllocationRecord<void, void> *>(this);
-
   strncpy(RecordBase::m_alloc_ptr->m_label, arg_label.c_str(),
           SharedAllocationHeader::maximum_label_length);
 }
