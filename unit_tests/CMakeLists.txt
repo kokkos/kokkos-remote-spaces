@@ -12,7 +12,15 @@ if(NOT googletest_POPULATED)
 endif()
 
 SET(NAME KokkosRemote_TestAll)
-FILE(GLOB TEST_SRCS *.cpp) 
+
+if (Kokkos_ENABLE_MPISPACE)
+  FILE(GLOB TEST_SRCS *.cpp) 
+  list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Subview\\.cpp$")
+  message(${TEST_SRCS})
+else()
+  FILE(GLOB TEST_SRCS *.cpp) 
+endif()
+
 add_executable(${NAME} ${TEST_SRCS})
 target_link_libraries(${NAME} PUBLIC Kokkos::kokkosremote)
 target_link_libraries(${NAME} PUBLIC gtest_main)
