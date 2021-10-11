@@ -137,7 +137,6 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 3, iType> {
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1, const iType& i2) const {
     a(i0, i1, i2) = static_cast<value_type>(b(i0, i1, i2));
-    printf("%i, %i, %i, %i\n", (int)i0, (int)i1, (int)i2, (int)b(i0, i1, i2));
   };
 };
 

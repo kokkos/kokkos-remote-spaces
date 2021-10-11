@@ -118,11 +118,7 @@ namespace Impl
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace>
 ::DeepCopy(void *dst, const void *src, size_t n) {
   Kokkos::Experimental::SHMEMSpace().fence();
-      for(int i = 0; i < n / 4; i++)
-    printf("%i,%i\n", ((int*)src)[i],((int*)dst)[i]);
   memcpy(dst, src, n);
-  for(int i = 0; i < n / 4; i++)
-    printf("%i,%i\n", ((int*)src)[i],((int*)dst)[i]);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace>
