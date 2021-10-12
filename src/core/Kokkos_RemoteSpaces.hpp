@@ -45,6 +45,12 @@
 #define KOKKOS_REMOTESPACES_HPP
 #include <Kokkos_Core.hpp>
 
+namespace Kokkos {
+namespace Experimental {
+enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
+}
+} // namespace Kokkos
+
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
@@ -74,8 +80,6 @@ class MPISpace;
 
 namespace Kokkos {
 namespace Experimental {
-
-enum { Monolithic, Symmetric, Asymmetric };
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;
