@@ -48,13 +48,13 @@
 #include <generate_matrix.hpp>
 #include <mpi.h>
 
-//#define USE_GLOBAL_LAYOUT
+#define USE_GLOBAL_LAYOUT
 
 typedef Kokkos::Experimental::DefaultRemoteMemorySpace RemoteMemSpace_t;
-#ifndef USE_GLOBAL_LAYOUT
-typedef Kokkos::View<double **, RemoteMemSpace_t> RemoteView_t;
+#ifdef USE_GLOBAL_LAYOUT
+typedef Kokkos::View<double *, RemoteMemSpace_t> RemoteView_t;
 #else
-typedef Kokkos::View<double *, Kokkos::GlobalLayoutLeft, RemoteMemSpace_t> RemoteView_t;
+typedef Kokkos::View<double **, Kokkos::PartitionedLayoutLeft, RemoteMemSpace_t> RemoteView_t;
 #endif
 
 
@@ -97,18 +97,18 @@ void spmv(YType y, AType A, XType x) {
                     int64_t current_row = row_start + i;
                     int64_t idx = A.col_idx(current_row);
 
-                    #ifndef USE_GLOBAL_LAYOUT
+                    #ifdef USE_GLOBAL_LAYOUT
+                    // Enable for faster pid and offset calculation. Caution: will not work with GlobalLayout
+                    // int64_t pid = idx / MASK;
+                    // int64_t offset = idx % MASK;
+                    sum += A.values(current_row) * x(idx);
+                    #else
                     // Enable for faster pid and offset calculation. May result in unfair comparison
                     //int64_t pid = idx / MASK;
                     //int64_t offset = idx % MASK;
                     int64_t pid = idx / nrows;
                     int64_t offset = idx % nrows;
                     sum += A.values(current_row) * x(pid, offset);
-                    #else
-                    // Enable for faster pid and offset calculation. Caution: will not work with GlobalLayout
-                    // int64_t pid = idx / MASK;
-                    // int64_t offset = idx % MASK;
-                    sum += A.values(current_row) * x(idx);
                     #endif
                     
                   },
@@ -183,7 +183,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   normr = std::sqrt(rtrans);
 
-  if (false) {
+  if (true) {
     if (myproc == 0) {
       std::cout << "Initial Residual = " << normr << std::endl;
     }
@@ -205,7 +205,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
 
     normr = std::sqrt(rtrans);
 
-    if (false) {
+    if (true) {
       if (myproc == 0 && (k % print_freq == 0 || k == max_iter)) {
         std::cout << "Iteration = " << k << "   Residual = " << normr
                   << std::endl;
