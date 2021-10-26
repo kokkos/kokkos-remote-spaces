@@ -79,8 +79,9 @@ template <class Data_t> void test_atomic_globalview1D(int dim0) {
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < dim0 / num_ranks; ++i)
+  for (int i = 0; i < v_h.extent(0); ++i){
     ASSERT_EQ(v_h(i), num_ranks);
+  }
 }
 
 template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
@@ -114,7 +115,7 @@ template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < dim0 / num_ranks; ++i)
+  for (int i = 0; i <  v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       ASSERT_EQ(v_h(i, j), num_ranks);
 }
@@ -152,7 +153,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < dim0 / num_ranks; ++i)
+  for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       for (int l = 0; l < v_h.extent(2); ++l)
         ASSERT_EQ(v_h(i, j, l), num_ranks);

@@ -67,10 +67,7 @@ template <class Data_t> void test_globalview1D(int dim0) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  int block = dim0 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
+  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -78,12 +75,16 @@ template <class Data_t> void test_globalview1D(int dim0) {
 
   Kokkos::deep_copy(v, v_h);
 
+  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+
   Kokkos::parallel_for(
-      "Increment", end - start, KOKKOS_LAMBDA(const int i) { v(start + i)++; });
+      "Increment", policy, KOKKOS_LAMBDA(const int i) { 
+        v(i)++; 
+      });
 
   Kokkos::deep_copy(v_h, v);
   
-  for (int i = 0; i < block; ++i)
+  for (int i = 0; i < v_h.extent(0); ++i)
       ASSERT_EQ(v_h(i), 1);
 }
 
@@ -102,10 +103,7 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  int block = dim0 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
+  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -114,15 +112,17 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
 
   Kokkos::deep_copy(v, v_h);
 
+  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+
   Kokkos::parallel_for(
-      "Increment", end - start, KOKKOS_LAMBDA(const int i) {
+      "Increment", policy, KOKKOS_LAMBDA(const int i) {
         for (int k = 0; k < dim1; ++k)
-          v(start + i, k)++;
+          v(i, k)++;
       });
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < block; ++i)
+  for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       ASSERT_EQ(v_h(i, j), 1);
 }
@@ -142,10 +142,7 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
   ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
-  int block = dim0 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
+  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -155,16 +152,18 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
 
   Kokkos::deep_copy(v, v_h);
 
+  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+
   Kokkos::parallel_for(
-      "Increment", end - start, KOKKOS_LAMBDA(const int i) {
+      "Increment", policy, KOKKOS_LAMBDA(const int i) {
         for (int k = 0; k < dim1; ++k)
           for (int l = 0; l < dim2; ++l)
-            v(start + i, k, l)++;
+            v(i, k, l)++;
       });
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < block; ++i)
+  for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       for (int l = 0; l < v_h.extent(2); ++l)
         ASSERT_EQ(v_h(i, j, l), 1);
@@ -175,18 +174,19 @@ TEST(TEST_CATEGORY, test_globalview) {
   test_globalview1D<int>(0);
   test_globalview1D<int>(1);
   test_globalview1D<int>(3);
-  test_globalview1D<int>(5);
+  test_globalview1D<int>(10);
   test_globalview1D<int>(31);
+  test_globalview1D<int>(1234);
 
   // 2D
   test_globalview2D<int>(128, 312);
-  test_globalview2D<int>(256, 237);
-  test_globalview2D<int>(1, 1);
+  test_globalview2D<float>(256, 237);
+  test_globalview2D<double>(1, 1);
 
   // 3D
   test_globalview3D<int>(1, 1, 1);
-  test_globalview3D<int>(255, 1024, 3);
-  test_globalview3D<int>(3, 33, 1024);
+  test_globalview3D<float>(255, 1024, 3);
+  test_globalview3D<double>(3, 33, 1024);
 }
 
 #endif /* TEST_GLOBALVIEW_HPP_ */

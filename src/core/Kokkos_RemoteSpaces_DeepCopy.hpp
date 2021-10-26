@@ -550,7 +550,7 @@ inline void deep_copy(
 
   if (dst.data() == nullptr || src.data() == nullptr) {
     // throw if dimension mismatch
-    if ((src.extent(0) != dst.extent(0)) || (src.extent(1) != dst.extent(1)) ||
+    if (/*(src.extent(0) != dst.extent(0)) || */(src.extent(1) != dst.extent(1)) ||
         (src.extent(2) != dst.extent(2)) || (src.extent(3) != dst.extent(3)) ||
         (src.extent(4) != dst.extent(4)) || (src.extent(5) != dst.extent(5)) ||
         (src.extent(6) != dst.extent(6)) || (src.extent(7) != dst.extent(7))) {
@@ -637,7 +637,7 @@ inline void deep_copy(
   }
 
   // Check for same extents
-  if ((src.extent(0) != dst.extent(0)) || (src.extent(1) != dst.extent(1)) ||
+  if (/*(src.extent(0) != dst.extent(0)) ||*/ (src.extent(1) != dst.extent(1)) ||
       (src.extent(2) != dst.extent(2)) || (src.extent(3) != dst.extent(3)) ||
       (src.extent(4) != dst.extent(4)) || (src.extent(5) != dst.extent(5)) ||
       (src.extent(6) != dst.extent(6)) || (src.extent(7) != dst.extent(7))) {
@@ -778,7 +778,7 @@ inline void deep_copy(
       ((std::ptrdiff_t(dst_start) == std::ptrdiff_t(src_start)) &&
        (std::ptrdiff_t(dst_end) == std::ptrdiff_t(src_end)))) {
     // throw if dimension mismatch
-    if ((src.extent(0) != dst.extent(0)) || (src.extent(1) != dst.extent(1)) ||
+    if (/*(src.extent(0) != dst.extent(0)) ||*/ (src.extent(1) != dst.extent(1)) ||
         (src.extent(2) != dst.extent(2)) || (src.extent(3) != dst.extent(3)) ||
         (src.extent(4) != dst.extent(4)) || (src.extent(5) != dst.extent(5)) ||
         (src.extent(6) != dst.extent(6)) || (src.extent(7) != dst.extent(7))) {
@@ -848,7 +848,7 @@ inline void deep_copy(
   }
 
   // Check for same extents
-  if ((src.extent(0) != dst.extent(0)) || (src.extent(1) != dst.extent(1)) ||
+  if (/*(src.extent(0) != dst.extent(0)) ||*/ (src.extent(1) != dst.extent(1)) ||
       (src.extent(2) != dst.extent(2)) || (src.extent(3) != dst.extent(3)) ||
       (src.extent(4) != dst.extent(4)) || (src.extent(5) != dst.extent(5)) ||
       (src.extent(6) != dst.extent(6)) || (src.extent(7) != dst.extent(7))) {

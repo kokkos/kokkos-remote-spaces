@@ -127,11 +127,10 @@ size_t get_num_pes();
 KOKKOS_FUNCTION
 size_t get_my_pe();
 KOKKOS_FUNCTION
-size_t get_block(size_t size);
+size_t get_indexing_block(size_t size);
 KOKKOS_FUNCTION
-size_t get_block_round_up(size_t size);
-KOKKOS_FUNCTION
-size_t get_block_round_down(size_t size);
+size_t get_indexing_block_diff(size_t size);
+std::pair<size_t, size_t> getRange(size_t size, size_t rank);
 
 } // namespace Experimental
 } // namespace Kokkos

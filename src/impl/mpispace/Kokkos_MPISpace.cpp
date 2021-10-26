@@ -156,22 +156,42 @@ size_t get_my_pe() {
   return rank;
 }
 
-size_t get_block_round_up(size_t size) {
+size_t get_indexing_block(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
-  block = (size % get_num_pes()) ? (size + n_pe) / n_pe : size / n_pe;
+  block = (size + n_pe) / n_pe;
   return block;
 }
 
-size_t get_block_round_down(size_t size) {
-  size_t n_pe, block;
-  n_pe = get_num_pes();
-  block = size / n_pe;
-  block = block  == 0 ? 1 : block;
-  return block;
+//Quick hack to evaluate indexing function
+std::pair<size_t, size_t> getRange(size_t size, size_t rank)
+{
+    size_t start, end; 
+
+    size_t block = get_indexing_block(size);
+    size_t block_diff = get_indexing_block_diff(size);
+    size_t rank_cutoff = get_num_pes() - block_diff;
+
+    if (rank < rank_cutoff ){
+      start  = rank * block;
+      end = (rank + 1) * block;
+    }else
+    {
+      size_t offset_size = block * rank_cutoff;
+      size_t offset_ranks = rank - rank_cutoff;
+      start = offset_size + offset_ranks * (block-1);
+      end = offset_size + (offset_ranks+1) * (block-1);
+    }
+  
+  return std::make_pair(start, end);
+
 }
 
-size_t get_block(size_t size) { return get_block_round_up(size); }
+size_t get_indexing_block_diff(size_t size) { 
+  size_t n_pe;
+  n_pe = get_num_pes();
+  return get_indexing_block(size) * n_pe - size;
+}
 
 } // namespace Experimental
 
