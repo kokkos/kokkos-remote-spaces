@@ -98,7 +98,7 @@ KOKKOS_FUNCTION
 size_t get_indexing_block(size_t size) {
   size_t n_pe, block;
   n_pe = get_num_pes();
-  block = (size + n_pe) / n_pe;
+  block = (size + n_pe -1 ) / n_pe;
   return block;
 }
 
