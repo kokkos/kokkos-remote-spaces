@@ -314,15 +314,34 @@ public:
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION constexpr size_t
-  dimension_0(typename std::enable_if<
+  dimension_0(typename std::enable_if<(
                   std::is_same<typename T::array_layout,
                                  Kokkos::PartitionedLayoutRight>::value ||
                   std::is_same<typename T::array_layout,
                                  Kokkos::PartitionedLayoutLeft>::value ||
                                  std::is_same<typename T::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value>::type * =
+                  Kokkos::PartitionedLayoutStride>::value)
+                  &&
+                RemoteSpaces_MemoryTraits<typename T::memory_traits>::
+              dim0_is_pe>::type * =
                   nullptr) const {
     return m_num_pes;
+  }
+
+  template <typename T = Traits>
+  KOKKOS_INLINE_FUNCTION constexpr size_t
+  dimension_0(typename std::enable_if<(
+                  std::is_same<typename T::array_layout,
+                                 Kokkos::PartitionedLayoutRight>::value ||
+                  std::is_same<typename T::array_layout,
+                                 Kokkos::PartitionedLayoutLeft>::value ||
+                                 std::is_same<typename T::array_layout,
+                  Kokkos::PartitionedLayoutStride>::value)
+                  &&
+                !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
+              dim0_is_pe>::type * =
+                  nullptr) const {
+    return m_offset.m_dim.extent(0);
   }
 
   KOKKOS_INLINE_FUNCTION constexpr size_t dimension_1() const {
