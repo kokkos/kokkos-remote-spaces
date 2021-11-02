@@ -209,9 +209,8 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < v_sub_1.extent(1); ++j) {
+        for (int j = 0; j < v_sub_1.extent(1); ++j) 
           v_sub_1(i, j)++;
-        }
       });
 
   Kokkos::deep_copy(v_h, v_sub);
@@ -239,10 +238,9 @@ TEST(TEST_CATEGORY, test_partitioned_subview) {
   test_partitioned_subview3D<int>(70, 20, 0, 19);
 
   // 2D subview split by dim0*/
-  //Fixme (This needs fixing)
-  /*test_partitioned_subview2D_byRank<int>(7, 4);
+  test_partitioned_subview2D_byRank<int>(8, 1);
   test_partitioned_subview2D_byRank<int>(55, 20);
-  test_partitioned_subview2D_byRank<int>(50, 77);*/
+  test_partitioned_subview2D_byRank<int>(50, 77);
 }
 
 #endif /* TEST_PARTITIONED_SUBVIEW_HPP_ */
