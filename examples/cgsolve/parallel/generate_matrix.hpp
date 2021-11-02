@@ -285,15 +285,12 @@ Kokkos::View<double *, Kokkos::HostSpace> generate_miniFE_vector(int64_t nx) {
   int64_t block = range.second - range.first;
   int64_t start = range.first;
   int64_t end = range.second;
-  if (end > nrows)
-    end = nrows;
   #else
   int64_t block = (nrows + numRanks - 1) / numRanks;
   int64_t start = block * myRank;
   int64_t end = start + block;
   if (end > nrows)
     end = nrows;
-
   #endif
 
   Kokkos::View<double *, Kokkos::HostSpace> x("X_host", block);
