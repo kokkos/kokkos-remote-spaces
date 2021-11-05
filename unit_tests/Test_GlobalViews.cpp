@@ -67,15 +67,15 @@ template <class Data_t> void test_globalview1D(int dim0) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
-  // Init
+  // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
     v_h(i) = 0;
 
   Kokkos::deep_copy(v, v_h);
 
-  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+  auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
   Kokkos::parallel_for(
       "Increment", policy, KOKKOS_LAMBDA(const int i) { 
@@ -83,8 +83,10 @@ template <class Data_t> void test_globalview1D(int dim0) {
       });
 
   Kokkos::deep_copy(v_h, v);
-  
-  for (int i = 0; i < v_h.extent(0); ++i)
+
+  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
       ASSERT_EQ(v_h(i), 1);
 }
 
@@ -103,26 +105,28 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
-  // Init
+  // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       v_h(i, j) = 0;
 
   Kokkos::deep_copy(v, v_h);
 
-  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+  auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
   Kokkos::parallel_for(
       "Increment", policy, KOKKOS_LAMBDA(const int i) {
-        for (int k = 0; k < dim1; ++k)
-          v(i, k)++;
+        for (int j = 0; j < dim1; ++j)
+          v(i, j)++;
       });
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < v_h.extent(0); ++i)
+  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       ASSERT_EQ(v_h(i, j), 1);
 }
@@ -142,31 +146,33 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
   ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
-  auto range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
 
-  // Init
+  // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l)
-        v_h(i, j, l) = 0;
+      for (int k = 0; k < v_h.extent(2); ++k)
+        v_h(i, j, k) = 0;
 
   Kokkos::deep_copy(v, v_h);
 
-  auto policy = Kokkos::RangePolicy<>(range.first, range.second);
+  auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
   Kokkos::parallel_for(
       "Increment", policy, KOKKOS_LAMBDA(const int i) {
-        for (int k = 0; k < dim1; ++k)
-          for (int l = 0; l < dim2; ++l)
-            v(i, k, l)++;
+        for (int j = 0; j < dim1; ++j)
+          for (int k = 0; k < dim2; ++k)
+            v(i, j, k)++;
       });
 
   Kokkos::deep_copy(v_h, v);
 
-  for (int i = 0; i < v_h.extent(0); ++i)
+  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l)
-        ASSERT_EQ(v_h(i, j, l), 1);
+      for (int k = 0; k < v_h.extent(2); ++k)
+        ASSERT_EQ(v_h(i, j, k), 1);
 }
 
 TEST(TEST_CATEGORY, test_globalview) {

@@ -95,42 +95,36 @@ KOKKOS_FUNCTION
 size_t get_my_pe() { return nvshmem_my_pe(); }
 
 KOKKOS_FUNCTION
-size_t get_indexing_block(size_t size) {
-  size_t n_pe, block;
-  n_pe = get_num_pes();
-  block = (size + n_pe -1 ) / n_pe;
+size_t get_indexing_block_size(size_t size) {
+  size_t num_pes, block;
+  num_pes = get_num_pes();
+  block = (size + num_pes - 1) / num_pes;
   return block;
 }
 
-//Quick hack to evaluate indexing function
-std::pair<size_t, size_t> getRange(size_t size, size_t rank)
+std::pair<size_t, size_t> getRange(size_t size, size_t pe)
 {
     size_t start, end; 
+    size_t block = get_indexing_block_size(size);
+    start  = pe * block;
+    end = (pe + 1) * block;
 
-    size_t block = get_indexing_block(size);
-    size_t block_diff = get_indexing_block_diff(size);
-    size_t rank_cutoff = get_num_pes() - block_diff;
+    size_t num_pes = get_num_pes();
 
-    if (rank < rank_cutoff ){
-      start  = rank * block;
-      end = (rank + 1) * block;
-    }else
+    if(size<num_pes)
     {
-      size_t offset_size = block * rank_cutoff;
-      size_t offset_ranks = rank - rank_cutoff;
-      start = offset_size + offset_ranks * (block-1);
-      end = offset_size + (offset_ranks+1) * (block-1);
+      size_t diff = (num_pes * block) - size;
+      if(pe > num_pes - 1 - diff)
+        end --;
+    } else
+    {   
+      if (pe == num_pes - 1){
+        size_t diff = size - (num_pes - 1) * block;
+        end = start + diff;
+      }
+      end--;
     }
-  
-  return std::make_pair(start, end);
-
-}
-
-KOKKOS_FUNCTION
-size_t get_indexing_block_diff(size_t size) { 
-  size_t n_pe;
-  n_pe = get_num_pes();
-  return get_indexing_block(size) * n_pe - size;
+    return std::make_pair(start, end);
 }
 
 } // namespace Experimental

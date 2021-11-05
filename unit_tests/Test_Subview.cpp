@@ -69,17 +69,13 @@ template <class Data_t> void test_subview1D(int i1) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", i1);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  int block = i1 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + i1 % num_ranks : end;
+  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
 
   // Set to next rank
-  auto v_sub_1 = Kokkos::subview(v, std::make_pair(start, end));
-  auto v_sub_2 = ViewRemote_1D_t(v, std::make_pair(start, end));
+  auto v_sub_1 = Kokkos::subview(v, remote_range);
+  auto v_sub_2 = ViewRemote_1D_t(v, remote_range);
 
-  //printf("PAIR: %i, %i\n",(int) start, (int) end);
+  size_t iters = remote_range.second - remote_range.first;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -88,17 +84,17 @@ template <class Data_t> void test_subview1D(int i1) {
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
-      "Increment", end-start, KOKKOS_LAMBDA(const int i) {
+      "Increment", iters, KOKKOS_LAMBDA(const int i) {
           v_sub_1(i)++;
-          v_sub_2(i)++;
-        //  printf("KERNEL: %i, %i\n",(int) i, (int) v_sub_1(i));
+          v_sub_2(i)++;        
       });
 
   Kokkos::deep_copy(v_h, v);
+  
+  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
 
-  for (int i = 0; i < v_h.extent(0); ++i)
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
   {
-    //  printf("RES: %i, %i\n",(int) i, (int) v_h(i));
       ASSERT_EQ(v_h(i), 2);
   }
 }
@@ -119,15 +115,13 @@ template <class Data_t> void test_subview2D(int i1, int i2) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  int block = i1 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + i1 % num_ranks : end;
+  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
 
   // Set to next rank
-  auto v_sub_1 = Kokkos::subview(v, std::make_pair(start, end), Kokkos::ALL);
-  auto v_sub_2 = ViewRemote_2D_t(v, std::make_pair(start, end), Kokkos::ALL);
+  auto v_sub_1 = Kokkos::subview(v, remote_range, Kokkos::ALL);
+  auto v_sub_2 = ViewRemote_2D_t(v, remote_range, Kokkos::ALL);
+
+  size_t iters = remote_range.second - remote_range.first;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -137,7 +131,7 @@ template <class Data_t> void test_subview2D(int i1, int i2) {
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
-      "Increment", end - start, KOKKOS_LAMBDA(const int i) {
+      "Increment", iters, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < v_sub_1.extent(1); ++j) {
           v_sub_1(i, j)++;
           v_sub_2(i, j)++;
@@ -146,9 +140,9 @@ template <class Data_t> void test_subview2D(int i1, int i2) {
 
   Kokkos::deep_copy(v_h, v);
 
-  block = (my_rank == next_rank) ? block + (i1 % num_ranks) : block;
+  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
 
-  for (int i = 0; i < block; ++i)
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       ASSERT_EQ(v_h(i, j), 2);
 }
@@ -170,17 +164,15 @@ void test_subview3D(int i1, int i2, int i3) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2, i3);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
-  int block = i1 / num_ranks;
-  int next_rank = (my_rank + 1) % num_ranks;
-  int start = next_rank * block;
-  int end = (next_rank + 1) * block;
-  end = (next_rank == num_ranks - 1) ? end + i1 % num_ranks : end;
-
+  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
+  
   // Set to next rank
   auto v_sub_1 =
-      Kokkos::subview(v, std::make_pair(start, end), Kokkos::ALL, Kokkos::ALL);
+      Kokkos::subview(v, remote_range, Kokkos::ALL, Kokkos::ALL);
   auto v_sub_2 =
-      ViewRemote_2D_t(v, std::make_pair(start, end), Kokkos::ALL, Kokkos::ALL);
+      ViewRemote_2D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
+
+  size_t iters = remote_range.second - remote_range.first;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -191,7 +183,7 @@ void test_subview3D(int i1, int i2, int i3) {
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
-      "Increment", end - start, KOKKOS_LAMBDA(const int j) {
+      "Increment", iters, KOKKOS_LAMBDA(const int j) {
         for (int k = 0; k < v_sub_1.extent(1); ++k)
           for (int l = 0; l < v_sub_1.extent(2); ++l) {
             v_sub_1(j, k, l)++;
@@ -201,9 +193,9 @@ void test_subview3D(int i1, int i2, int i3) {
 
   Kokkos::deep_copy(v_h, v);
 
-  block = (my_rank == next_rank) ? block + (i1 % num_ranks) : block;
+  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
 
-  for (int i = 0; i < v_h.extent(0); ++i)
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       for (int k = 0; k < v_h.extent(2); ++k)
         ASSERT_EQ(v_h(i, j, k), 2);

@@ -219,7 +219,6 @@ public:
 
     dst.m_offset = dst_offset_type(src.m_offset, extents);
     dst.m_local_dim0 = src.m_local_dim0;
-    dst.m_local_dim0_diff = src.m_local_dim0_diff;
 
     // Set offset for dim0 manually in order to support remote copy-ctr'ed views
     // and subviews
@@ -263,7 +262,6 @@ private:
 
   size_t m_offset_remote_dim;
   size_t m_local_dim0;
-  size_t m_local_dim0_diff;
 
   //We need this dynamic property as we do not derive the 
   //type specialization at view construction through the
@@ -306,10 +304,7 @@ public:
                   std::is_same<typename T::array_layout,
                         Kokkos::LayoutStride>::value>::type * =
                   nullptr) const {
-    size_t rank_cutoff = m_num_pes - m_local_dim0_diff;
-    if(pe < rank_cutoff)
-      return m_local_dim0;
-    return m_local_dim0 -1;
+    return m_local_dim0;
   }
 
   template <typename T = Traits>
@@ -755,24 +750,11 @@ public:
   // all partitioned laytouts. Wait for mdspan.)
   template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION dim0_offsets compute_dim0_offsets(const I0 &_i0) const {
-    size_t target_pe, dim0_mod, i0, candidate_pe;
-    size_t rank_cutoff;
+    size_t target_pe, dim0_mod, i0;
     i0 = static_cast<size_t>(_i0);
-  
     assert(m_local_dim0);
-    candidate_pe = i0 / m_local_dim0;
-
-    rank_cutoff = m_num_pes - m_local_dim0_diff;
-
-    if (candidate_pe < rank_cutoff ){
-      target_pe = candidate_pe;
-      dim0_mod = i0 % m_local_dim0;
-    }else
-    {
-      size_t diff = i0 - rank_cutoff * m_local_dim0;
-      target_pe = rank_cutoff + diff/(m_local_dim0 -1);
-      dim0_mod = i0 % (m_local_dim0 -1);      
-    }
+    target_pe = i0 / m_local_dim0;
+    dim0_mod = i0 % m_local_dim0;
     return {target_pe, dim0_mod};
   }
 
@@ -979,7 +961,7 @@ public:
 
   KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
   KOKKOS_INLINE_FUNCTION ViewMapping()
-      : m_handle(), m_offset(), m_offset_remote_dim(0), m_local_dim0(0), m_local_dim0_diff(0),
+      : m_handle(), m_offset(), m_offset_remote_dim(0), m_local_dim0(0),
       dim0_is_pe(1) {
     m_num_pes = Kokkos::Experimental::get_num_pes();
     pe = Kokkos::Experimental::get_my_pe();
@@ -989,7 +971,7 @@ public:
       : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
         m_num_pes(rhs.m_num_pes), pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
-        m_local_dim0(rhs.m_local_dim0), m_local_dim0_diff(rhs.m_local_dim0_diff),
+        m_local_dim0(rhs.m_local_dim0),
         dim0_is_pe(rhs.dim0_is_pe) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
@@ -998,7 +980,6 @@ public:
     m_num_pes = rhs.m_num_pes;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_local_dim0 = rhs.m_local_dim0;
-    m_local_dim0_diff = rhs.m_local_dim0_diff;
     dim0_is_pe = rhs.dim0_is_pe;
     pe = rhs.pe;
     return *this;
@@ -1009,7 +990,6 @@ public:
         m_num_pes(rhs.m_num_pes), pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_local_dim0(rhs.m_local_dim0),
-        m_local_dim0_diff(rhs.m_local_dim0_diff),
         dim0_is_pe(0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
@@ -1019,7 +999,6 @@ public:
     pe = rhs.pe;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_local_dim0 = rhs.m_local_dim0;
-    m_local_dim0_diff = rhs.m_local_dim0_diff;
     dim0_is_pe = rhs.dim0_is_pe;
     return *this;
   }
@@ -1046,7 +1025,7 @@ public:
     typename Traits::array_layout layout;
 
     // Copy layout properties
-    set_layout(arg_layout, layout, m_local_dim0, m_local_dim0_diff);
+    set_layout(arg_layout, layout, m_local_dim0);
 
     m_offset = offset_type(padding(), layout);
     m_num_pes = Kokkos::Experimental::get_num_pes();
@@ -1066,13 +1045,12 @@ private:
       std::is_same<typename T::array_layout,
                    Kokkos::LayoutStride>::value>::type
   set_layout(typename T::array_layout const &arg_layout,
-             typename T::array_layout &layout, size_t &local_dim0, size_t &local_dim0_diff) {
+             typename T::array_layout &layout, size_t &local_dim0) {
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
 
     local_dim0 =
-        Kokkos::Experimental::get_indexing_block(arg_layout.dimension[0]);
-    local_dim0_diff = Kokkos::Experimental::get_indexing_block_diff(arg_layout.dimension[0]);
+        Kokkos::Experimental::get_indexing_block_size(arg_layout.dimension[0]);
     // We overallocate potentially in favor of symmetric memory allocation
     layout.dimension[0] = local_dim0;
     
@@ -1085,7 +1063,7 @@ private:
        std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value)>::
       type
       set_layout(typename T::array_layout const &arg_layout,
-                 typename T::array_layout &layout, size_t &local_dim0, size_t & local_dim0_diff) {
+                 typename T::array_layout &layout, size_t &local_dim0) {
                                             
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
@@ -1093,7 +1071,6 @@ private:
     // Override
     layout.dimension[0] = 1;
     local_dim0 = 0;
-    local_dim0_diff = 0;
   }
 
 public:
@@ -1125,7 +1102,7 @@ public:
     typename T::array_layout layout;
 
     // Copy layout properties
-    set_layout(arg_layout, layout, m_local_dim0, m_local_dim0_diff);
+    set_layout(arg_layout, layout, m_local_dim0);
 
     m_num_pes = Kokkos::Experimental::get_num_pes();
     pe = Kokkos::Experimental::get_my_pe();
