@@ -68,11 +68,11 @@ void test_scalar_reduce_1D(int dim0) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  auto range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
-    v_h(i) =  (Data_t ) range.first + i;
+    v_h(i) =  (Data_t ) local_range.first + i;
 
   Kokkos::deep_copy(v, v_h);
 
@@ -102,12 +102,12 @@ void test_scalar_reduce_2D(int dim0, int dim1) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  auto range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
-      v_h(i,j) =  (Data_t ) (range.first + i) * v_h.extent(1) + j;
+      v_h(i,j) =  (Data_t ) (local_range.first + i) * v_h.extent(1) + j;
 
   Kokkos::deep_copy(v, v_h);
 
@@ -187,10 +187,6 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank+1), Kokkos::ALL, Kokkos::ALL);
 
-
-  //Use a more sophisticated function to partition data if needed but may come at the expense
-  //of operator cost. Here we rely on that KRS internally allocates (dim1+num_ranks)/num_ranks
-  //symetrically.
   size_t dim1_block = dim1 / num_ranks;
   size_t block = dim1_block * dim2;
   size_t start = my_rank * block;

@@ -67,7 +67,7 @@ template <class Data_t> void test_globalview1D(int dim0) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::get_range(dim0, (my_rank + 1)%num_ranks);
 
   // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -84,7 +84,7 @@ template <class Data_t> void test_globalview1D(int dim0) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+    auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
       ASSERT_EQ(v_h(i), 1);
@@ -105,7 +105,7 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+    auto remote_range = Kokkos::Experimental::get_range(dim0, (my_rank + 1)%num_ranks);
 
   // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -124,7 +124,7 @@ template <class Data_t> void test_globalview2D(int dim0, int dim1) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
@@ -146,7 +146,7 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
   ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
-  auto remote_range = Kokkos::Experimental::getRange(dim0, (my_rank + 1)%num_ranks);
+    auto remote_range = Kokkos::Experimental::get_range(dim0, (my_rank + 1)%num_ranks);
 
   // Initialize
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -167,7 +167,7 @@ template <class Data_t> void test_globalview3D(int dim0, int dim1, int dim2) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)

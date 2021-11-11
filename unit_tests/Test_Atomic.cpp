@@ -79,9 +79,9 @@ template <class Data_t> void test_atomic_globalview1D(int dim0) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
-  for (int i = 0; i < range.second - range.first; ++i){
+  for (int i = 0; i < local_range.second - local_range.first; ++i){
     ASSERT_EQ(v_h(i), num_ranks);
   }
 }
@@ -116,9 +116,9 @@ template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
       });
 
   Kokkos::deep_copy(v_h, v);
-  auto range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
-  for (int i = 0; i < range.second - range.first; ++i)
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       ASSERT_EQ(v_h(i, j), num_ranks);
 }
@@ -156,9 +156,9 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto range = Kokkos::Experimental::getRange(dim0, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
-  for (int i = 0; i < range.second - range.first; ++i)
+  for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       for (int l = 0; l < v_h.extent(2); ++l)
         ASSERT_EQ(v_h(i, j, l), num_ranks);

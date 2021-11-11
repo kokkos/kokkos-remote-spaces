@@ -69,7 +69,7 @@ template <class Data_t> void test_subview1D(int i1) {
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", i1);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
-  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::get_range(i1, (my_rank + 1)%num_ranks);
 
   // Set to next rank
   auto v_sub_1 = Kokkos::subview(v, remote_range);
@@ -91,7 +91,7 @@ template <class Data_t> void test_subview1D(int i1) {
 
   Kokkos::deep_copy(v_h, v);
   
-  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(i1);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
   {
@@ -115,7 +115,7 @@ template <class Data_t> void test_subview2D(int i1, int i2) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
-  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::get_range(i1, (my_rank + 1)%num_ranks);
 
   // Set to next rank
   auto v_sub_1 = Kokkos::subview(v, remote_range, Kokkos::ALL);
@@ -140,7 +140,7 @@ template <class Data_t> void test_subview2D(int i1, int i2) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(i1);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
@@ -164,7 +164,7 @@ void test_subview3D(int i1, int i2, int i3) {
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2, i3);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
-  auto remote_range = Kokkos::Experimental::getRange(i1, (my_rank + 1)%num_ranks);
+  auto remote_range = Kokkos::Experimental::get_range(i1, (my_rank + 1)%num_ranks);
   
   // Set to next rank
   auto v_sub_1 =
@@ -193,7 +193,7 @@ void test_subview3D(int i1, int i2, int i3) {
 
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::getRange(i1, my_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(i1);
 
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)

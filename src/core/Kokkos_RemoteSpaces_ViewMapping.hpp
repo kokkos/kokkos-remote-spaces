@@ -51,8 +51,82 @@
 /** \brief  View mapping for non-specialized data type and standard layout */
 
 namespace Kokkos {
-namespace Impl {
 
+namespace Experimental {
+
+extern size_t get_my_pe();
+
+template <typename T>
+std::pair<size_t, size_t> get_range(T & v, size_t pe, typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr)
+{
+  static_assert(!(
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutRight>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutLeft>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                  Kokkos::PartitionedLayoutStride>::value),
+                "get_local_range over partitioned layouts are not allowed");
+
+  //JC: Error out also in this case as we need to access the original dim0 of the View 
+  //and not the rounded dim0 of the View. Fix would need to add get_mapping to View
+  static_assert((
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutRight>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutLeft>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                  Kokkos::PartitionedLayoutStride>::value),
+                "get_local_range overload currently unsupported");
+
+  size_t extent_dim0 = v.extent(0); 
+  return getRange(extent_dim0, pe);
+}
+
+template <typename T>
+std::pair<size_t, size_t> get_local_range(T & v, typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr)
+{
+  static_assert(!(
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutRight>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutLeft>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                  Kokkos::PartitionedLayoutStride>::value),
+                "get_local_range over partitioned layouts are not allowed");
+
+  //JC: Error out also in this case as we need to access the original dim0 of the View 
+  //and not the rounded dim0 of the View. Fix would need to add get_mapping to View
+  static_assert((
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutRight>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                                 Kokkos::PartitionedLayoutLeft>::value ||
+                  std::is_same<typename T::traits::array_layout,
+                  Kokkos::PartitionedLayoutStride>::value),
+                "get_local_range overload currently unsupported");
+                
+  size_t pe = get_my_pe();
+  size_t extent_dim0 = v.extent(0); 
+  return getRange(extent_dim0, pe);
+}
+
+template <typename T>
+std::pair<size_t, size_t> get_range(T size, size_t pe, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr)
+{
+  return getRange(size, pe);
+}
+
+template <typename T>
+std::pair<size_t, size_t> get_local_range(T size, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr)
+{
+  size_t pe = get_my_pe();
+  return getRange(size, pe);
+}
+
+} // namespace Experimental
+
+namespace Impl {
 
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
