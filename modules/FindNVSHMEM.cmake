@@ -5,9 +5,7 @@ find_path(nvshmem_headers_found nvshmem.h PATHS ${NVSHMEM_ROOT}/include NO_DEFAU
 find_package_handle_standard_args(NVSHMEM DEFAULT_MSG nvshmem_lib_found nvshmem_headers_found)
 
 if (nvshmem_lib_found AND nvshmem_headers_found)
-  add_library(NVSHMEMSPACE INTERFACE)
-  add_library(Kokkos::NVSHMEMSPACE ALIAS NVSHMEMSPACE)
-  set_target_properties(NVSHMEMSPACE PROPERTIES
+  set_target_properties(${BACKEND_NAME} PROPERTIES
     INTERFACE_LINK_LIBRARIES ${nvshmem_lib_found}
     INTERFACE_INCLUDE_DIRECTORIES ${nvshmem_headers_found}
   )
