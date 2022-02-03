@@ -114,7 +114,7 @@ struct RemoteCache {
                   " = %12.8f\n",
                   slot, offset, values_T[slot]);
       return volatile_load(&values_T[slot]);
-      //Warning: max is a host func
+      // Warning: max is a host func
     } else if (slot == std::numeric_limits<int>::max()) {
       // no slots left, fall back
       return fb->get(pe, offset);
@@ -149,7 +149,7 @@ struct RemoteCache {
     // Try to claim the slot
     // The very last bit is used to indicate that the cache slot is pending
     // attempt to claim the cache slot
-    unsigned int empty_sentinel = 0;   
+    unsigned int empty_sentinel = 0;
     auto ready = ready_flag(offset);
     auto new_claim = claim_flag(offset);
     auto slot_value = atomic_compare_exchange(&flags[glbl_cache_slot],
@@ -195,7 +195,7 @@ struct RemoteCache {
   }
 
   void invalidate();
-  
+
   KOKKOS_INLINE_FUNCTION uint32_t hash32shift(uint32_t key) {
     key = ~key + (key << 15);
     key = key ^ (key >> 12);

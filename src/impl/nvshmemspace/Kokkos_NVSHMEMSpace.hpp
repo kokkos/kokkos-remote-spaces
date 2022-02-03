@@ -65,7 +65,6 @@ class RemoteSpaceSpecializeTag {};
 
 class NVSHMEMSpace {
 public:
-
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
@@ -136,23 +135,20 @@ std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 namespace Kokkos {
 namespace Impl {
 
-template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+template <> struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
-template <>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+template <> struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <class ExecutionSpace>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::NVSHMEMSpace,
-                ExecutionSpace> {
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
+                Kokkos::Experimental::NVSHMEMSpace, ExecutionSpace> {
   DeepCopy(void *dst, const void *src, size_t n);
   DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n);
 };
-
 
 template <>
 struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
@@ -178,20 +174,18 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
   enum { deepcopy = true };
 };
 
-
-
 } // namespace Impl
 } // namespace Kokkos
 
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
+#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
+#include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
-#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
-#include <Kokkos_NVSHMEMSpace_Ops.hpp>
-#include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
-#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
-#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 
 #endif // #define KOKKOS_NVSHMEMSPACE_HPP

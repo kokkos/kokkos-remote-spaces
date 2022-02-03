@@ -58,11 +58,9 @@ template <class Data_t> void test_atomic_globalview1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t =
-      Kokkos::View<Data_t *, Kokkos::HostSpace>;
-  using ViewRemote_1D_t =
-      Kokkos::View<Data_t *, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
+  using ViewHost_1D_t = Kokkos::View<Data_t *, Kokkos::HostSpace>;
+  using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t,
+                                       Kokkos::MemoryTraits<Kokkos::Atomic>>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
@@ -81,7 +79,7 @@ template <class Data_t> void test_atomic_globalview1D(int dim0) {
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
-  for (int i = 0; i < local_range.second - local_range.first; ++i){
+  for (int i = 0; i < local_range.second - local_range.first; ++i) {
     ASSERT_EQ(v_h(i), num_ranks);
   }
 }
@@ -92,11 +90,9 @@ template <class Data_t> void test_atomic_globalview2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t =
-      Kokkos::View<Data_t **, Kokkos::HostSpace>;
-  using ViewRemote_2D_t =
-      Kokkos::View<Data_t **, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
+  using ViewHost_2D_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t,
+                                       Kokkos::MemoryTraits<Kokkos::Atomic>>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
@@ -130,11 +126,9 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***,Kokkos::HostSpace>;
-  using ViewRemote_3D_t =
-      Kokkos::View<Data_t ***, RemoteSpace_t,
-                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
+  using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t,
+                                       Kokkos::MemoryTraits<Kokkos::Atomic>>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
@@ -166,9 +160,9 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
 
 TEST(TEST_CATEGORY, test_atomic_globalview) {
 
-  #ifdef KOKKOS_ENABLE_MPISPACE
-  // TODO: Requires implementing atomic RMA support in MPISpace
-  #else
+#ifdef KOKKOS_ENABLE_MPISPACE
+// TODO: Requires implementing atomic RMA support in MPISpace
+#else
   // 1D
   test_atomic_globalview1D<int>(0);
   test_atomic_globalview1D<int>(1);
@@ -183,9 +177,7 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview3D<int>(1, 1, 1);
   test_atomic_globalview3D<int>(255, 1024, 3);
   test_atomic_globalview3D<int>(3, 33, 1024);
-  #endif
-  
-
+#endif
 }
 
 #endif /* TEST_ATOMIC_GLOBALVIEW_HPP_ */

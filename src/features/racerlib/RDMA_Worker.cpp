@@ -73,7 +73,6 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
          trip_number)
     ;
 
-
   // Enough previous requests are cleared that we can join the queue
   uint32_t *req_ptr = &tx_element_request_queue[global_buf_slot];
 

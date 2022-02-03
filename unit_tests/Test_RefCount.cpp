@@ -45,24 +45,23 @@
 #ifndef TEST_REFCOUNTING_HPP_
 #define TEST_REFCOUNTING_HPP_
 
-#include <gtest/gtest.h>
-#include <mpi.h>
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
+#include <gtest/gtest.h>
+#include <mpi.h>
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class DataType, class RemoteSpace>
-void test_reference_counting() {
+template <class DataType, class RemoteSpace> void test_reference_counting() {
 
   int my_rank, num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  Kokkos::View<DataType*, RemoteSpace> outer("outer", num_ranks, 10 *
-                                                           sizeof(DataType));
+  Kokkos::View<DataType *, RemoteSpace> outer("outer", num_ranks,
+                                              10 * sizeof(DataType));
   {
-    Kokkos::View<DataType*, RemoteSpace> inner = outer;
+    Kokkos::View<DataType *, RemoteSpace> inner = outer;
     ASSERT_EQ(inner.use_count(), 2);
   }
   ASSERT_EQ(outer.use_count(), 1);

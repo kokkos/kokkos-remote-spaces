@@ -66,7 +66,8 @@ SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
 #endif
           reinterpret_cast<SharedAllocationHeader *>(arg_space.allocate(
               sizeof(SharedAllocationHeader) + arg_alloc_size)),
-          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc, arg_label),
+          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
+          arg_label),
       m_space(arg_space) {
 #if defined(KOKKOS_ENABLE_PROFILING)
   if (Kokkos::Profiling::profileLibraryLoaded()) {

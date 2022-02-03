@@ -51,8 +51,8 @@
 #include <infiniband/verbs.h>
 #include <mpi.h>
 
-#include <vector>
 #include <iostream>
+#include <vector>
 
 namespace Kokkos {
 namespace Experimental {
@@ -63,20 +63,20 @@ void rdma_ibv_finalize();
 
 struct Transport {
 
-struct BootstrapPort {
-  uint16_t lid;
-  uint8_t port;
-  uint32_t qp_num;
-};
+  struct BootstrapPort {
+    uint16_t lid;
+    uint8_t port;
+    uint32_t qp_num;
+  };
 
   int num_ranks;
   int my_rank;
-  ibv_context* ctx;
-  ibv_cq* cq;
-  ibv_qp** qps;
-  ibv_device* dev;
-  ibv_pd* pd;
-  ibv_srq* srq;
+  ibv_context *ctx;
+  ibv_cq *cq;
+  ibv_qp **qps;
+  ibv_device *dev;
+  ibv_pd *pd;
+  ibv_srq *srq;
 
   Transport(MPI_Comm comm);
   ~Transport();
@@ -87,4 +87,3 @@ struct BootstrapPort {
 } // namespace Kokkos
 
 #endif // RACERLIB_RDMA_TRANSPORT
-

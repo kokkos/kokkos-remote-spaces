@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.12)
 
 project(KokkosRemote
-  LANGUAGES CXX 
+  LANGUAGES CXX
   VERSION 0.1.0)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
@@ -45,7 +45,7 @@ if (Kokkos_ENABLE_NVSHMEMSPACE)
     DEVICES CUDA)
   set(BACKEND_NAME NVSHMEMSPACE)
   add_library(${BACKEND_NAME} INTERFACE)
-  add_library(Kokkos::${BACKEND_NAME} ALIAS ${BACKEND_NAME})  
+  add_library(Kokkos::${BACKEND_NAME} ALIAS ${BACKEND_NAME})
   find_package(NVSHMEM REQUIRED)
   list(APPEND SOURCE_DIRS ${NVSHMEMSPACE_PATH})
   list(APPEND PUBLIC_DEPS ${BACKEND_NAME})
@@ -62,7 +62,7 @@ if (Kokkos_ENABLE_SHMEMSPACE)
   message(STATUS "Configuring for SHMEMSPACE.")
   set(BACKEND_NAME SHMEMSPACE)
   add_library(${BACKEND_NAME} INTERFACE)
-  add_library(Kokkos::${BACKEND_NAME} ALIAS ${BACKEND_NAME})  
+  add_library(Kokkos::${BACKEND_NAME} ALIAS ${BACKEND_NAME})
   find_package(SHMEM REQUIRED)
   list(APPEND SOURCE_DIRS ${SHMEMSPACE_PATH})
   list(APPEND PUBLIC_DEPS ${BACKEND_NAME})
@@ -138,7 +138,7 @@ configure_package_config_file(
   "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfig.cmake"
   INSTALL_DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake
 )
-write_basic_package_version_file( 
+write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfigVersion.cmake"
   VERSION "${KokkosRemote_VERSION}"
   COMPATIBILITY AnyNewerVersion
@@ -162,9 +162,9 @@ install(
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(EXPORT 
-  KokkosRemoteTargets 
-  NAMESPACE Kokkos:: 
+install(EXPORT
+  KokkosRemoteTargets
+  NAMESPACE Kokkos::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote
 )
 

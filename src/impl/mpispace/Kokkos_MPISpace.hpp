@@ -164,8 +164,7 @@ struct MemorySpaceAccess<Kokkos::Experimental::MPISpace,
 };
 
 template <>
-struct MemorySpaceAccess<Kokkos::HostSpace,
-                         Kokkos::Experimental::MPISpace> {
+struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
   enum { assignable = false };
   enum { accessible = true };
   enum { deepcopy = true };
@@ -174,15 +173,15 @@ struct MemorySpaceAccess<Kokkos::HostSpace,
 } // namespace Impl
 } // namespace Kokkos
 
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_MPISpace_AllocationRecord.hpp>
+#include <Kokkos_MPISpace_DataHandle.hpp>
+#include <Kokkos_MPISpace_Ops.hpp>
+#include <Kokkos_MPISpace_ViewTraits.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
-#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
-#include <Kokkos_MPISpace_Ops.hpp>
-#include <Kokkos_MPISpace_AllocationRecord.hpp>
-#include <Kokkos_MPISpace_DataHandle.hpp>
-#include <Kokkos_MPISpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 
 #endif // #define KOKKOS_MPISPACE_HPP

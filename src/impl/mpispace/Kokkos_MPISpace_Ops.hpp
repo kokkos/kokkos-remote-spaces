@@ -59,9 +59,9 @@ namespace Impl {
     MPI_Type_size(mpi_type, &_typesize);                                       \
     /*MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win); */                            \
     MPI_Put(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
-            mpi_type, win);                                                    \
-   /* MPI_Win_unlock(pe, win);  */                                             \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
+            win);                                                              \
+    /* MPI_Win_unlock(pe, win);  */                                            \
     MPI_Win_flush(0, win);                                                     \
   }
 
@@ -88,8 +88,8 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
     MPI_Type_size(mpi_type, &_typesize);                                       \
     /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                             \
     MPI_Get(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
-            mpi_type, win);                                                    \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
+            win);                                                              \
     /*MPI_Win_unlock(0, win);*/                                                \
     MPI_Win_flush(0, win);                                                     \
   }
@@ -571,7 +571,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp = T();    
+    T tmp = T();
     mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }

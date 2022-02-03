@@ -109,7 +109,7 @@ static void *allocate_device(size_t size, size_t &real_size) {
 }
 
 static void free_device(void *buf, size_t size) {
-  //cuda_safe(cuMemFree((CUdeviceptr)buf));
+  // cuda_safe(cuMemFree((CUdeviceptr)buf));
 }
 
 static ibv_mr *pin_rdma_memory(Transport *tport, size_t size, void *buf) {
@@ -198,7 +198,7 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
 
 void RdmaScatterGatherEngine::remote_window_finish_reply() {
   RdmaWorkRequest *rsp_wr = available_send_response_wrs.pop();
-  
+
   if (pending_replies.empty()) {
     Kokkos::abort("Empty replies");
   }

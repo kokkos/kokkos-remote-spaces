@@ -54,18 +54,18 @@ namespace RACERlib {
 template __device__ void
 pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
     double *local_values, RdmaScatterGatherWorker<double> *sgw,
-    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team, bool final);
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
 
 template __device__ void
 aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
-    RdmaScatterGatherWorker<double> *sgw, Kokkos::Impl::CudaTeamMember const &team,
-    unsigned num_worker_teams);
-
+    RdmaScatterGatherWorker<double> *sgw,
+    Kokkos::Impl::CudaTeamMember const &team, unsigned num_worker_teams);
 
 template <typename T, class Team>
-__device__ void pack_response_kernel(T *local_values,
-                                     RdmaScatterGatherWorker<T> *sgw,
-                                     unsigned *completion_flag, Team &&team, bool final) {
+__device__ void
+pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
+                     unsigned *completion_flag, Team &&team, bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
   int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
@@ -95,7 +95,7 @@ __device__ void pack_response_kernel(T *local_values,
       T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
 
       uint32_t num_packed = 0;
-      
+
       while (num_packed < num_requests) {
         uint32_t my_index = num_packed + my_thread;
         if (my_index < num_requests) {
@@ -128,7 +128,7 @@ __device__ void pack_response_kernel(T *local_values,
   __syncthreads();
 
   if (my_thread == 0) {
-    
+
     volatile_store(completion_flag, 0u);
   }
 }
@@ -225,7 +225,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   } // While loop
 
   __syncthreads();
-  
+
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);
     volatile_store(sgw->response_done_flag, 1u);
@@ -238,18 +238,18 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 template KOKKOS_FUNCTION void
 pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
     double *local_values, RdmaScatterGatherWorker<double> *sgw,
-    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team, bool final);
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
 
 template KOKKOS_FUNCTION void
 aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
-    RdmaScatterGatherWorker<double> *sgw, Kokkos::Impl::CudaTeamMember const &team,
-    unsigned num_worker_teams);
-
+    RdmaScatterGatherWorker<double> *sgw,
+    Kokkos::Impl::CudaTeamMember const &team, unsigned num_worker_teams);
 
 template <class T, class Team>
-KOKKOS_FUNCTION void
-aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw, Team &&team,
-                          unsigned num_worker_teams) {
+KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
+                                               Team &&team,
+                                               unsigned num_worker_teams) {
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
   static constexpr uint32_t mtu = 16384; // try to at least send 16K elements
   static constexpr uint32_t max_mtu_stalls = 4;
@@ -287,7 +287,7 @@ aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw, Team &&team,
       });
       team.team_barrier();
       if (total_requests > 0) {
-        auto vec_length = 1;//team.vector_length();
+        auto vec_length = 1; // team.vector_length();
         uint64_t num_passes = total_requests / vec_length;
         if (total_requests % vec_length)
           num_passes++;
@@ -373,27 +373,27 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
       uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
       T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
 
-      auto vec_length = 1;//team.vector_length();
+      auto vec_length = 1; // team.vector_length();
       uint64_t num_passes = num_requests / vec_length;
       if (num_requests % vec_length)
         num_passes++;
       Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 0, num_passes),
-        [&](const int64_t pass) {
-          uint64_t start = pass * vec_length;
-          uint64_t stop = start + vec_length;
-          if (stop > num_requests)
-            stop = num_requests;
-          Kokkos::parallel_for(
-              Kokkos::ThreadVectorRange(team, start, stop),
-              [=](uint64_t my_index) {
-                // This needs to be volatile to force
-                // visibility from the IB send
-                uint32_t offset = GET_ELEMENT_OFFSET(
-                    volatile_load(&offsets[my_index]));
-                reply_tx_buffer_T[my_index] =
-                    local_values[offset];
-              });
-        });
+                           [&](const int64_t pass) {
+                             uint64_t start = pass * vec_length;
+                             uint64_t stop = start + vec_length;
+                             if (stop > num_requests)
+                               stop = num_requests;
+                             Kokkos::parallel_for(
+                                 Kokkos::ThreadVectorRange(team, start, stop),
+                                 [=](uint64_t my_index) {
+                                   // This needs to be volatile to force
+                                   // visibility from the IB send
+                                   uint32_t offset = GET_ELEMENT_OFFSET(
+                                       volatile_load(&offsets[my_index]));
+                                   reply_tx_buffer_T[my_index] =
+                                       local_values[offset];
+                                 });
+                           });
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
         ++sgw->rx_block_request_ctr;
         sgw->tx_element_reply_ctrs[pe] += num_requests;

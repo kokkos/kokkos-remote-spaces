@@ -203,45 +203,46 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long,
   }
 
 #define KOKKOS_REMOTESPACES_G(type, func)                                      \
-  static inline type shmem_type_g(type *ptr, int pe) { return *ptr; }          \
+  static inline type shmem_type_g(type *ptr, int pe) { return *ptr; }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_SET(type, op)                               \
-static inline void shmem_type_atomic_set(type *ptr, type value, int pe) {      \
-  *ptr = value;                                                                \
-}
+  static inline void shmem_type_atomic_set(type *ptr, type value, int pe) {    \
+    *ptr = value;                                                              \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type, op)                             \
-static inline type shmem_type_atomic_fetch(type *ptr, int pe) { return *ptr; } 
+  static inline type shmem_type_atomic_fetch(type *ptr, int pe) { return *ptr; }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_ADD(type, op)                               \
-static inline void shmem_type_atomic_add(type *ptr, type value, int pe) {      \
-  *ptr += value;                                                               \
-}
+  static inline void shmem_type_atomic_add(type *ptr, type value, int pe) {    \
+    *ptr += value;                                                             \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(type, op)                         \
-static inline type shmem_type_atomic_fetch_add(type *ptr, type value, int pe) {\
-  T tmp = *ptr;                                                                \
-  *ptr += value;                                                               \
-  return tmp;                                                                  \
-}
+  static inline type shmem_type_atomic_fetch_add(type *ptr, type value,        \
+                                                 int pe) {                     \
+    T tmp = *ptr;                                                              \
+    *ptr += value;                                                             \
+    return tmp;                                                                \
+  }
 
 #define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type, op)                      \
-static inline type shmem_type_atomic_compare_swap(type *ptr, type cond,        \
-                                                  type value, int pe) {        \
-  if (cond == *ptr) {                                                          \
+  static inline type shmem_type_atomic_compare_swap(type *ptr, type cond,      \
+                                                    type value, int pe) {      \
+    if (cond == *ptr) {                                                        \
+      type tmp = *ptr;                                                         \
+      *ptr = value;                                                            \
+      return tmp;                                                              \
+    }                                                                          \
+    return *ptr;                                                               \
+  }
+
+#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type, op)                              \
+  static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {   \
     type tmp = *ptr;                                                           \
     *ptr = value;                                                              \
     return tmp;                                                                \
-  }                                                                            \
-  return *ptr;                                                                 \
-}
-
-#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type, op)                              \
-static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {     \
-  type tmp = *ptr;                                                             \
-  *ptr = value;                                                                \
-  return tmp;                                                                  \
-}
+  }
 
 #undef KOKKOS_REMOTESPACES_P
 #undef KOKKOS_REMOTESPACES_G
@@ -252,7 +253,7 @@ static inline type shmem_type_atomic_swap(type *ptr, type value, int pe) {     \
 #undef KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP
 #undef KOKKOS_REMOTESPACES_ATOMIC_SWAP
 
-#endif //KOKKOS_ENABLE_NVSHMEMSPACE
+#endif // KOKKOS_ENABLE_NVSHMEMSPACE
 
 template <class T, class Traits, typename Enable = void>
 struct NVSHMEMDataElement {};
@@ -1033,7 +1034,7 @@ struct CachedDataElement<
   }
 };
 
-#endif //KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
+#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 } // namespace Impl
 } // namespace Kokkos

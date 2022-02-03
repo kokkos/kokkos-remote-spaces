@@ -54,13 +54,13 @@ typedef Kokkos::Experimental::DefaultRemoteMemorySpace RemoteMemSpace_t;
 #ifdef USE_GLOBAL_LAYOUT
 typedef Kokkos::View<double *, RemoteMemSpace_t> RemoteView_t;
 #else
-typedef Kokkos::View<double **, Kokkos::PartitionedLayoutLeft, RemoteMemSpace_t> RemoteView_t;
+typedef Kokkos::View<double **, Kokkos::PartitionedLayoutLeft, RemoteMemSpace_t>
+    RemoteView_t;
 #endif
-
 
 template <class YType, class AType, class XType>
 void spmv(YType y, AType A, XType x) {
-  int numRanks =1, rank = 0;
+  int numRanks = 1, rank = 0;
   int64_t nrows = y.extent(0);
   int vector_length = 8;
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
@@ -85,41 +85,40 @@ void spmv(YType y, AType A, XType x) {
         const int64_t last_row = first_row + rows_per_team < nrows
                                      ? first_row + rows_per_team
                                      : nrows;
-        Kokkos::parallel_for(
-            Kokkos::TeamThreadRange(team, first_row, last_row),
-            [&](const int64_t row) {
-              const int64_t row_start = A.row_ptr(row);
-              const int64_t row_length = A.row_ptr(row + 1) - row_start;
-              double y_row = 0.0;
-              Kokkos::parallel_reduce(
-                  Kokkos::ThreadVectorRange(team, row_length),
-                  [=](const int64_t i, double &sum) {
-                    int64_t current_row = row_start + i;
-                    int64_t idx = A.col_idx(current_row);
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_row, last_row),
+                             [&](const int64_t row) {
+                               const int64_t row_start = A.row_ptr(row);
+                               const int64_t row_length =
+                                   A.row_ptr(row + 1) - row_start;
+                               double y_row = 0.0;
+                               Kokkos::parallel_reduce(
+                                   Kokkos::ThreadVectorRange(team, row_length),
+                                   [=](const int64_t i, double &sum) {
+                                     int64_t current_row = row_start + i;
+                                     int64_t idx = A.col_idx(current_row);
 
-                    #ifdef USE_GLOBAL_LAYOUT
-                    // Enable for faster pid and offset calculation. Caution: will not work with GlobalLayout
-                    // int64_t pid = idx / MASK;
-                    // int64_t offset = idx % MASK;
-                    sum += A.values(current_row) * x(idx);
-                    #else
+#ifdef USE_GLOBAL_LAYOUT
+                                     // Enable for faster pid and offset
+                                     // calculation. Caution: will not work with
+                                     // GlobalLayout int64_t pid = idx / MASK;
+                                     // int64_t offset = idx % MASK;
+                                     sum += A.values(current_row) * x(idx);
+#else
                     // Enable for faster pid and offset calculation. May result in unfair comparison
                     //int64_t pid = idx / MASK;
                     //int64_t offset = idx % MASK;
                     int64_t pid = idx / nrows;
                     int64_t offset = idx % nrows;
                     sum += A.values(current_row) * x(pid, offset);
-                    #endif
-                    
-                  },
-                  y_row);
-              y(row) = y_row;
-            });
+#endif
+                                   },
+                                   y_row);
+                               y(row) = y_row;
+                             });
       });
 
   RemoteMemSpace_t().fence();
 }
-
 
 template <class YType, class XType> double dot(YType y, XType x) {
   double result = 0.0;
@@ -211,7 +210,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
                   << std::endl;
       }
     }
-  
+
     double alpha = 0;
     double p_ap_dot = 0;
     spmv(Ap, A, p_global);
@@ -278,64 +277,63 @@ int main(int argc, char *argv[]) {
     Kokkos::deep_copy(A.col_idx, h_A.col_idx);
     Kokkos::deep_copy(A.values, h_A.values);
 
-    #ifndef USE_GLOBAL_LAYOUT
+#ifndef USE_GLOBAL_LAYOUT
     RemoteView_t p = RemoteView_t("MyView", h_x.extent(0));
-    #else
-    //Allocate global size (runtime splits into chunks)
+#else
+    // Allocate global size (runtime splits into chunks)
     RemoteView_t p = RemoteView_t("MyView", numRanks * h_x.extent(0));
-    #endif
+#endif
     Kokkos::Timer timer;
     int num_iters = cg_solve(y, A, x, p, max_iter, tolerance);
-    
+
     double time = timer.seconds();
 
     // Compute Bytes and Flops
-    double spmv_bytes  = A.num_rows() * sizeof(int64_t) +   // A.row_ptr
-                         A.nnz()      * sizeof(int64_t) +   // A.col_idx
-                         A.nnz()      * sizeof(double)  +   // A.values
-                         A.nnz()      * sizeof(double)  +   // input vector
-                         A.num_rows() * sizeof(double);     // output vector
-    double dot_bytes   = A.num_rows() * sizeof(double) * 2;
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) + // A.row_ptr
+                        A.nnz() * sizeof(int64_t) +      // A.col_idx
+                        A.nnz() * sizeof(double) +       // A.values
+                        A.nnz() * sizeof(double) +       // input vector
+                        A.num_rows() * sizeof(double);   // output vector
+    double dot_bytes = A.num_rows() * sizeof(double) * 2;
     double axpby_bytes = A.num_rows() * sizeof(double) * 3;
 
-    double spmv_flops  = A.nnz()      * 2;
-    double dot_flops   = A.num_rows() * 2;
+    double spmv_flops = A.nnz() * 2;
+    double dot_flops = A.num_rows() * 2;
     double axpby_flops = A.num_rows() * 3;
 
-    int spmv_calls  = 1 + num_iters;
-    int dot_calls   = num_iters;
+    int spmv_calls = 1 + num_iters;
+    int dot_calls = num_iters;
     int axpby_calls = 2 + num_iters * 3;
 
-    double total_flops = spmv_flops  * spmv_calls + 
-                         dot_flops   * dot_calls  +
+    double total_flops = spmv_flops * spmv_calls + dot_flops * dot_calls +
                          axpby_flops * axpby_calls;
 
-    double total_bytes = spmv_bytes  * spmv_calls + 
-                         dot_bytes   * dot_calls  +
+    double total_bytes = spmv_bytes * spmv_calls + dot_bytes * dot_calls +
                          axpby_bytes * axpby_calls;
 
-    MPI_Allreduce(MPI_IN_PLACE, &total_flops, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, &total_bytes, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &total_flops, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &total_bytes, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
 
     double GFlops = 1e-9 * total_flops / time;
     double GBs = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
 
     if (myRank == 0) {
-      printf(
-        "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, %.2e, %.6lf, %.6lf, %.6lf\n", 
-        N, num_iters, total_flops, time, GFlops, GBs
-      );
+      printf("N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, "
+             "%.2e, %.6lf, %.6lf, %.6lf\n",
+             N, num_iters, total_flops, time, GFlops, GBs);
     }
   }
-  
+
   Kokkos::finalize();
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_finalize();
-  #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
-  #endif
+#endif
   MPI_Finalize();
-  
+
   return 0;
 }

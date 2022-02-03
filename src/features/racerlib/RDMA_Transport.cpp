@@ -49,15 +49,14 @@ namespace Experimental {
 namespace RACERlib {
 
 // Global protection domain
-ibv_pd* global_pd = nullptr;
+ibv_pd *global_pd = nullptr;
 // Global device context
-ibv_context* global_ctx = nullptr;
+ibv_context *global_ctx = nullptr;
 // Ref counter
 int global_pd_ref_count = 0;
 // Global Transport instances
 Transport *request_tport = nullptr;
 Transport *response_tport = nullptr;
-
 
 void rdma_ibv_init() {
   if (!request_tport) {
@@ -71,7 +70,7 @@ void rdma_ibv_init() {
 }
 
 void rdma_ibv_finalize() {
-  
+
   if (request_tport) {
     delete request_tport;
     request_tport = nullptr;
@@ -84,23 +83,22 @@ void rdma_ibv_finalize() {
   debug_2("Transport deallocated.\n");
 }
 
-Transport::Transport(MPI_Comm comm)
-{
+Transport::Transport(MPI_Comm comm) {
   MPI_Comm_size(comm, &num_ranks);
   MPI_Comm_rank(comm, &my_rank);
 
   int num_devices;
-  ibv_device** devices = ibv_get_device_list(&num_devices);
+  ibv_device **devices = ibv_get_device_list(&num_devices);
   assert_ibv(devices);
   dev = devices[0];
 
-  if (global_pd_ref_count == 0){
+  if (global_pd_ref_count == 0) {
     global_ctx = ibv_open_device(dev);
 
     // Allocate protection domain for device context
     global_pd = ibv_alloc_pd(global_ctx);
   }
-  
+
   ++global_pd_ref_count;
   pd = global_pd;
   ctx = global_ctx;
@@ -119,12 +117,12 @@ Transport::Transport(MPI_Comm comm)
 
   memset(&srq_init_attr, 0, sizeof(srq_init_attr));
 
-  // Set max outstanding number of work requests 
+  // Set max outstanding number of work requests
   // and number scatter elements per work request
-  srq_init_attr.attr.max_wr  = 1024;
+  srq_init_attr.attr.max_wr = 1024;
   srq_init_attr.attr.max_sge = 2;
 
-  // Create shared receive queue for protection domain 
+  // Create shared receive queue for protection domain
   srq = ibv_create_srq(pd, &srq_init_attr);
   assert_ibv(srq);
 
@@ -133,7 +131,8 @@ Transport::Transport(MPI_Comm comm)
 
   ibv_port_attr port_attr;
   ibv_query_port(ctx, 1, &port_attr);
-  if (port_attr.state != IBV_PORT_ACTIVE || port_attr.link_layer != IBV_LINK_LAYER_INFINIBAND){
+  if (port_attr.state != IBV_PORT_ACTIVE ||
+      port_attr.link_layer != IBV_LINK_LAYER_INFINIBAND) {
     Kokkos::abort("RDMA_Engine: Queried ibv port is not active");
   }
 
@@ -150,26 +149,27 @@ Transport::Transport(MPI_Comm comm)
   qp_attr.cap.max_recv_sge = 2;
   qp_attr.cap.max_inline_data = 0;
 
-  qps = new ibv_qp*[num_ranks];
+  qps = new ibv_qp *[num_ranks];
 
-  for (int pe=0; pe < num_ranks; ++pe){
+  for (int pe = 0; pe < num_ranks; ++pe) {
 
     // Create queue pairs
     qps[pe] = ibv_create_qp(pd, &qp_attr);
     assert_ibv(qps[pe]);
 
-    uint8_t max_ports = 1; //dev_attr.phys_port_cnt
+    uint8_t max_ports = 1; // dev_attr.phys_port_cnt
 
-    for (uint8_t p=1; p <= max_ports; ++p){
+    for (uint8_t p = 1; p <= max_ports; ++p) {
       local_ports.push_back({port_attr.lid, p, qps[pe]->qp_num});
-      ibv_qp_attr attr; 
+      ibv_qp_attr attr;
       memset(&attr, 0, sizeof(struct ibv_qp_attr));
       attr.qp_state = IBV_QPS_INIT;
       attr.pkey_index = 0;
       attr.port_num = p;
-      attr.qp_access_flags =
-      IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_LOCAL_WRITE;
-      int qp_flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
+      attr.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ |
+                             IBV_ACCESS_LOCAL_WRITE;
+      int qp_flags =
+          IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
 
       // Upddate queue pair
       ibv_safe(ibv_modify_qp(qps[pe], &attr, qp_flags));
@@ -180,20 +180,19 @@ Transport::Transport(MPI_Comm comm)
   global_ports.resize(local_ports.size());
 
   MPI_Alltoall(local_ports.data(), sizeof(BootstrapPort), MPI_BYTE,
-               global_ports.data(), sizeof(BootstrapPort), MPI_BYTE,
-               comm);
+               global_ports.data(), sizeof(BootstrapPort), MPI_BYTE, comm);
 
   // Put all the queue pairs into a ready state
-  for (int pe=0; pe < num_ranks; ++pe){
+  for (int pe = 0; pe < num_ranks; ++pe) {
 
-    //if (pe == my_rank) continue;
+    // if (pe == my_rank) continue;
 
     ibv_qp_attr attr;
     memset(&attr, 0, sizeof(struct ibv_qp_attr));
     attr.qp_state = IBV_QPS_RTR;
     attr.dest_qp_num = global_ports[pe].qp_num;
     attr.rq_psn = 0;
-    attr.path_mtu = IBV_MTU_1024; //port_attr.active_mtu;
+    attr.path_mtu = IBV_MTU_1024; // port_attr.active_mtu;
     attr.max_dest_rd_atomic = 1;
     attr.min_rnr_timer = 0x12;
     attr.ah_attr.dlid = global_ports[pe].lid;
@@ -202,7 +201,8 @@ Transport::Transport(MPI_Comm comm)
     attr.ah_attr.src_path_bits = 0;
     attr.ah_attr.port_num = global_ports[pe].port;
     int mask = IBV_QP_STATE | IBV_QP_AV | IBV_QP_DEST_QPN | IBV_QP_RQ_PSN |
-            IBV_QP_MIN_RNR_TIMER | IBV_QP_PATH_MTU | IBV_QP_MAX_DEST_RD_ATOMIC;
+               IBV_QP_MIN_RNR_TIMER | IBV_QP_PATH_MTU |
+               IBV_QP_MAX_DEST_RD_ATOMIC;
     ibv_safe(ibv_modify_qp(qps[pe], &attr, mask));
 
     memset(&attr, 0, sizeof(struct ibv_qp_attr));
@@ -212,28 +212,27 @@ Transport::Transport(MPI_Comm comm)
     attr.retry_cnt = 7;
     attr.rnr_retry = 7;
     attr.max_rd_atomic = 1;
-    mask = IBV_QP_STATE | IBV_QP_SQ_PSN | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT | IBV_QP_RNR_RETRY | IBV_QP_MAX_QP_RD_ATOMIC;
+    mask = IBV_QP_STATE | IBV_QP_SQ_PSN | IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
+           IBV_QP_RNR_RETRY | IBV_QP_MAX_QP_RD_ATOMIC;
     ibv_safe(ibv_modify_qp(qps[pe], &attr, mask));
   }
 }
 
-Transport::~Transport()
-{
-  for (int pe=0; pe < num_ranks; ++pe){
-    if (pe != my_rank){
-     ibv_destroy_qp(qps[pe]);
+Transport::~Transport() {
+  for (int pe = 0; pe < num_ranks; ++pe) {
+    if (pe != my_rank) {
+      ibv_destroy_qp(qps[pe]);
     }
   }
 
   ibv_destroy_cq(cq);
   --global_pd_ref_count;
-  if (global_pd_ref_count == 0){
+  if (global_pd_ref_count == 0) {
     ibv_dealloc_pd(global_pd);
     ibv_close_device(global_ctx);
     global_pd = nullptr;
     global_ctx = nullptr;
   }
-
 }
 
 } // namespace RACERlib

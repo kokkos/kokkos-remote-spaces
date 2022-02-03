@@ -62,8 +62,10 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewRemote_1D_t = Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_3D_t =
+      Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_1D_t =
+      Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -74,7 +76,8 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
     for (int j = 0; j < i2; ++j)
       v_h(0, i, j) = VAL;
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank+1), Kokkos::ALL, Kokkos::ALL);
+  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+                               Kokkos::ALL, Kokkos::ALL);
 
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, sub2);
   auto v_sub_2 = ViewRemote_1D_t(v, Kokkos::ALL, sub1, sub2);
@@ -83,8 +86,8 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
 
   Kokkos::parallel_for(
       "Increment", 1, KOKKOS_LAMBDA(const int i) {
-       v_sub_1(my_rank)++;
-       v_sub_2(my_rank)++;
+        v_sub_1(my_rank)++;
+        v_sub_2(my_rank)++;
       });
 
   Kokkos::deep_copy(v_h, v_sub);
@@ -92,20 +95,23 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
       if (i == sub1 && j == sub2)
-        ASSERT_EQ(v_h(0, i, j), VAL+2);
+        ASSERT_EQ(v_h(0, i, j), VAL + 2);
       else
         ASSERT_EQ(v_h(0, i, j), VAL);
 }
 
-template <class Data_t> void test_partitioned_subview2D(int i1, int i2, int sub1) {
+template <class Data_t>
+void test_partitioned_subview2D(int i1, int i2, int sub1) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_3D_t =
+      Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_2D_t =
+      Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -116,7 +122,8 @@ template <class Data_t> void test_partitioned_subview2D(int i1, int i2, int sub1
     for (int j = 0; j < i2; ++j)
       v_h(0, i, j) = VAL;
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank+1), Kokkos::ALL, Kokkos::ALL);
+  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+                               Kokkos::ALL, Kokkos::ALL);
 
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, Kokkos::ALL);
   auto v_sub_2 = ViewRemote_2D_t(v, Kokkos::ALL, sub1, Kokkos::ALL);
@@ -128,7 +135,7 @@ template <class Data_t> void test_partitioned_subview2D(int i1, int i2, int sub1
         v_sub_1(my_rank, i)++;
         v_sub_2(my_rank, i)++;
       });
-  
+
   Kokkos::deep_copy(v_h, v_sub);
 
   for (int i = 0; i < i1; ++i)
@@ -147,8 +154,10 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewRemote3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_3D_t =
+      Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote3D_t =
+      Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -159,7 +168,8 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
     for (int j = 0; j < i2; ++j)
       v_h(0, i, j) = VAL;
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank+1), Kokkos::ALL, Kokkos::ALL);
+  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+                               Kokkos::ALL, Kokkos::ALL);
   auto v_sub_1 =
       Kokkos::subview(v, Kokkos::ALL, Kokkos::ALL, std::make_pair(sub1, sub2));
 
@@ -189,8 +199,10 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_3D_t =
+      Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewRemote_2D_t =
+      Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
@@ -201,15 +213,15 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
     for (int j = 0; j < i2; ++j)
       v_h(0, i, j) = VAL;
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank+1), Kokkos::ALL, Kokkos::ALL);
+  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+                               Kokkos::ALL, Kokkos::ALL);
 
-  auto v_sub_1 =
-      Kokkos::subview(v, my_rank, Kokkos::ALL, Kokkos::ALL);
+  auto v_sub_1 = Kokkos::subview(v, my_rank, Kokkos::ALL, Kokkos::ALL);
   Kokkos::deep_copy(v_sub, v_h);
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < v_sub_1.extent(1); ++j) 
+        for (int j = 0; j < v_sub_1.extent(1); ++j)
           v_sub_1(i, j)++;
       });
 
@@ -219,7 +231,6 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
     for (int j = 0; j < i2; ++j)
       ASSERT_EQ(v_h(0, i, j), VAL + 1);
 }
-
 
 TEST(TEST_CATEGORY, test_partitioned_subview) {
   // 1D subview

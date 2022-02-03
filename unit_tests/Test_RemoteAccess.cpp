@@ -72,7 +72,7 @@ template <class Data_t, class Space_t> void test_remote_accesses(int size) {
 
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {
-              v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;         
+        v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;
       });
 
   Kokkos::deep_copy(v_H, v_R);

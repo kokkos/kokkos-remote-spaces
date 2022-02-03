@@ -87,25 +87,25 @@ TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
   test_allocate_symmetric_remote_view_by_rank<double **, RemoteMemSpace>(113);
   test_allocate_symmetric_remote_view_by_rank<double ***, RemoteMemSpace>(7, 5);
   test_allocate_symmetric_remote_view_by_rank<double ****, RemoteMemSpace>(
-  9, 10, 7);
+      9, 10, 7);
   test_allocate_symmetric_remote_view_by_rank<double *****, RemoteMemSpace>(
-  9, 10, 7, 2);
+      9, 10, 7, 2);
   test_allocate_symmetric_remote_view_by_rank<double ******, RemoteMemSpace>(
-  9, 10, 7, 2, 1);
-        test_allocate_symmetric_remote_view_by_rank<double *******, RemoteMemSpace>(
-  9, 10, 7, 2, 1, 1);
+      9, 10, 7, 2, 1);
+  test_allocate_symmetric_remote_view_by_rank<double *******, RemoteMemSpace>(
+      9, 10, 7, 2, 1, 1);
 
   test_allocate_symmetric_remote_view_by_rank<int *, RemoteMemSpace>();
   test_allocate_symmetric_remote_view_by_rank<int **, RemoteMemSpace>(113);
   test_allocate_symmetric_remote_view_by_rank<int ***, RemoteMemSpace>(7, 5);
-  test_allocate_symmetric_remote_view_by_rank<int ****, RemoteMemSpace>(
-      9, 10, 7);
-  test_allocate_symmetric_remote_view_by_rank<int *****, RemoteMemSpace>(
-  9, 10, 7, 2);
+  test_allocate_symmetric_remote_view_by_rank<int ****, RemoteMemSpace>(9, 10,
+                                                                        7);
+  test_allocate_symmetric_remote_view_by_rank<int *****, RemoteMemSpace>(9, 10,
+                                                                         7, 2);
   test_allocate_symmetric_remote_view_by_rank<int ******, RemoteMemSpace>(
-  9, 10, 7, 2, 1);
-        test_allocate_symmetric_remote_view_by_rank<int *******, RemoteMemSpace>(
-  9, 10, 7, 2, 1, 1);
+      9, 10, 7, 2, 1);
+  test_allocate_symmetric_remote_view_by_rank<int *******, RemoteMemSpace>(
+      9, 10, 7, 2, 1, 1);
 }
 
 #endif /* TEST_ALLOCATION_HPP_ */

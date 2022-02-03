@@ -64,7 +64,6 @@ struct RemoteSpaceSpecializeTag {};
 
 class SHMEMSpace {
 public:
-
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
@@ -130,24 +129,23 @@ std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 namespace Kokkos {
 namespace Impl {
 
-template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+template <> struct DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
+};
+
+template <> struct DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <>
-struct DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
-};
-
-template <>
-struct DeepCopy<Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::SHMEMSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace,
+                Kokkos::Experimental::SHMEMSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <class ExecutionSpace>
-struct DeepCopy<Kokkos::Experimental::SHMEMSpace, Kokkos::Experimental::SHMEMSpace,
-                ExecutionSpace> {
+struct DeepCopy<Kokkos::Experimental::SHMEMSpace,
+                Kokkos::Experimental::SHMEMSpace, ExecutionSpace> {
   DeepCopy(void *dst, const void *src, size_t n);
   DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n);
 };
@@ -170,15 +168,15 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
 } // namespace Impl
 } // namespace Kokkos
 
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
-#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
-#include <Kokkos_SHMEMSpace_Ops.hpp>
+#include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_SHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_SHMEMSpace_DataHandle.hpp>
+#include <Kokkos_SHMEMSpace_Ops.hpp>
 #include <Kokkos_SHMEMSpace_ViewTraits.hpp>
 
 #endif // #define KOKKOS_SHMEMSPACE_HPP

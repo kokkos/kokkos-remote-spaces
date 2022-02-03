@@ -79,8 +79,8 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-              team, v_R_cpy, v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy,
+                                                              v_R);
         });
       });
 
@@ -119,8 +119,7 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy,
-                                                                   v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
 
@@ -161,8 +160,7 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy,
-                                                                   v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
 
