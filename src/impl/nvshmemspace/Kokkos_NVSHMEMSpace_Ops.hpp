@@ -883,8 +883,9 @@ struct NVSHMEMDataElement<
   }
 };
 
-
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+
+#include <RDMA_Worker.hpp>
 
 template <class T, class Traits, typename Enable = void>
 struct CachedDataElement {};

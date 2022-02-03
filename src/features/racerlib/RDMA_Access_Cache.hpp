@@ -49,8 +49,6 @@
 #include <Kokkos_Core.hpp>
 #include <RACERlib_Config.hpp>
 
-using namespace Kokkos;
-
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
