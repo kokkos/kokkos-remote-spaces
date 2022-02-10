@@ -48,6 +48,12 @@
 #include <nvshmem.h>
 #include <type_traits>
 
+#include <Kokkos_RemoteSpaces_Options.hpp>
+
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+#include <RDMA_Worker.hpp>
+#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
+
 namespace Kokkos {
 namespace Impl {
 
@@ -255,14 +261,15 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long,
 
 #endif // KOKKOS_ENABLE_NVSHMEMSPACE
 
-template <class T, class Traits, typename Enable = void>
+template <class T, class Traits, class IsAtomic = void, class IsCached = void>
 struct NVSHMEMDataElement {};
 
 // Atomic Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits,
-    typename std::enable_if<Traits::memory_traits::is_atomic>::type> {
+    T, Traits, typename std::enable_if<Traits::memory_traits::is_atomic>::type,
+    typename std::enable_if<!RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -578,8 +585,9 @@ struct NVSHMEMDataElement<
 // Default Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits,
-    typename std::enable_if<!Traits::memory_traits::is_atomic>::type> {
+    T, Traits, typename std::enable_if<!Traits::memory_traits::is_atomic>::type,
+    typename std::enable_if<!RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -884,17 +892,10 @@ struct NVSHMEMDataElement<
   }
 };
 
-#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-
-#include <RDMA_Worker.hpp>
-
-template <class T, class Traits, typename Enable = void>
-struct CachedDataElement {};
-
-// Cached Operators (Requires RACERlib)
+// Cached NVSHMEMDataElement (Requires RDMA_Worker.hpp)
 template <class T, class Traits>
-struct CachedDataElement<
-    T, Traits,
+struct NVSHMEMDataElement<
+    T, Traits, typename std::enable_if<!Traits::memory_traits::is_atomic>::type,
     typename std::enable_if<RemoteSpaces_MemoryTraits<
         typename Traits::memory_traits>::is_cached>::type> {
 
@@ -907,7 +908,7 @@ struct CachedDataElement<
   int pe;
 
   KOKKOS_INLINE_FUNCTION
-  CachedDataElement(T *ptr_, worker *sgw_, int pe_, int i_)
+  NVSHMEMDataElement(T *ptr_, worker *sgw_, int pe_, int i_)
       : ptr(ptr_), sgw(sgw_), pe(pe_), offset(i_) {}
 
   KOKKOS_INLINE_FUNCTION
@@ -1033,8 +1034,6 @@ struct CachedDataElement<
     return val;
   }
 };
-
-#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 } // namespace Impl
 } // namespace Kokkos
