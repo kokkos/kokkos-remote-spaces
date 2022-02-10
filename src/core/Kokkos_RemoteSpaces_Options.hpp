@@ -50,7 +50,7 @@
 
 namespace Kokkos {
 
-enum RemoteSpaces_MemoryTraitsFlags { Dim0IsPE = 0x192, Cached = 0x224 };
+enum RemoteSpaces_MemoryTraitsFlags { Dim0IsPE = 0x192, Cached = 0x160 };
 
 template <typename T> struct RemoteSpaces_MemoryTraits;
 
