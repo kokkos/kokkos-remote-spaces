@@ -178,13 +178,13 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
 } // namespace Kokkos
 
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
-#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
 #include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
 #include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 
