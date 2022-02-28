@@ -21,6 +21,10 @@ else()
   FILE(GLOB TEST_SRCS *.cpp)
 endif()
 
+if (ENABLE_ACCESS_CACHING_AND_AGGREGATION) 
+  file(GLOB TEST_SRCS experimental/*.cpp)
+endif()
+
 add_executable(${NAME} ${TEST_SRCS})
 target_link_libraries(${NAME} PUBLIC Kokkos::kokkosremote)
 target_link_libraries(${NAME} PUBLIC gtest_main)
