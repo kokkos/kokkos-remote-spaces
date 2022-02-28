@@ -11,7 +11,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
 
 find_package(Kokkos REQUIRED)
 
-
 option(Kokkos_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
 option(Kokkos_ENABLE_SHMEMSPACE "Whether to build with SHMEMS space" OFF)
 option(Kokkos_ENABLE_MPISPACE "Whether to build with MPI space" OFF)

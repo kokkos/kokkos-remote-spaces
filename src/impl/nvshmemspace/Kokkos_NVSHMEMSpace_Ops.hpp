@@ -892,7 +892,10 @@ struct NVSHMEMDataElement<
   }
 };
 
+#if defined (KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+
 // Cached NVSHMEMDataElement (Requires RDMA_Worker.hpp)
+
 template <class T, class Traits>
 struct NVSHMEMDataElement<
     T, Traits, typename std::enable_if<!Traits::memory_traits::is_atomic>::type,
@@ -1034,6 +1037,8 @@ struct NVSHMEMDataElement<
     return val;
   }
 };
+
+#endif //KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 } // namespace Impl
 } // namespace Kokkos
