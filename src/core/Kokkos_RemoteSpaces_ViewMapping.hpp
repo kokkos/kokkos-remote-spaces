@@ -1151,10 +1151,86 @@ public:
    *  Allocate via shared allocation record and
    *  return that record for allocation tracking.
    */
-  template <class... P, typename T = Traits>
+template <class... P, typename T = Traits>
   Kokkos::Impl::SharedAllocationRecord<> *
   allocate_shared(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-                  typename Traits::array_layout const &arg_layout) {
+                  typename Traits::array_layout const &arg_layout,
+                  typename std::enable_if<RemoteSpaces_MemoryTraits<
+                      typename T::memory_traits>::is_cached>::type * = NULL) {
+
+    typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
+
+    typedef typename alloc_prop::execution_space execution_space;
+    typedef typename T::memory_space memory_space;
+    typedef typename T::value_type value_type;
+    typedef ViewValueFunctor<execution_space, value_type> functor_type;
+    typedef Kokkos::Impl::SharedAllocationRecord<memory_space, functor_type>
+        record_type;
+
+    // Query the mapping for byte-size of allocation.
+    // If padding is allowed then pass in sizeof value type
+    // for padding computation.
+    typedef std::integral_constant<
+        unsigned, alloc_prop::allow_padding ? sizeof(value_type) : 0>
+        padding;
+    typename T::array_layout layout;
+
+    // Copy layout properties
+    set_layout(arg_layout, layout, m_local_dim0);
+
+    m_num_pes = Kokkos::Experimental::get_num_pes();
+    pe = Kokkos::Experimental::get_my_pe();
+
+    m_offset = offset_type(padding(), layout);
+
+    const size_t alloc_size = memory_span();
+
+    // Create shared memory tracking record with allocate memory from the memory
+    // space
+    record_type *const record = record_type::allocate(
+        ((Kokkos::Impl::ViewCtorProp<void, memory_space> const &)arg_prop)
+            .value,
+        ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
+        alloc_size);
+
+#ifdef KOKKOS_ENABLE_MPISPACE
+    if (alloc_size) {
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
+                             record->win);
+    }
+#else
+    if (alloc_size) {
+      /*m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));*/
+
+      record->get_caching_and_aggregation_engine()->init((void *)record->data(),
+                                          MPI_COMM_WORLD);
+      m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
+                             record->get_caching_and_aggregation_engine(),
+                             record->get_caching_and_aggregation_engine()->sgw);
+    }
+#endif
+
+    //  Only initialize if the allocation is non-zero.
+    //  May be zero if one of the dimensions is zero.
+    if (alloc_size && alloc_prop::initialize) {
+      // Construct values
+      record->m_destroy.construct_shared_allocation();
+    }
+
+    return record;
+  }
+
+   //----------------------------------------
+  /*  Allocate and construct mapped array.
+   *  Allocate via shared allocation record and
+   *  return that record for allocation tracking.
+   */
+template <class... P, typename T = Traits>
+  Kokkos::Impl::SharedAllocationRecord<> *
+  allocate_shared(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
+                  typename Traits::array_layout const &arg_layout,
+                  typename std::enable_if<!RemoteSpaces_MemoryTraits<
+                      typename T::memory_traits>::is_cached>::type * = NULL) {
 
     typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
 

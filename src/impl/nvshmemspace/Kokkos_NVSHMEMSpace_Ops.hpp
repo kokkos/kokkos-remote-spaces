@@ -261,15 +261,15 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long,
 
 #endif // KOKKOS_ENABLE_NVSHMEMSPACE
 
-template <class T, class Traits, class IsAtomic = void, class IsCached = void>
+template <class T, class Traits, class Specialization = void>
 struct NVSHMEMDataElement {};
 
 // Atomic Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<Traits::memory_traits::is_atomic>::type,
-    typename std::enable_if<!RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached>::type> {
+    T, Traits, typename std::enable_if<(Traits::memory_traits::is_atomic &&
+    !RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached)>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -585,9 +585,9 @@ struct NVSHMEMDataElement<
 // Default Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<!Traits::memory_traits::is_atomic>::type,
-    typename std::enable_if<!RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached>::type> {
+    T, Traits, typename std::enable_if<(!Traits::memory_traits::is_atomic &&
+    !RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached)>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -893,13 +893,13 @@ struct NVSHMEMDataElement<
 };
 
 #if defined (KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-
 // Cached NVSHMEMDataElement (Requires RDMA_Worker.hpp)
+
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<!Traits::memory_traits::is_atomic>::type,
-    typename std::enable_if<RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached>::type> {
+    T, Traits, typename std::enable_if<(!Traits::memory_traits::is_atomic &&
+    RemoteSpaces_MemoryTraits<
+        typename Traits::memory_traits>::is_cached)>::type> {
 
   using worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
   worker *sgw;

@@ -45,6 +45,10 @@
 #include <Kokkos_NVSHMEMSpace.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+#include <RDMA_Worker.hpp>
+#endif
+
 #if defined(KOKKOS_ENABLE_PROFILING)
 #include <impl/Kokkos_Profiling_Interface.hpp>
 #endif
@@ -108,6 +112,10 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
 
   m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
                      SharedAllocationRecord<void, void>::m_alloc_size);
+
+  #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)  
+  get_caching_and_aggregation_engine()->finalize();
+  #endif
 }
 
 SharedAllocationRecord<void, void> SharedAllocationRecord<
@@ -187,6 +195,15 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_record(
 
   return record;
 }
+
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+Kokkos::Experimental::RACERlib::Engine<double> *
+SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_caching_and_aggregation_engine()
+{
+  return & e;
+}
+
+#endif
 
 // Iterate records to print orphaned memory ...
 void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
