@@ -53,8 +53,6 @@
 #include <unistd.h>
 #include <vector>
 
-using namespace Kokkos;
-
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
