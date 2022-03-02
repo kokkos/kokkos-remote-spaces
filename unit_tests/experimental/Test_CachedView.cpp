@@ -67,9 +67,9 @@ template <class Data_t> void test_cached_view1D(int dim0) {
   MPI_Barrier(MPI_COMM_WORLD);
 
   using ViewHost_1D_t =
-      Kokkos::View<Data_t *, Kokkos::LayoutRight, HostSpace_t>;
+      Kokkos::View<Data_t *, HostSpace_t>;
   using ViewDevice_1D_t =
-      Kokkos::View<Data_t *, Kokkos::LayoutRight, DeviceSpace_t>;                   
+      Kokkos::View<Data_t *, DeviceSpace_t>;                   
   using ViewRemote_1D_t =
       Kokkos::View<Data_t *, RemoteSpace_t,
                    Kokkos::MemoryTraits<RemoteTraits::Cached>>;
