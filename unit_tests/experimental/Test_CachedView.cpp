@@ -50,6 +50,8 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include <RDMA_Interface.hpp>
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using DeviceSpace_t = Kokkos::CudaSpace;
 using HostSpace_t = Kokkos::HostSpace;
