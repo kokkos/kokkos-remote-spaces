@@ -202,7 +202,6 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_caching_an
 {
   return & e;
 }
-
 #endif
 
 // Iterate records to print orphaned memory ...
