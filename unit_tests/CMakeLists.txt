@@ -24,7 +24,8 @@ endif()
 set(DEPS)
 
 if (ENABLE_ACCESS_CACHING_AND_AGGREGATION) 
-  file(GLOB TEST_SRCS experimental/*.cpp)
+  file(GLOB TEST_SRCS_EXPERIMENTAL experimental/*.cpp)
+  list(APPEND TEST_SRCS ${TEST_SRCS_EXPERIMENTAL})
 endif()
 
 add_executable(${NAME} ${TEST_SRCS})
