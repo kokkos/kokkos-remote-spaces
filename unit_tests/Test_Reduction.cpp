@@ -228,7 +228,7 @@ TEST(TEST_CATEGORY, test_reduce) {
   test_scalar_reduce_2D<int>(0, 0);
   test_scalar_reduce_2D<int>(1, 1);
 
-  test_scalar_reduce_2D<float>(111, 123);
+  test_scalar_reduce_2D<float>(111, 3);
   test_scalar_reduce_2D<double>(773, 3);
 
   test_scalar_reduce_partitioned_1D<int>(20);

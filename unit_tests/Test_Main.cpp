@@ -47,12 +47,12 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
-#include <mpi.h>
 
 int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init();
+#else
+  MPI_Init(&argc, &argv);
 #endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
@@ -67,12 +67,13 @@ int main(int argc, char *argv[]) {
   int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
 #endif
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_finalize();
+#else
   MPI_Finalize();
+#endif
   return result;
 }
