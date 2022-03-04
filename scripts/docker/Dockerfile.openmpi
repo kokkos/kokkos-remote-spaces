@@ -1,0 +1,108 @@
+FROM ubuntu:20.04                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                             
+ENV DEBIAN_FRONTEND=noninteractive                                                                                                                                                                                                           
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \                                                                                                                                                                             
+    build-essential \                                                                                                                                                                                                                        
+    wget \                                                                                                                                                                                                                                   
+    git \                                                                                                                                                                                                                                    
+    bc \                                                                                                                                                                                                                                     
+    ninja-build \                                                                                                                                                                                                                            
+    git \                                                                                                                                                                                                                                    
+    libev-dev \                                                                                                                                                                                                                              
+    libevent-dev \                                                                                                                                                                                                                           
+    libhwloc-dev \                                                                                                                                                                                                                           
+    pkg-config \                                                                                                                                                                                                                             
+    clang-format-8 \                                                                                                                                                                                                                         
+    && \                                                                                                                                                                                                                                     
+    apt-get clean && rm -rf /var/lib/apt/list
+
+ENV PREFIX=/scratch                                                                                                                                                                                                                          
+ENV ARCHIVE_DIR=${PREFIX}/archive                                                                                                                                                                                                            
+ENV SOURCE_DIR=${PREFIX}/source                                                                                                                                                                                                              
+ENV BUILD_DIR=${PREFIX}/build                                                                                                                                                                                                                
+ENV INSTALL_DIR=/opt                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                             
+RUN mkdir -p ${PREFIX} && \                                                                                                                                                                                                                  
+    cd ${PREFIX} && \                                                                                                                                                                                                                        
+    mkdir archive && \                                                                                                                                                                                                                       
+    mkdir source && \                                                                                                                                                                                                                        
+    mkdir build                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                             
+# Install CMake                                                                                                                                                                                                                              
+RUN export CMAKE_VERSION=3.22.2 && \                                                                                                                                                                                                         
+    export CMAKE_SHA256=38b3befdee8fd2bac06954e2a77cb3072e6833c69d8cc013c0a3b26f1cfdfe37 && \                                                                                                                                                
+    export CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \                                                                                                    
+    export CMAKE_ARCHIVE=${ARCHIVE_DIR}/cmake.tar.gz && \                                                                                                                                                                                    
+    export CMAKE_BUILD_DIR=${BUILD_DIR}/cmake && \                                                                                                                                                                                           
+    wget --quiet ${CMAKE_URL} --output-document=${CMAKE_ARCHIVE} && \                                                                                                                                                                        
+    echo "${CMAKE_SHA256} ${CMAKE_ARCHIVE}" | sha256sum -c && \                                                                                                                                                                              
+    mkdir -p ${CMAKE_BUILD_DIR} && \                                                                                                                                                                                                         
+    tar xf ${CMAKE_ARCHIVE} -C ${CMAKE_BUILD_DIR} --strip-components=1 && \                                                                                                                                                                  
+    mv ${CMAKE_BUILD_DIR} ${INSTALL_DIR} && \                                                                                                                                                                                                
+    rm -rf ${CMAKE_ARCHIVE} && \                                                                                                                                                                                                             
+    rm -rf ${CMAKE_BUILD_DIR}                                                                                                                                                                                                                
+ENV PATH=${INSTALL_DIR}/cmake/bin:$PATH
+
+# Install UCX
+RUN export UCX_VERSION=1.12.0 && \
+    export UCX_URL=https://github.com/openucx/ucx/archive/refs/tags/v${UCX_VERSION}.tar.gz && \
+    export UCX_ARCHIVE=${ARCHIVE_DIR}/ucx-${UCX_VERSION}.tar.bz2 && \
+    export UCX_SOURCE_DIR=${SOURCE_DIR}/ucx && \
+    export UCX_BUILD_DIR=${BUILD_DIR}/ucx && \
+    export UCX_INSTALL_DIR=${INSTALL_DIR}/ucx && \
+    wget --quiet ${UCX_URL} --output-document=${UCX_ARCHIVE} && \
+    mkdir -p ${UCX_SOURCE_DIR} && \
+    tar -xf ${UCX_ARCHIVE} -C ${UCX_SOURCE_DIR} --strip-components=1 && \
+    cd ${UCX_SOURCE_DIR} && \
+    ./autogen.sh && \
+    ./contrib/configure-release --enable-mt --prefix=${UCX_INSTALL_DIR} && \
+    make -j${N_PROCS} install && \
+    rm -rf ${UCX_ARCHIVE} && \
+    rm -rf ${UCX_BUILD_DIR} && \
+    rm -rf ${UCX_SOURCE_DIR}
+ENV UCX_ROOT=${INSTALL_DIR}/ucx
+
+# Install OpenMPI
+RUN export OPENMPI_VERSION=4.1.2 && \
+    export OPENMPI_VERSION_SHORT=4.1 && \
+    export OPENMPI_SHA256=9b78c7cf7fc32131c5cf43dd2ab9740149d9d87cadb2e2189f02685749a6b527 && \
+    export OPENMPI_URL=https://www.open-mpi.org/software/ompi/v${OPENMPI_VERSION_SHORT}/downloads/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
+    export OPENMPI_ARCHIVE=${ARCHIVE_DIR}/openmpi-${OPENMPI_VERSION}.tar.bz2 && \
+    export OPENMPI_SOURCE_DIR=${SOURCE_DIR}/openmpi && \
+    export OPENMPI_BUILD_DIR=${BUILD_DIR}/openmpi && \
+    export OPENMPI_INSTALL_DIR=${INSTALL_DIR}/openmpi && \
+    wget --quiet ${OPENMPI_URL} --output-document=${OPENMPI_ARCHIVE} && \
+    echo "${OPENMPI_SHA256} ${OPENMPI_ARCHIVE}" | sha256sum -c && \
+    mkdir -p ${OPENMPI_SOURCE_DIR} && \
+    tar -xf ${OPENMPI_ARCHIVE} -C ${OPENMPI_SOURCE_DIR} --strip-components=1 && \
+    mkdir -p ${OPENMPI_BUILD_DIR} && \
+    cd ${OPENMPI_BUILD_DIR} && \
+    ${OPENMPI_SOURCE_DIR}/configure --with-ucx=${UCX_ROOT} --prefix=${OPENMPI_INSTALL_DIR} && \
+    make -j${N_PROCS} install && \
+    rm -rf ${OPENMPI_ARCHIVE} && \
+    rm -rf ${OPENMPI_BUILD_DIR} && \
+    rm -rf ${OPENMPI_SOURCE_DIR}
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV OMPI_MCA_btl_base_warn_component_unused='0'
+ENV PATH=${INSTALL_DIR}/openmpi/bin:$PATH
+
+## Install Kokkos
+RUN export KOKKOS_SOURCE_DIR=${SOURCE_DIR}/kokkos && \
+    export KOKKOS_BUILD_DIR=${BUILD_DIR}/kokkos && \
+    export KOKKOS_INSTALL_DIR=${INSTALL_DIR}/kokkos && \
+    cd ${SOURCE_DIR} && git clone https://github.com/kokkos/kokkos && \
+    cd kokkos && git checkout develop && \
+    mkdir -p ${KOKKOS_BUILD_DIR} && \
+    cd ${KOKKOS_BUILD_DIR} && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
+        -DKokkos_ENABLE_OPENMP=ON \
+        -DCMAKE_INSTALL_PREFIX=${KOKKOS_INSTALL_DIR} \
+        ${KOKKOS_SOURCE_DIR} && \
+    make -j${N_PROCS} install && \
+    rm -rf ${KOKKOS_ARCHIVE} && \
+    rm -rf ${KOKKOS_BUILD_DIR} && \
+    rm -rf ${KOKKOS_SOURCE_DIR}
+ENV KOKKOS_ROOT=${INSTALL_DIR}/kokkos
