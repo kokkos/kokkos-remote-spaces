@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
         (2.0 * num_iters * sizeof(ORDINAL_T)) / 1024.0 / 1024.0 / 1024.0 / time;
     float access_latency = time / num_iters * 1.0e6;
 
-    printf( "%i, %i, %i, %i, %lld, %.3f, %.2f, %.4f\n",
+    printf( "%i, %i, %i, %i, %ld, %.3f, %.2f, %.4f\n",
       num_ranks, 
       league_size, 
       team_size,

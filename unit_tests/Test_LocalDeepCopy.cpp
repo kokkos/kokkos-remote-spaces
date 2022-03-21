@@ -154,9 +154,9 @@ void test_localdeepcopy(
       KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
         Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 1),
                              [&](const int i) {
-                               for (int i = 0; i < i1; ++i)
-                                 for (int j = 0; j < i2; ++j)
-                                   v_R(my_rank, i, j) = 0x123;
+                               for (int j = 0; j < i1; ++j)
+                                 for (int k = 0; k < i2; ++k)
+                                   v_R(my_rank, j, k) = 0x123;
                              });
 
         team.team_barrier();
