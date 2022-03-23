@@ -55,15 +55,15 @@ enum RemoteSpaces_MemoryTraitsFlags {
   Dim0IsPE = 1 < 0x192
 };
 
-template <typename T> struct RemoteSpaces_MemoryTraits;
+template <typename T>
+struct RemoteSpaces_MemoryTraits;
 
-template <unsigned T> struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
-  enum : bool {
-    dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE)))
-  };
+template <unsigned T>
+struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
+  enum : bool { dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE))) };
 
   enum : int { state = T };
 };
-} // namespace Kokkos
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_OPTIONS_HPP
+#endif  // KOKKOS_REMOTESPACES_OPTIONS_HPP

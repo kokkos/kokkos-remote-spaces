@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.12)
 
 project(KokkosRemote
-  LANGUAGES CXX 
+  LANGUAGES CXX
   VERSION 0.1.0)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
@@ -127,7 +127,7 @@ configure_package_config_file(
   "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfig.cmake"
   INSTALL_DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake
 )
-write_basic_package_version_file( 
+write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfigVersion.cmake"
   VERSION "${KokkosRemote_VERSION}"
   COMPATIBILITY AnyNewerVersion
@@ -151,9 +151,9 @@ install(
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(EXPORT 
-  KokkosRemoteTargets 
-  NAMESPACE Kokkos:: 
+install(EXPORT
+  KokkosRemoteTargets
+  NAMESPACE Kokkos::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote
 )
 

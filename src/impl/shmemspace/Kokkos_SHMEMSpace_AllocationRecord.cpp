@@ -66,7 +66,8 @@ SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
 #endif
           reinterpret_cast<SharedAllocationHeader *>(arg_space.allocate(
               sizeof(SharedAllocationHeader) + arg_alloc_size)),
-          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc, arg_label),
+          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
+          arg_label),
       m_space(arg_space) {
 #if defined(KOKKOS_ENABLE_PROFILING)
   if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -110,8 +111,7 @@ void *SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
     allocate_tracked(const Kokkos::Experimental::SHMEMSpace &arg_space,
                      const std::string &arg_alloc_label,
                      const size_t arg_alloc_size) {
-  if (!arg_alloc_size)
-    return (void *)0;
+  if (!arg_alloc_size) return (void *)0;
 
   SharedAllocationRecord *const r =
       allocate(arg_space, arg_alloc_label, arg_alloc_size);
@@ -128,10 +128,8 @@ void SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace,
   }
 }
 
-void *
-SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace,
-                       void>::reallocate_tracked(void *const arg_alloc_ptr,
-                                                 const size_t arg_alloc_size) {
+void *SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
+    reallocate_tracked(void *const arg_alloc_ptr, const size_t arg_alloc_size) {
   SharedAllocationRecord *const r_old = get_record(arg_alloc_ptr);
   SharedAllocationRecord *const r_new =
       allocate(r_old->m_space, r_old->get_label(), arg_alloc_size);
@@ -146,9 +144,9 @@ SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace,
   return r_new->data();
 }
 
-SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void> *
-SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::get_record(
-    void *alloc_ptr) {
+SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
+    *SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::get_record(
+        void *alloc_ptr) {
   typedef SharedAllocationHeader Header;
   typedef SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
       RecordHost;
@@ -176,5 +174,5 @@ void SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
       s, "SHMEMSpace", &s_root_record, detail);
 }
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
