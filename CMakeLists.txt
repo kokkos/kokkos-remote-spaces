@@ -72,8 +72,6 @@ if (NOT ${N_BACKENDS} EQUAL "1")
   message(FATAL_ERROR "Must give a single valid backend")
 endif()
 
-message("${BACKENDS} ${N_BACKENDS}" )
-
 set(SOURCES)
 set(HEADERS)
 foreach(DIR ${SOURCE_DIRS})
