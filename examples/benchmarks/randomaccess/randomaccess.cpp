@@ -58,75 +58,68 @@
 #define ORDINAL_T int64_t
 #define SIGMA 1000
 
-using RemoteSpace_t =  Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t = Kokkos::View<ORDINAL_T **, RemoteSpace_t>;
-using Generator_t = Kokkos::Random_XorShift64_Pool<>;
-using TeamPolicy = Kokkos::TeamPolicy<>;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t  = Kokkos::View<ORDINAL_T **, RemoteSpace_t>;
+using Generator_t   = Kokkos::Random_XorShift64_Pool<>;
+using TeamPolicy    = Kokkos::TeamPolicy<>;
 
 /*
-  Uncomment to select between random or linear access pattern. 
-  Random access pattern follow either a 
+  Uncomment to select between random or linear access pattern.
+  Random access pattern follow either a
   normal or random distribution.
 */
 
 KOKKOS_INLINE_FUNCTION
 ORDINAL_T get(const ORDINAL_T mean, const float variance,
-                   Generator_t::generator_type &g) {
+              Generator_t::generator_type &g) {
   return g.normal(mean, variance);
-  //return g.urand64();
-  //return mean; 
+  // return g.urand64();
+  // return mean;
 }
 
 int main(int argc, char *argv[]) {
   ORDINAL_T num_elems = (SIZE << 10) / sizeof(ORDINAL_T);
   ORDINAL_T num_iters = NUM_ITER;
-  int sigma = SIGMA;
-  int league_size = LEAGUE_SIZE;
-  int team_size = TEAM_SIZE;
-  int vec_len = VEC_LEN;
+  int sigma           = SIGMA;
+  int league_size     = LEAGUE_SIZE;
+  int team_size       = TEAM_SIZE;
+  int vec_len         = VEC_LEN;
 
   option gopt[] = {
-    { "help", no_argument, NULL, 'h' },
-    { "size", required_argument, NULL, 's'},
-    { "sigma", required_argument, NULL, 'g'},
-    { "leage_size", required_argument, NULL, 'l'},
-    { "team_size", required_argument, NULL, 't'},
+      {"help", no_argument, NULL, 'h'},
+      {"size", required_argument, NULL, 's'},
+      {"sigma", required_argument, NULL, 'g'},
+      {"leage_size", required_argument, NULL, 'l'},
+      {"team_size", required_argument, NULL, 't'},
   };
 
   int ch;
   bool help = false;
-  while ((ch = getopt_long(argc, argv, "hs:g:l:t:", gopt, NULL)) != -1){
-      switch (ch) {
+  while ((ch = getopt_long(argc, argv, "hs:g:l:t:", gopt, NULL)) != -1) {
+    switch (ch) {
       case 0:
-        //this set an input flag
+        // this set an input flag
         break;
-      case 'h':
-        help = true;
-        break;
-      case 's': 
+      case 'h': help = true; break;
+      case 's':
         num_elems = (std::atoi(optarg) << 10) / sizeof(ORDINAL_T);
         break;
-      case 'g':
-        sigma = std::atoi(optarg);
-        break;
-      case 'l':
-        league_size = std::atoi(optarg);
-        break;
-      case 't':
-        team_size = std::atoi(optarg);
-        break;
-      }
+      case 'g': sigma = std::atoi(optarg); break;
+      case 'l': league_size = std::atoi(optarg); break;
+      case 't': team_size = std::atoi(optarg); break;
+    }
   }
 
-  if (help){
+  if (help) {
     std::cout << "randomaccess <optional_args>"
-	    "\n-s/--size:             The size of the problem in kB (default: 1000)"
-      "\n-g/--sigma:            Sigma used to conpute variance normalized to 1000 (default: 1000)"
-      "\n-t/--team_size:        The team size (default: 32)"
-      "\n-l/--league_size:      The league size (default: 1)"
-      "\n-h/--help:             Prints this help message"
-      "\n"
-    ;
+                 "\n-s/--size:             The size of the problem in kB "
+                 "(default: 1000)"
+                 "\n-g/--sigma:            Sigma used to conpute variance "
+                 "normalized to 1000 (default: 1000)"
+                 "\n-t/--team_size:        The team size (default: 32)"
+                 "\n-l/--league_size:      The league size (default: 1)"
+                 "\n-h/--help:             Prints this help message"
+                 "\n";
     return 0;
   }
 
@@ -139,7 +132,7 @@ int main(int argc, char *argv[]) {
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
@@ -162,13 +155,13 @@ int main(int argc, char *argv[]) {
     variance = sigma_fixed;
   else {
     float max_spread = num_elems * sigma_fixed;
-    variance = max_spread / 1000.0 * sigma;
+    variance         = max_spread / 1000.0 * sigma;
   }
-  
+
   {
     Kokkos::ScopeGuard guard(argc, argv);
-    TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);  
-  
+    TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);
+
     ORDINAL_T num_elems_per_rank;
     ORDINAL_T iters_per_team;
     num_elems_per_rank = ceil(1.0 * num_elems / num_ranks);
@@ -177,37 +170,36 @@ int main(int argc, char *argv[]) {
 
     do {
       Generator_t gen_pool(5374857);
-    
+
       // Update execution parameters
-      num_iters = next_iters;
+      num_iters      = next_iters;
       iters_per_team = ceil(num_iters / league_size);
-      num_iters = iters_per_team * league_size;
+      num_iters      = iters_per_team * league_size;
 
       Kokkos::Timer timer;
 
       Kokkos::parallel_for(
-          "Outer", policy,
-          KOKKOS_LAMBDA(const TeamPolicy::member_type &team) {
+          "Outer", policy, KOKKOS_LAMBDA(const TeamPolicy::member_type &team) {
             Generator_t::generator_type g = gen_pool.get_state();
-            Kokkos::parallel_for(              
-                Kokkos::TeamThreadRange(team, my_rank * iters_per_team, 
-                (my_rank+1) * iters_per_team), [&](const int i) {
+            Kokkos::parallel_for(
+                Kokkos::TeamThreadRange(team, my_rank * iters_per_team,
+                                        (my_rank + 1) * iters_per_team),
+                [&](const int i) {
                   int rank;
                   ORDINAL_T index;
                   index = abs(get(i, variance, g));
-                  rank = index / elems_per_rank;
+                  rank  = index / elems_per_rank;
                   index = index % num_elems_per_rank;
                   v(rank, index) ^= 0xC0FFEE;
                 });
             gen_pool.free_state(g);
-        });
+          });
 
       RemoteSpace_t().fence();
       time = timer.seconds();
 
       // Increase iteration space to reach a 2 sec. execution time.
-      if (next_iters * 4 > std::numeric_limits<ORDINAL_T>::max() / 4)
-        break;
+      if (next_iters * 4 > std::numeric_limits<ORDINAL_T>::max() / 4) break;
       next_iters *= 4;
     } while (time <= 2.0);
   }
@@ -217,15 +209,8 @@ int main(int argc, char *argv[]) {
         (2.0 * num_iters * sizeof(ORDINAL_T)) / 1024.0 / 1024.0 / 1024.0 / time;
     float access_latency = time / num_iters * 1.0e6;
 
-    printf( "%i, %i, %i, %i, %ld, %.3f, %.2f, %.4f\n",
-      num_ranks, 
-      league_size, 
-      team_size,
-      vec_len, 
-      num_elems, 
-      access_latency, 
-      time, 
-      GBs);
+    printf("%i, %i, %i, %i, %ld, %.3f, %.2f, %.4f\n", num_ranks, league_size,
+           team_size, vec_len, num_elems, access_latency, time, GBs);
   }
 
   MPI_Finalize();

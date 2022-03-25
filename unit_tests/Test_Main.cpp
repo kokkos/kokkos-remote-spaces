@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif

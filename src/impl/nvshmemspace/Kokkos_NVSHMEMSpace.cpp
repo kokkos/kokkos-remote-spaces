@@ -50,7 +50,8 @@ namespace Kokkos {
 namespace Experimental {
 
 /* Default allocation mechanism */
-NVSHMEMSpace::NVSHMEMSpace() : allocation_mode(Kokkos::Experimental::Symmetric) {}
+NVSHMEMSpace::NVSHMEMSpace()
+    : allocation_mode(Kokkos::Experimental::Symmetric) {}
 
 void NVSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
   allocation_mode = allocation_mode_;
@@ -70,8 +71,8 @@ void *NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
   if (arg_alloc_size) {
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       int num_pes = nvshmem_n_pes();
-      int my_id = nvshmem_my_pe();
-      ptr = nvshmem_malloc(arg_alloc_size);
+      int my_id   = nvshmem_my_pe();
+      ptr         = nvshmem_malloc(arg_alloc_size);
     } else {
       Kokkos::abort("NVSHMEMSpace only supports symmetric allocation policy.");
     }
@@ -98,64 +99,62 @@ KOKKOS_FUNCTION
 size_t get_indexing_block_size(size_t size) {
   size_t num_pes, block;
   num_pes = get_num_pes();
-  block = (size + num_pes - 1) / num_pes;
+  block   = (size + num_pes - 1) / num_pes;
   return block;
 }
 
-std::pair<size_t, size_t> getRange(size_t size, size_t pe)
-{
-    size_t start, end; 
-    size_t block = get_indexing_block_size(size);
-    start  = pe * block;
-    end = (pe + 1) * block;
+std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
+  size_t start, end;
+  size_t block = get_indexing_block_size(size);
+  start        = pe * block;
+  end          = (pe + 1) * block;
 
-    size_t num_pes = get_num_pes();
+  size_t num_pes = get_num_pes();
 
-    if(size<num_pes)
-    {
-      size_t diff = (num_pes * block) - size;
-      if(pe > num_pes - 1 - diff)
-        end --;
-    } else
-    {   
-      if (pe == num_pes - 1){
-        size_t diff = size - (num_pes - 1) * block;
-        end = start + diff;
-      }
-      end--;
+  if (size < num_pes) {
+    size_t diff = (num_pes * block) - size;
+    if (pe > num_pes - 1 - diff) end--;
+  } else {
+    if (pe == num_pes - 1) {
+      size_t diff = size - (num_pes - 1) * block;
+      end         = start + diff;
     }
-    return std::make_pair(start, end);
+    end--;
+  }
+  return std::make_pair(start, end);
 }
 
-} // namespace Experimental
+}  // namespace Experimental
 
-namespace Impl 
-{
-  
-Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>
-::DeepCopy(void *dst, const void *src, size_t n) {
-    Kokkos::Experimental::NVSHMEMSpace().fence();
-    cudaMemcpy(dst, src, n, cudaMemcpyDefault);
+namespace Impl {
+
+Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>::DeepCopy(
+    void *dst, const void *src, size_t n) {
+  Kokkos::Experimental::NVSHMEMSpace().fence();
+  cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 
-Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>
-::DeepCopy(void *dst, const void *src, size_t n) {
-    Kokkos::Experimental::NVSHMEMSpace().fence();
-    cudaMemcpy(dst, src, n, cudaMemcpyDefault);
-}
-
-template <typename ExecutionSpace>
-Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::NVSHMEMSpace,
-              ExecutionSpace>:: 
-DeepCopy(void *dst, const void *src, size_t n) { 
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>::DeepCopy(
+    void *dst, const void *src, size_t n) {
   Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 
 template <typename ExecutionSpace>
-Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::NVSHMEMSpace,
-              ExecutionSpace>:: 
-DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n) {
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
+                       Kokkos::Experimental::NVSHMEMSpace,
+                       ExecutionSpace>::DeepCopy(void *dst, const void *src,
+                                                 size_t n) {
+  Kokkos::Experimental::NVSHMEMSpace().fence();
+  cudaMemcpy(dst, src, n, cudaMemcpyDefault);
+}
+
+template <typename ExecutionSpace>
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
+                       Kokkos::Experimental::NVSHMEMSpace,
+                       ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
+                                                 void *dst, const void *src,
+                                                 size_t n) {
   Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
@@ -172,5 +171,5 @@ void local_deep_copy_put(void *dst, const void *src, size_t pe, size_t n) {
   nvshmem_putmem(dst, src, pe, n);
 }
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos

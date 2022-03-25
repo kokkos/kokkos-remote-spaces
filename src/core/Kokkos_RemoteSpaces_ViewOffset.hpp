@@ -61,11 +61,11 @@ struct ViewOffset<
     typename std::enable_if<(1 >= Dimension::rank ||
                              0 == Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
-  using is_regular = std::true_type;
+  using is_regular        = std::true_type;
 
-  using size_type = size_t;
+  using size_type      = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::PartitionedLayoutLeft;
+  using array_layout   = Kokkos::PartitionedLayoutLeft;
 
   dimension_type m_dim;
 
@@ -86,23 +86,28 @@ struct ViewOffset<
 
   // rank 3
   template <typename I0, typename I1, typename I2>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2) const {
     return i0 + m_dim.N0 * (i1 + m_dim.N1 * i2);
   }
 
   // rank 4
   template <typename I0, typename I1, typename I2, typename I3>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3) const {
     return i0 + m_dim.N0 * (i1 + m_dim.N1 * (i2 + m_dim.N2 * i3));
   }
 
   // rank 5
   template <typename I0, typename I1, typename I2, typename I3, typename I4>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3,
+                                                        I4 const &i4) const {
     return i0 +
            m_dim.N0 * (i1 + m_dim.N1 * (i2 + m_dim.N2 * (i3 + m_dim.N3 * i4)));
   }
@@ -110,9 +115,9 @@ struct ViewOffset<
   // rank 6
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5) const {
     return i0 +
            m_dim.N0 *
                (i1 +
@@ -123,9 +128,9 @@ struct ViewOffset<
   // rank 7
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6) const {
     return i0 +
            m_dim.N0 *
                (i1 + m_dim.N1 *
@@ -138,9 +143,9 @@ struct ViewOffset<
   // rank 8
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6, I7 const &i7) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6, I7 const &i7) const {
     return i0 +
            m_dim.N0 *
                (i1 +
@@ -272,7 +277,7 @@ struct ViewOffset<
     return *this;
   }
 #else
-  ViewOffset() = default;
+  ViewOffset()                   = default;
   ViewOffset(const ViewOffset &) = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
@@ -305,8 +310,8 @@ struct ViewOffset<
   }
 
   template <class DimRHS>
-  KOKKOS_INLINE_FUNCTION
-  ViewOffset(const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
+  KOKKOS_INLINE_FUNCTION ViewOffset(
+      const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
       : m_dim(rhs.m_dim.N0, 0, 0, 0, 0, 0, 0, 0) {
     if (rhs.m_stride.S0 != 1) {
       Kokkos::abort(
@@ -337,11 +342,11 @@ struct ViewOffset<
     typename std::enable_if<(1 < Dimension::rank &&
                              0 < Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
-  using is_regular = std::true_type;
+  using is_regular        = std::true_type;
 
-  using size_type = size_t;
+  using size_type      = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::PartitionedLayoutLeft;
+  using array_layout   = Kokkos::PartitionedLayoutLeft;
 
   dimension_type m_dim;
   size_type m_stride;
@@ -363,23 +368,28 @@ struct ViewOffset<
 
   // rank 3
   template <typename I0, typename I1, typename I2>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2) const {
     return i0 + m_stride * (i1 + m_dim.N1 * i2);
   }
 
   // rank 4
   template <typename I0, typename I1, typename I2, typename I3>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3) const {
     return i0 + m_stride * (i1 + m_dim.N1 * (i2 + m_dim.N2 * i3));
   }
 
   // rank 5
   template <typename I0, typename I1, typename I2, typename I3, typename I4>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3,
+                                                        I4 const &i4) const {
     return i0 +
            m_stride * (i1 + m_dim.N1 * (i2 + m_dim.N2 * (i3 + m_dim.N3 * i4)));
   }
@@ -387,9 +397,9 @@ struct ViewOffset<
   // rank 6
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5) const {
     return i0 +
            m_stride *
                (i1 +
@@ -400,9 +410,9 @@ struct ViewOffset<
   // rank 7
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6) const {
     return i0 +
            m_stride *
                (i1 + m_dim.N1 *
@@ -415,9 +425,9 @@ struct ViewOffset<
   // rank 8
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6, I7 const &i7) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6, I7 const &i7) const {
     return i0 +
            m_stride *
                (i1 +
@@ -538,8 +548,9 @@ struct ViewOffset<
 
   //----------------------------------------
 
-private:
-  template <unsigned TrivialScalarSize> struct Padding {
+ private:
+  template <unsigned TrivialScalarSize>
+  struct Padding {
     enum {
       div = TrivialScalarSize == 0
                 ? 0
@@ -556,7 +567,9 @@ private:
     // If memory alignment is a multiple of the trivial scalar size then attempt
     // to align.
     enum { align = 0 != TrivialScalarSize && 0 == mod ? div : 0 };
-    enum { div_ok = (div != 0) ? div : 1 }; // To valid modulo zero in constexpr
+    enum {
+      div_ok = (div != 0) ? div : 1
+    };  // To valid modulo zero in constexpr
 
     KOKKOS_INLINE_FUNCTION
     static constexpr size_t stride(size_t const N) {
@@ -568,24 +581,24 @@ private:
     }
   };
 
-public:
+ public:
   // MSVC (16.5.5) + CUDA (10.2) did not generate the defaulted functions
   // correct and errors out during compilation. Same for the other places where
   // I changed this.
 #ifdef KOKKOS_IMPL_WINDOWS_CUDA
   KOKKOS_FUNCTION ViewOffset() : m_dim(dimension_type()), m_stride(0) {}
   KOKKOS_FUNCTION ViewOffset(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
   }
   KOKKOS_FUNCTION ViewOffset &operator=(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
     return *this;
   }
 #else
 
-  ViewOffset() = default;
+  ViewOffset()                   = default;
   ViewOffset(const ViewOffset &) = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
@@ -614,8 +627,8 @@ public:
   }
 
   template <class DimRHS>
-  KOKKOS_INLINE_FUNCTION
-  ViewOffset(const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
+  KOKKOS_INLINE_FUNCTION ViewOffset(
+      const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7),
         m_stride(rhs.stride_1()) {
@@ -666,11 +679,11 @@ struct ViewOffset<
     typename std::enable_if<(1 >= Dimension::rank ||
                              0 == Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
-  using is_regular = std::true_type;
+  using is_regular        = std::true_type;
 
-  using size_type = size_t;
+  using size_type      = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::PartitionedLayoutRight;
+  using array_layout   = Kokkos::PartitionedLayoutRight;
 
   dimension_type m_dim;
 
@@ -691,23 +704,28 @@ struct ViewOffset<
 
   // rank 3
   template <typename I0, typename I1, typename I2>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2) const {
     return i2 + m_dim.N2 * (i1 + m_dim.N1 * (i0));
   }
 
   // rank 4
   template <typename I0, typename I1, typename I2, typename I3>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3) const {
     return i3 + m_dim.N3 * (i2 + m_dim.N2 * (i1 + m_dim.N1 * (i0)));
   }
 
   // rank 5
   template <typename I0, typename I1, typename I2, typename I3, typename I4>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3,
+                                                        I4 const &i4) const {
     return i4 + m_dim.N4 *
                     (i3 + m_dim.N3 * (i2 + m_dim.N2 * (i1 + m_dim.N1 * (i0))));
   }
@@ -715,9 +733,9 @@ struct ViewOffset<
   // rank 6
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5) const {
     return i5 +
            m_dim.N5 *
                (i4 +
@@ -728,9 +746,9 @@ struct ViewOffset<
   // rank 7
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6) const {
     return i6 +
            m_dim.N6 *
                (i5 +
@@ -744,9 +762,9 @@ struct ViewOffset<
   // rank 8
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6, I7 const &i7) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6, I7 const &i7) const {
     return i7 +
            m_dim.N7 *
                (i6 +
@@ -888,7 +906,7 @@ struct ViewOffset<
   }
 #else
 
-  ViewOffset() = default;
+  ViewOffset()                   = default;
   ViewOffset(const ViewOffset &) = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
@@ -921,8 +939,8 @@ struct ViewOffset<
   }
 
   template <class DimRHS>
-  KOKKOS_INLINE_FUNCTION
-  ViewOffset(const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
+  KOKKOS_INLINE_FUNCTION ViewOffset(
+      const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
       : m_dim(rhs.m_dim.N0, 0, 0, 0, 0, 0, 0, 0) {}
 
   //----------------------------------------
@@ -948,11 +966,11 @@ struct ViewOffset<
     typename std::enable_if<(1 < Dimension::rank &&
                              0 < Dimension::rank_dynamic)>::type> {
   using is_mapping_plugin = std::true_type;
-  using is_regular = std::true_type;
+  using is_regular        = std::true_type;
 
-  using size_type = size_t;
+  using size_type      = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::PartitionedLayoutRight;
+  using array_layout   = Kokkos::PartitionedLayoutRight;
 
   dimension_type m_dim;
   size_type m_stride;
@@ -974,23 +992,28 @@ struct ViewOffset<
 
   // rank 3
   template <typename I0, typename I1, typename I2>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2) const {
     return i2 + m_dim.N2 * (i1) + i0 * m_stride;
   }
 
   // rank 4
   template <typename I0, typename I1, typename I2, typename I3>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3) const {
     return i3 + m_dim.N3 * (i2 + m_dim.N2 * (i1)) + i0 * m_stride;
   }
 
   // rank 5
   template <typename I0, typename I1, typename I2, typename I3, typename I4>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3,
+                                                        I4 const &i4) const {
     return i4 + m_dim.N4 * (i3 + m_dim.N3 * (i2 + m_dim.N2 * (i1))) +
            i0 * m_stride;
   }
@@ -998,9 +1021,9 @@ struct ViewOffset<
   // rank 6
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5) const {
     return i5 +
            m_dim.N5 *
                (i4 + m_dim.N4 * (i3 + m_dim.N3 * (i2 + m_dim.N2 * (i1)))) +
@@ -1010,9 +1033,9 @@ struct ViewOffset<
   // rank 7
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6) const {
     return i6 +
            m_dim.N6 *
                (i5 + m_dim.N5 *
@@ -1024,9 +1047,9 @@ struct ViewOffset<
   // rank 8
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6, I7 const &i7) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6, I7 const &i7) const {
     return i7 +
            m_dim.N7 *
                (i6 +
@@ -1152,8 +1175,9 @@ struct ViewOffset<
 
   //----------------------------------------
 
-private:
-  template <unsigned TrivialScalarSize> struct Padding {
+ private:
+  template <unsigned TrivialScalarSize>
+  struct Padding {
     enum {
       div = TrivialScalarSize == 0
                 ? 0
@@ -1170,7 +1194,9 @@ private:
     // If memory alignment is a multiple of the trivial scalar size then attempt
     // to align.
     enum { align = 0 != TrivialScalarSize && 0 == mod ? div : 0 };
-    enum { div_ok = (div != 0) ? div : 1 }; // To valid modulo zero in constexpr
+    enum {
+      div_ok = (div != 0) ? div : 1
+    };  // To valid modulo zero in constexpr
 
     KOKKOS_INLINE_FUNCTION
     static constexpr size_t stride(size_t const N) {
@@ -1182,7 +1208,7 @@ private:
     }
   };
 
-public:
+ public:
   // MSVC (16.5.5) + CUDA (10.2) did not generate the defaulted functions
   // correct and errors out during compilation. Same for the other places where
   // I changed this.
@@ -1190,17 +1216,17 @@ public:
 #ifdef KOKKOS_IMPL_WINDOWS_CUDA
   KOKKOS_FUNCTION ViewOffset() : m_dim(dimension_type()), m_stride(0) {}
   KOKKOS_FUNCTION ViewOffset(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
   }
   KOKKOS_FUNCTION ViewOffset &operator=(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
     return *this;
   }
 #else
 
-  ViewOffset() = default;
+  ViewOffset()                   = default;
   ViewOffset(const ViewOffset &) = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
@@ -1257,8 +1283,8 @@ public:
   }
 
   template <class DimRHS>
-  KOKKOS_INLINE_FUNCTION
-  ViewOffset(const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
+  KOKKOS_INLINE_FUNCTION ViewOffset(
+      const ViewOffset<DimRHS, Kokkos::LayoutStride, void> &rhs)
       : m_dim(rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3,
               rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7),
         m_stride(rhs.stride_0()) {
@@ -1275,8 +1301,9 @@ public:
                                          : ((dimension_type::rank == 7)
                                                 ? rhs.m_stride.S6
                                                 : rhs.m_stride.S7)))))) != 1) {
-      Kokkos::abort("Kokkos::Impl::ViewOffset assignment of LayoutRight from "
-                    "LayoutStride requires right-most stride == 1");
+      Kokkos::abort(
+          "Kokkos::Impl::ViewOffset assignment of LayoutRight from "
+          "LayoutStride requires right-most stride == 1");
     }
   }
 
@@ -1311,16 +1338,16 @@ public:
 
 template <class Dimension>
 struct ViewOffset<Dimension, Kokkos::PartitionedLayoutStride, void> {
-private:
+ private:
   using stride_type = ViewStride<Dimension::rank>;
 
-public:
+ public:
   using is_mapping_plugin = std::true_type;
-  using is_regular = std::true_type;
+  using is_regular        = std::true_type;
 
-  using size_type = size_t;
+  using size_type      = size_t;
   using dimension_type = Dimension;
-  using array_layout = Kokkos::PartitionedLayoutStride;
+  using array_layout   = Kokkos::PartitionedLayoutStride;
 
   dimension_type m_dim;
   stride_type m_stride;
@@ -1342,24 +1369,29 @@ public:
 
   // rank 3
   template <typename I0, typename I1, typename I2>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2;
   }
 
   // rank 4
   template <typename I0, typename I1, typename I2, typename I3>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2 +
            i3 * m_stride.S3;
   }
 
   // rank 5
   template <typename I0, typename I1, typename I2, typename I3, typename I4>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(I0 const &i0,
+                                                        I1 const &i1,
+                                                        I2 const &i2,
+                                                        I3 const &i3,
+                                                        I4 const &i4) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2 +
            i3 * m_stride.S3 + i4 * m_stride.S4;
   }
@@ -1367,9 +1399,9 @@ public:
   // rank 6
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2 +
            i3 * m_stride.S3 + i4 * m_stride.S4 + i5 * m_stride.S5;
   }
@@ -1377,9 +1409,9 @@ public:
   // rank 7
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2 +
            i3 * m_stride.S3 + i4 * m_stride.S4 + i5 * m_stride.S5 +
            i6 * m_stride.S6;
@@ -1388,9 +1420,9 @@ public:
   // rank 8
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7>
-  KOKKOS_INLINE_FUNCTION constexpr size_type
-  operator()(I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3,
-             I4 const &i4, I5 const &i5, I6 const &i6, I7 const &i7) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_type operator()(
+      I0 const &i0, I1 const &i1, I2 const &i2, I3 const &i3, I4 const &i4,
+      I5 const &i5, I6 const &i6, I7 const &i7) const {
     return i0 * m_stride.S0 + i1 * m_stride.S1 + i2 * m_stride.S2 +
            i3 * m_stride.S3 + i4 * m_stride.S4 + i5 * m_stride.S5 +
            i6 * m_stride.S6 + i7 * m_stride.S7;
@@ -1438,13 +1470,13 @@ public:
            m_dim.N6 * m_dim.N7;
   }
 
-private:
+ private:
   KOKKOS_INLINE_FUNCTION
   static constexpr size_type Max(size_type lhs, size_type rhs) {
     return lhs < rhs ? rhs : lhs;
   }
 
-public:
+ public:
   /* Span of the range space, largest stride * dimension */
   KOKKOS_INLINE_FUNCTION
   constexpr size_type span() const {
@@ -1529,17 +1561,17 @@ public:
   KOKKOS_FUNCTION ViewOffset()
       : m_dim(dimension_type()), m_stride(stride_type()) {}
   KOKKOS_FUNCTION ViewOffset(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
   }
   KOKKOS_FUNCTION ViewOffset &operator=(const ViewOffset &src) {
-    m_dim = src.m_dim;
+    m_dim    = src.m_dim;
     m_stride = src.m_stride;
     return *this;
   }
 #else
 
-  ViewOffset() = default;
+  ViewOffset()                   = default;
   ViewOffset(const ViewOffset &) = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
@@ -1569,10 +1601,10 @@ public:
   //----------------------------------------
   // Subview construction
 
-private:
+ private:
   template <class DimRHS, class LayoutRHS>
-  KOKKOS_INLINE_FUNCTION static constexpr size_t
-  stride(unsigned r, const ViewOffset<DimRHS, LayoutRHS, void> &rhs) {
+  KOKKOS_INLINE_FUNCTION static constexpr size_t stride(
+      unsigned r, const ViewOffset<DimRHS, LayoutRHS, void> &rhs) {
     return r > 7
                ? 0
                : (r == 0
@@ -1592,7 +1624,7 @@ private:
                                                                 : rhs.stride_7())))))));
   }
 
-public:
+ public:
   template <class DimRHS, class LayoutRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
       const ViewOffset<DimRHS, LayoutRHS, void> &rhs,
@@ -1610,7 +1642,7 @@ public:
             stride(sub.range_index(6), rhs), stride(sub.range_index(7), rhs)) {}
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_VIEWOFFSET_HPP
+#endif  // KOKKOS_REMOTESPACES_VIEWOFFSET_HPP

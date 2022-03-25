@@ -76,17 +76,16 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
       current_win = MPI_WIN_NULL;
       MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
                        &current_win);
-                             
+
       assert(current_win != MPI_WIN_NULL);
-      
+
       int ret = MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
       if (ret != MPI_SUCCESS) {
         Kokkos::abort("MPI window lock all failed.");
       }
       int i;
       for (i = 0; i < mpi_windows.size(); ++i) {
-        if (mpi_windows[i] == MPI_WIN_NULL)
-          break;
+        if (mpi_windows[i] == MPI_WIN_NULL) break;
       }
 
       if (i == mpi_windows.size())
@@ -102,16 +101,14 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
 
 void MPISpace::deallocate(void *const, const size_t) const {
   int last_valid;
-  for (last_valid = 0; last_valid < mpi_windows.size(); ++last_valid){
-    if (mpi_windows[last_valid] == MPI_WIN_NULL)
-      break;
+  for (last_valid = 0; last_valid < mpi_windows.size(); ++last_valid) {
+    if (mpi_windows[last_valid] == MPI_WIN_NULL) break;
   }
 
   last_valid--;
-  for (int i = 0; i < mpi_windows.size(); ++i)
-  {
+  for (int i = 0; i < mpi_windows.size(); ++i) {
     if (mpi_windows[i] == current_win) {
-      mpi_windows[i] = mpi_windows[last_valid];
+      mpi_windows[i]          = mpi_windows[last_valid];
       mpi_windows[last_valid] = MPI_WIN_NULL;
       break;
     }
@@ -120,14 +117,14 @@ void MPISpace::deallocate(void *const, const size_t) const {
   assert(current_win != MPI_WIN_NULL);
   MPI_Win_unlock_all(current_win);
   MPI_Win_free(&current_win);
-  
-  // We pass a mempory space instance do multiple Views thus 
+
+  // We pass a mempory space instance do multiple Views thus
   // setting "current_win = MPI_WIN_NULL;" will result in a wrong handle if
   // subsequent view runs out of scope
   // Fixme: The following only works when views are allocated sequentially
   // We need a thread-safe map to associate views and windows
 
-  if(last_valid != 0)
+  if (last_valid != 0)
     current_win = mpi_windows[last_valid - 1];
   else
     current_win = MPI_WIN_NULL;
@@ -160,35 +157,31 @@ KOKKOS_FUNCTION
 size_t get_indexing_block_size(size_t size) {
   size_t num_pes, block;
   num_pes = get_num_pes();
-  block = (size + num_pes - 1) / num_pes;
+  block   = (size + num_pes - 1) / num_pes;
   return block;
 }
 
-std::pair<size_t, size_t> getRange(size_t size, size_t pe)
-{
-    size_t start, end; 
-    size_t block = get_indexing_block_size(size);
-    start  = pe * block;
-    end = (pe + 1) * block;
+std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
+  size_t start, end;
+  size_t block = get_indexing_block_size(size);
+  start        = pe * block;
+  end          = (pe + 1) * block;
 
-    size_t num_pes = get_num_pes();
+  size_t num_pes = get_num_pes();
 
-    if(size<num_pes)
-    {
-      size_t diff = (num_pes * block) - size;
-      if(pe > num_pes - 1 - diff)
-        end --;
-    } else
-    {   
-      if (pe == num_pes - 1){
-        size_t diff = size - (num_pes - 1) * block;
-        end = start + diff;
-      }
-      end--;
+  if (size < num_pes) {
+    size_t diff = (num_pes * block) - size;
+    if (pe > num_pes - 1 - diff) end--;
+  } else {
+    if (pe == num_pes - 1) {
+      size_t diff = size - (num_pes - 1) * block;
+      end         = start + diff;
     }
-    return std::make_pair(start, end);
+    end--;
+  }
+  return std::make_pair(start, end);
 }
-} // namespace Experimental
+}  // namespace Experimental
 
 namespace Impl {
 
@@ -201,7 +194,7 @@ Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::MPISpace>::DeepCopy(
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace, HostSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
   Kokkos::Experimental::MPISpace().fence();
-  memcpy((char*)dst, (char*)src, n);
+  memcpy((char *)dst, (char *)src, n);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
@@ -244,5 +237,5 @@ void local_deep_copy_put(void *dst, const void *src, size_t pe, size_t n) {
   // TBD
 }
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos

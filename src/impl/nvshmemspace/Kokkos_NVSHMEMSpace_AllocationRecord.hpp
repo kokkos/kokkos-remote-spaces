@@ -53,7 +53,7 @@ namespace Impl {
 template <>
 class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
     : public SharedAllocationRecord<void, void> {
-private:
+ private:
   friend Kokkos::Experimental::NVSHMEMSpace;
 
   typedef SharedAllocationRecord<void, void> RecordBase;
@@ -69,7 +69,7 @@ private:
 
   const Kokkos::Experimental::NVSHMEMSpace m_space;
 
-protected:
+ protected:
   ~SharedAllocationRecord();
   SharedAllocationRecord() = default;
 
@@ -78,7 +78,7 @@ protected:
       const std::string &arg_label, const size_t arg_alloc_size,
       const RecordBase::function_type arg_dealloc = &deallocate);
 
-public:
+ public:
   inline std::string get_label() const {
     SharedAllocationHeader header;
     Kokkos::Impl::DeepCopy<Kokkos::HostSpace, Kokkos::CudaSpace>(
@@ -86,9 +86,9 @@ public:
     return std::string(header.m_label);
   }
 
-  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *
-  allocate(const Kokkos::Experimental::NVSHMEMSpace &arg_space,
-           const std::string &arg_label, const size_t arg_alloc_size) {
+  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *allocate(
+      const Kokkos::Experimental::NVSHMEMSpace &arg_space,
+      const std::string &arg_label, const size_t arg_alloc_size) {
 #if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
     return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
 #else
@@ -97,9 +97,9 @@ public:
   }
 
   /**\brief  Allocate tracked memory in the space */
-  static void *
-  allocate_tracked(const Kokkos::Experimental::NVSHMEMSpace &arg_space,
-                   const std::string &arg_label, const size_t arg_alloc_size);
+  static void *allocate_tracked(
+      const Kokkos::Experimental::NVSHMEMSpace &arg_space,
+      const std::string &arg_label, const size_t arg_alloc_size);
 
   /**\brief  Reallocate tracked memory in the space */
   static void *reallocate_tracked(void *const arg_alloc_ptr,
@@ -115,7 +115,7 @@ public:
                             bool detail = false);
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_NVSHMEM_ALLOCREC_HPP
+#endif  // KOKKOS_NVSHMEM_ALLOCREC_HPP

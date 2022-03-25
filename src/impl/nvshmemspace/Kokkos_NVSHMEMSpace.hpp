@@ -64,8 +64,7 @@ namespace Experimental {
 class RemoteSpaceSpecializeTag {};
 
 class NVSHMEMSpace {
-public:
-
+ public:
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
@@ -77,22 +76,22 @@ public:
 #elif defined(KOKKOS_ENABLE_SERIAL)
   using execution_space = Kokkos::Serial;
 #else
-#error                                                                         \
+#error \
     "At least one of the following host execution spaces must be defined: Kokkos::OpenMP, Kokkos::Threads, Kokkos::Qthreads, or Kokkos::Serial.  \
         You might be seeing this message if you disabled the Kokkos::Serial device explicitly using the Kokkos_ENABLE_Serial:BOOL=OFF \
         CMake option, but did not enable any of the other host execution space devices."
 #endif
 
   using memory_space = NVSHMEMSpace;
-  using device_type = Kokkos::Device<execution_space, memory_space>;
-  using size_type = size_t;
+  using device_type  = Kokkos::Device<execution_space, memory_space>;
+  using size_type    = size_t;
 
   NVSHMEMSpace();
-  NVSHMEMSpace(NVSHMEMSpace &&rhs) = default;
+  NVSHMEMSpace(NVSHMEMSpace &&rhs)      = default;
   NVSHMEMSpace(const NVSHMEMSpace &rhs) = default;
   NVSHMEMSpace &operator=(NVSHMEMSpace &&) = default;
   NVSHMEMSpace &operator=(const NVSHMEMSpace &) = default;
-  ~NVSHMEMSpace() = default;
+  ~NVSHMEMSpace()                               = default;
 
   explicit NVSHMEMSpace(const MPI_Comm &);
 
@@ -116,7 +115,7 @@ public:
   void impl_set_allocation_mode(const int);
   void impl_set_extent(int64_t N);
 
-private:
+ private:
   static constexpr const char *m_name = "NVSHMEM";
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::NVSHMEMSpace, void>;
@@ -130,29 +129,28 @@ KOKKOS_FUNCTION
 size_t get_indexing_block_size(size_t size);
 std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace Experimental
+}  // namespace Kokkos
 
 namespace Kokkos {
 namespace Impl {
 
 template <>
-struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+struct DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>{
-  DeepCopy(void* dst, const void* src, size_t);
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace> {
+  DeepCopy(void *dst, const void *src, size_t);
 };
 
 template <class ExecutionSpace>
-struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace, Kokkos::Experimental::NVSHMEMSpace,
-                ExecutionSpace> {
+struct DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
+                Kokkos::Experimental::NVSHMEMSpace, ExecutionSpace> {
   DeepCopy(void *dst, const void *src, size_t n);
   DeepCopy(const ExecutionSpace &exec, void *dst, const void *src, size_t n);
 };
-
 
 template <>
 struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
@@ -178,10 +176,8 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
   enum { deepcopy = true };
 };
 
-
-
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
@@ -194,4 +190,4 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
 #include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
 #include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 
-#endif // #define KOKKOS_NVSHMEMSPACE_HPP
+#endif  // #define KOKKOS_NVSHMEMSPACE_HPP

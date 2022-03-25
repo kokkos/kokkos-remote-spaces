@@ -52,16 +52,20 @@
 #define NUM_SHIFTS 16
 #define SIZE 1024
 
-#define swap(a,b,T) T tmp = a; a = b; b=tmp;
+#define swap(a, b, T) \
+  T tmp = a;          \
+  a     = b;          \
+  b     = tmp;
 
-//Exercise: Change View template parameter to DefaultRemoteMemorySpace in Kokkos::Experimental
-using View_t = Kokkos::View<T*>;
+// Exercise: Change View template parameter to DefaultRemoteMemorySpace in
+// Kokkos::Experimental
+using View_t = Kokkos::View<T *>;
 
-//Exercise: Change View template parameter to specify a two-dimensional array on the host
-using HostView_t = Kokkos::View<T*,Kokkos::HostSpace>;
+// Exercise: Change View template parameter to specify a two-dimensional array
+// on the host
+using HostView_t = Kokkos::View<T *, Kokkos::HostSpace>;
 
 int main(int argc, char *argv[]) {
-
   // Excercise: Uncomment networking initialization below
   /*MPI_Init(&argc, &argv);
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
@@ -79,51 +83,51 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &myPE);
   MPI_Comm_size(MPI_COMM_WORLD, &numPEs);
   */
-  
+
   int k = OFFSET;
 
-  //Excercise: Compute process-local n
+  // Excercise: Compute process-local n
   int n = SIZE;
- 
 
   Kokkos::initialize(argc, argv);
   {
-    View_t a("A",n);
-    View_t b("B",n);
+    View_t a("A", n);
+    View_t b("B", n);
 
-    //Exercise: Add dimension to match remote memory view (1,DIM0,...)
-    HostView_t a_h("A_h",n);
+    // Exercise: Add dimension to match remote memory view (1,DIM0,...)
+    HostView_t a_h("A_h", n);
 
-    //Initialize one element to non-zero
-    Kokkos::deep_copy(a_h,0);
+    // Initialize one element to non-zero
+    Kokkos::deep_copy(a_h, 0);
 
-    //Exercise: Assign starting shift value to first element of a two-dimensional array
-    a_h(0) = 1; 
+    // Exercise: Assign starting shift value to first element of a
+    // two-dimensional array
+    a_h(0) = 1;
 
-    //Copy to Remote Memory Space
+    // Copy to Remote Memory Space
     Kokkos::deep_copy(a, a_h);
 
-    for(int shift = 0; shift < NUM_SHIFTS; ++shift)
-    {   
-      //Exercise: Change iteration space to a Range to global array indexing
-      Kokkos::parallel_for("Shift",n, KOKKOS_LAMBDA(const int i) { 
-        int j = i+k; //Shift
+    for (int shift = 0; shift < NUM_SHIFTS; ++shift) {
+      // Exercise: Change iteration space to a Range to global array indexing
+      Kokkos::parallel_for(
+          "Shift", n, KOKKOS_LAMBDA(const int i) {
+            int j = i + k;  // Shift
 
-        //Excersize: From global array index i, dermine PE and offset within PE
-        //Update indexing to two-dimensional indexing
-        b(j%n) = a(i);
-      });
+            // Excersize: From global array index i, dermine PE and offset
+            // within PE Update indexing to two-dimensional indexing
+            b(j % n) = a(i);
+          });
 
-      //Excercise: Change call to memory space specific fence
+      // Excercise: Change call to memory space specific fence
       Kokkos::fence();
 
-      swap(a,b,View_t);
+      swap(a, b, View_t);
     }
 
     Kokkos::deep_copy(a_h, b);
-    //Excersize: Update error check to check if value "1" has been shifter
-    //Note: it resides porentially on a different PE
-    assert(a_h((NUM_SHIFTS*OFFSET%n)-1)==1);
+    // Excersize: Update error check to check if value "1" has been shifter
+    // Note: it resides porentially on a different PE
+    assert(a_h((NUM_SHIFTS * OFFSET % n) - 1) == 1);
   }
   Kokkos::finalize();
 

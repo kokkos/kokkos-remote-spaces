@@ -48,7 +48,8 @@
 namespace Kokkos {
 namespace Impl {
 
-template <class T, class Traits> struct NVSHMEMDataHandle {
+template <class T, class Traits>
+struct NVSHMEMDataHandle {
   T *ptr;
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle() : ptr(NULL) {}
@@ -58,8 +59,8 @@ template <class T, class Traits> struct NVSHMEMDataHandle {
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits>
-  operator()(const int &pe, const iType &i) const {
+  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
+      const int &pe, const iType &i) const {
     NVSHMEMDataElement<T, Traits> element(ptr, pe, i);
     return element;
   }
@@ -73,11 +74,10 @@ struct ViewDataHandle<
     Traits, typename std::enable_if<std::is_same<
                 typename Traits::specialize,
                 Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
-
-  using value_type = typename Traits::value_type;
+  using value_type  = typename Traits::value_type;
   using handle_type = NVSHMEMDataHandle<value_type, Traits>;
   using return_type = NVSHMEMDataElement<value_type, Traits>;
-  using track_type = Kokkos::Impl::SharedAllocationTracker;
+  using track_type  = Kokkos::Impl::SharedAllocationTracker;
 
   KOKKOS_INLINE_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,
@@ -86,14 +86,14 @@ struct ViewDataHandle<
   }
 
   template <class SrcHandleType>
-  KOKKOS_INLINE_FUNCTION static handle_type
-  assign(SrcHandleType const arg_data_ptr, size_t offset) {
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const arg_data_ptr, size_t offset) {
     return handle_type(arg_data_ptr + offset);
   }
 
   template <class SrcHandleType>
-  KOKKOS_INLINE_FUNCTION static handle_type
-  assign(SrcHandleType const arg_data_ptr) {
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const arg_data_ptr) {
     return handle_type(arg_data_ptr);
   }
 
@@ -103,7 +103,7 @@ struct ViewDataHandle<
   }
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
+#endif  // KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP

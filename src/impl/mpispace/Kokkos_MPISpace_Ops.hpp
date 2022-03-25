@@ -58,9 +58,9 @@ namespace Impl {
     MPI_Type_size(mpi_type, &_typesize);                                       \
     /*MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win); */                            \
     MPI_Put(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
-            mpi_type, win);                                                    \
-   /* MPI_Win_unlock(pe, win);  */                                             \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
+            win);                                                              \
+    /* MPI_Win_unlock(pe, win);  */                                            \
     MPI_Win_flush(0, win);                                                     \
   }
 
@@ -79,18 +79,18 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_P
 
-#define KOKKOS_REMOTESPACES_G(type, mpi_type)                                  \
-  static KOKKOS_INLINE_FUNCTION void mpi_type_g(                               \
-      type &val, const size_t offset, const int pe, const MPI_Win &win) {      \
-    assert(win != MPI_WIN_NULL);                                               \
-    int _typesize;                                                             \
-    MPI_Type_size(mpi_type, &_typesize);                                       \
-    /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                             \
-    MPI_Get(&val, 1, mpi_type, pe,                                             \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1,            \
-            mpi_type, win);                                                    \
-    /*MPI_Win_unlock(0, win);*/                                                \
-    MPI_Win_flush(0, win);                                                     \
+#define KOKKOS_REMOTESPACES_G(type, mpi_type)                                 \
+  static KOKKOS_INLINE_FUNCTION void mpi_type_g(                              \
+      type &val, const size_t offset, const int pe, const MPI_Win &win) {     \
+    assert(win != MPI_WIN_NULL);                                              \
+    int _typesize;                                                            \
+    MPI_Type_size(mpi_type, &_typesize);                                      \
+    /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                            \
+    MPI_Get(&val, 1, mpi_type, pe,                                            \
+            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
+            win);                                                             \
+    /*MPI_Win_unlock(0, win);*/                                               \
+    MPI_Win_flush(0, win);                                                    \
   }
 
 KOKKOS_REMOTESPACES_G(char, MPI_SIGNED_CHAR)
@@ -124,11 +124,11 @@ KOKKOS_REMOTESPACES_ATOMIC_SET(double)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_SET
 
-#define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type)                                 \
-  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch(type *ptr,          \
-                                                           int pe) {           \
-    /* TBD */                                                                  \
-    return 0;                                                                  \
+#define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type)                        \
+  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch(type *ptr, \
+                                                           int pe) {  \
+    /* TBD */                                                         \
+    return 0;                                                         \
   }
 
 KOKKOS_REMOTESPACES_ATOMIC_FETCH(int)
@@ -157,11 +157,11 @@ KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long long)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_ADD
 
-#define KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(type)                             \
-  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch_add(                \
-      type *ptr, type value, int pe) {                                         \
-    /* TBD */                                                                  \
-    return 0;                                                                  \
+#define KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(type)              \
+  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch_add( \
+      type *ptr, type value, int pe) {                          \
+    /* TBD */                                                   \
+    return 0;                                                   \
   }
 
 KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(int)
@@ -173,11 +173,11 @@ KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(unsigned long long)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD
 
-#define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type)                          \
-  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_compare_swap(             \
-      type *ptr, type cond, type value, int pe) {                              \
-    /* TBD */                                                                  \
-    return 0;                                                                  \
+#define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type)              \
+  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_compare_swap( \
+      type *ptr, type cond, type value, int pe) {                  \
+    /* TBD */                                                      \
+    return 0;                                                      \
   }
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(int)
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(unsigned int)
@@ -188,11 +188,11 @@ KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(unsigned long long)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP
 
-#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type)                                  \
-  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_swap(                     \
-      type *ptr, type value, int pe) {                                         \
-    /* TBD */                                                                  \
-    return 0;                                                                  \
+#define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type)              \
+  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_swap( \
+      type *ptr, type value, int pe) {                     \
+    /* TBD */                                              \
+    return 0;                                              \
   }
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(int)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned int)
@@ -511,7 +511,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp = T();    
+    T tmp = T();
     mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }
@@ -828,7 +828,7 @@ struct MPIDataElement<
   }
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_MPI_OPS_HPP
+#endif  // KOKKOS_REMOTESPACES_MPI_OPS_HPP

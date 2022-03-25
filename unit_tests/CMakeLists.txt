@@ -8,17 +8,17 @@ FetchContent_Declare(googletest
 FetchContent_GetProperties(googletest)
 if(NOT googletest_POPULATED)
   FetchContent_Populate(googletest)
-  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR}) 
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
 
 SET(NAME KokkosRemote_TestAll)
 
 if (Kokkos_ENABLE_MPISPACE)
-  FILE(GLOB TEST_SRCS *.cpp) 
+  FILE(GLOB TEST_SRCS *.cpp)
   list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Subview\\.cpp$")
   message(${TEST_SRCS})
 else()
-  FILE(GLOB TEST_SRCS *.cpp) 
+  FILE(GLOB TEST_SRCS *.cpp)
 endif()
 
 add_executable(${NAME} ${TEST_SRCS})

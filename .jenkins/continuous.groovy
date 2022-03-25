@@ -2,6 +2,19 @@ pipeline {
     agent none 
 
     stages {
+        stage('Clang-Format') {
+            agent {
+                dockerfile {
+                    filename 'Dockerfile.clang'
+                    dir 'scripts/docker'
+                    label 'nvidia-docker || docker'
+                }
+            }
+            steps {
+                sh './scripts/docker/check_format_cpp.sh'
+            }
+        }
+
         stage('Build') {
             parallel {
                 stage('shmem-openmpi') {

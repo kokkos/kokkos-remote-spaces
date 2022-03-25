@@ -57,74 +57,76 @@ namespace Experimental {
 extern size_t get_my_pe();
 
 template <typename T>
-std::pair<size_t, size_t> get_range(T & v, size_t pe, typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr)
-{
-  static_assert(!(
+std::pair<size_t, size_t> get_range(
+    T &v, size_t pe,
+    typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
+  static_assert(!(std::is_same<typename T::traits::array_layout,
+                               Kokkos::PartitionedLayoutRight>::value ||
                   std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
+                               Kokkos::PartitionedLayoutLeft>::value ||
                   std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value),
+                               Kokkos::PartitionedLayoutStride>::value),
                 "get_local_range over partitioned layouts are not allowed");
 
-  //JC: Error out also in this case as we need to access the original dim0 of the View 
-  //and not the rounded dim0 of the View. Fix would need to add get_mapping to View
-  static_assert((
-                  std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value),
+  // JC: Error out also in this case as we need to access the original dim0 of
+  // the View and not the rounded dim0 of the View. Fix would need to add
+  // get_mapping to View
+  static_assert((std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutRight>::value ||
+                 std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutLeft>::value ||
+                 std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutStride>::value),
                 "get_local_range overload currently unsupported");
 
-  size_t extent_dim0 = v.extent(0); 
+  size_t extent_dim0 = v.extent(0);
   return getRange(extent_dim0, pe);
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_local_range(T & v, typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr)
-{
-  static_assert(!(
+std::pair<size_t, size_t> get_local_range(
+    T &v,
+    typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
+  static_assert(!(std::is_same<typename T::traits::array_layout,
+                               Kokkos::PartitionedLayoutRight>::value ||
                   std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
+                               Kokkos::PartitionedLayoutLeft>::value ||
                   std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value),
+                               Kokkos::PartitionedLayoutStride>::value),
                 "get_local_range over partitioned layouts are not allowed");
 
-  //JC: Error out also in this case as we need to access the original dim0 of the View 
-  //and not the rounded dim0 of the View. Fix would need to add get_mapping to View
-  static_assert((
-                  std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value),
+  // JC: Error out also in this case as we need to access the original dim0 of
+  // the View and not the rounded dim0 of the View. Fix would need to add
+  // get_mapping to View
+  static_assert((std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutRight>::value ||
+                 std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutLeft>::value ||
+                 std::is_same<typename T::traits::array_layout,
+                              Kokkos::PartitionedLayoutStride>::value),
                 "get_local_range overload currently unsupported");
-                
-  size_t pe = get_my_pe();
-  size_t extent_dim0 = v.extent(0); 
+
+  size_t pe          = get_my_pe();
+  size_t extent_dim0 = v.extent(0);
   return getRange(extent_dim0, pe);
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_range(T size, size_t pe, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr)
-{
+std::pair<size_t, size_t> get_range(
+    T size, size_t pe,
+    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
   return getRange(size, pe);
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_local_range(T size, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr)
-{
+std::pair<size_t, size_t> get_local_range(
+    T size,
+    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
   size_t pe = get_my_pe();
   return getRange(size, pe);
 }
 
-} // namespace Experimental
+}  // namespace Experimental
 
 namespace Impl {
 
@@ -140,7 +142,7 @@ class ViewMapping<
                      Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type,
     SrcTraits, Args...> {
-private:
+ private:
   static_assert(SrcTraits::rank == sizeof...(Args),
                 "Subview mapping requires one argument for each dimension of "
                 "source View");
@@ -199,8 +201,9 @@ private:
             (std::is_same<typename SrcTraits::array_layout,
                           Kokkos::LayoutLeft>::value ||
              std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutLeft>::value)) // replace with
-                                                             // input rank
+                          Kokkos::PartitionedLayoutLeft>::value))  // replace
+                                                                   // with input
+                                                                   // rank
            ||
            // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
            // because single stride one or second index has a stride.
@@ -208,8 +211,8 @@ private:
             (std::is_same<typename SrcTraits::array_layout,
                           Kokkos::LayoutRight>::value ||
              std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutRight>::value) // replace input
-                                                             // rank
+                          Kokkos::PartitionedLayoutRight>::value)  // replace
+                                                                   // input rank
             )),
           typename SrcTraits::array_layout, Kokkos::LayoutStride>::type;
 
@@ -236,7 +239,7 @@ private:
   // We compute the offset to that subview during assign
   enum { is_required_Dim0IsPE = R0 };
 
-public:
+ public:
   using memory_traits = typename std::conditional<
       is_required_Dim0IsPE,
       Kokkos::MemoryTraits<
@@ -259,7 +262,8 @@ public:
 
       "Remote memory space copy-construction with incorrect specialization.");
 
-  template <class MemoryTraits> struct apply {
+  template <class MemoryTraits>
+  struct apply {
     static_assert(Kokkos::is_memory_traits<MemoryTraits>::value, "");
 
     using traits_type =
@@ -270,13 +274,12 @@ public:
   };
 
   template <class DstTraits>
-  KOKKOS_INLINE_FUNCTION static void
-  assign(ViewMapping<DstTraits, Kokkos::Experimental::RemoteSpaceSpecializeTag>
-             &dst,
-         ViewMapping<SrcTraits,
-                     Kokkos::Experimental::RemoteSpaceSpecializeTag> const &src,
-         Args... args) {
-
+  KOKKOS_INLINE_FUNCTION static void assign(
+      ViewMapping<DstTraits, Kokkos::Experimental::RemoteSpaceSpecializeTag>
+          &dst,
+      ViewMapping<SrcTraits,
+                  Kokkos::Experimental::RemoteSpaceSpecializeTag> const &src,
+      Args... args) {
     static_assert(
         ViewMapping<
             DstTraits, traits_type,
@@ -291,13 +294,13 @@ public:
     const SubviewExtents<SrcTraits::rank, rank> extents(src.m_offset.m_dim,
                                                         args...);
 
-    dst.m_offset = dst_offset_type(src.m_offset, extents);
+    dst.m_offset     = dst_offset_type(src.m_offset, extents);
     dst.m_local_dim0 = src.m_local_dim0;
 
     // Set offset for dim0 manually in order to support remote copy-ctr'ed views
     // and subviews
     dst.m_offset_remote_dim = extents.domain_offset(0);
-    dst.dim0_is_pe = R0;
+    dst.dim0_is_pe          = R0;
 
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
@@ -314,10 +317,11 @@ public:
 
 template <class Traits>
 class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
-
-private:
-  template <class, class...> friend class ViewMapping;
-  template <class, class...> friend class Kokkos::View;
+ private:
+  template <class, class...>
+  friend class ViewMapping;
+  template <class, class...>
+  friend class Kokkos::View;
 
   using layout = typename Traits::array_layout;
 
@@ -337,16 +341,16 @@ private:
   size_t m_offset_remote_dim;
   size_t m_local_dim0;
 
-  //We need this dynamic property as we do not derive the 
-  //type specialization at view construction through the
-  //subview ctr. Default is set to 1 as a direct view construction
-  //with a partitioned layout always expects dim0 to be rank id
+  // We need this dynamic property as we do not derive the
+  // type specialization at view construction through the
+  // subview ctr. Default is set to 1 as a direct view construction
+  // with a partitioned layout always expects dim0 to be rank id
   size_t dim0_is_pe;
 
   int m_num_pes;
   int pe;
 
-public:
+ public:
   typedef void printable_label_typedef;
   enum { is_managed = Traits::is_managed };
 
@@ -357,59 +361,51 @@ public:
 
   template <typename iType, typename T = Traits>
   KOKKOS_INLINE_FUNCTION constexpr size_t extent(const iType &r) const {
-    if(r == 0) 
-      return dimension_0();
-    
+    if (r == 0) return dimension_0();
+
     return m_offset.m_dim.extent(r);
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr typename Traits::array_layout
-  get_layout() const {
+  KOKKOS_INLINE_FUNCTION constexpr typename Traits::array_layout get_layout()
+      const {
     return m_offset.layout();
   }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION constexpr size_t
-  dimension_0(typename std::enable_if<
-                  std::is_same<typename T::array_layout,
-                               Kokkos::LayoutRight>::value ||
-                  std::is_same<typename T::array_layout,
-                               Kokkos::LayoutLeft>::value ||
-                  std::is_same<typename T::array_layout,
-                        Kokkos::LayoutStride>::value>::type * =
-                  nullptr) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
+      typename std::enable_if<
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
+          std::is_same<typename T::array_layout,
+                       Kokkos::LayoutStride>::value>::type * = nullptr) const {
     return m_local_dim0;
   }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION constexpr size_t
-  dimension_0(typename std::enable_if<(
-                  std::is_same<typename T::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                                 std::is_same<typename T::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value)
-                  &&
-                RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * =
-                  nullptr) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
+      typename std::enable_if<
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
     return m_num_pes;
   }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION constexpr size_t
-  dimension_0(typename std::enable_if<(
-                  std::is_same<typename T::array_layout,
-                                 Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::array_layout,
-                                 Kokkos::PartitionedLayoutLeft>::value ||
-                                 std::is_same<typename T::array_layout,
-                  Kokkos::PartitionedLayoutStride>::value)
-                  &&
-                !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * =
-                  nullptr) const {
+  KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
+      typename std::enable_if<
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
     return m_offset.m_dim.extent(0);
   }
 
@@ -500,12 +496,14 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
     const reference_type element = m_handle(m_offset_remote_dim + i0, 0);
     return element;
   }
@@ -514,12 +512,14 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
     const reference_type element =
         m_handle(m_offset_remote_dim + i0, m_offset(0, i1));
     return element;
@@ -529,12 +529,14 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
     const reference_type element =
         m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2));
     return element;
@@ -543,11 +545,13 @@ public:
   template <typename I0, typename I1, typename I2, typename I3,
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3) const {
     const reference_type element =
@@ -558,11 +562,13 @@ public:
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4) const {
@@ -574,11 +580,13 @@ public:
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5) const {
@@ -590,11 +598,13 @@ public:
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6) const {
@@ -606,11 +616,13 @@ public:
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7) const {
@@ -626,25 +638,25 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
+    // We need this dynamic check as we do not derive the
+    // type specialization at view construction through the
+    // subview ctr (only through Kokkos::subview(...)). This adds support
+    // for auto sub_v = View_t(v,...).
 
-    //We need this dynamic check as we do not derive the 
-    //type specialization at view construction through the
-    //subview ctr (only through Kokkos::subview(...)). This adds support
-    //for auto sub_v = View_t(v,...).
-
-    if(dim0_is_pe)
-    {
+    if (dim0_is_pe) {
       const reference_type element = m_handle(m_offset_remote_dim + i0, 0);
       return element;
-    }else
-    {
-      const reference_type element = m_handle(m_offset_remote_dim, m_offset(i0));
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(i0));
       return element;
     }
   }
@@ -653,24 +665,22 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
-
-
-    if(dim0_is_pe)
-    {
-          const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1));
-    return element;}
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(i0, i1));
-    return element;
-    
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
+    if (dim0_is_pe) {
+      const reference_type element =
+          m_handle(m_offset_remote_dim + i0, m_offset(0, i1));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(i0, i1));
+      return element;
     }
   }
 
@@ -678,173 +688,175 @@ public:
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2,
       typename std::enable_if<
-          (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-           std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
+          (std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutLeft>::value ||
+           std::is_same<typename T::array_layout,
+                        Kokkos::PartitionedLayoutRight>::value ||
            std::is_same<typename T::array_layout,
                         Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::
-              dim0_is_pe>::type * = nullptr) const {
-
-    if(dim0_is_pe)
-    {    const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2));
-    return element;
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe>::
+          type * = nullptr) const {
+    if (dim0_is_pe) {
+      const reference_type element =
+          m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(0, i1, i2));
+      return element;
     }
   }
 
   template <typename I0, typename I1, typename I2, typename I3,
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3) const {
-    if(dim0_is_pe)
-    {    const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3));
-    return element;
+    if (dim0_is_pe) {
+      const reference_type element =
+          m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3));
+      return element;
     }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4) const {
-    if(dim0_is_pe)
-    {    const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4));
-    return element;
+    if (dim0_is_pe) {
+      const reference_type element =
+          m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4));
+      return element;
     }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5) const {
-    if(dim0_is_pe)
-    {    const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5));
-    return element;
+    if (dim0_is_pe) {
+      const reference_type element =
+          m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5));
+      return element;
     }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6) const {
-    if(dim0_is_pe)
-    {    const reference_type element =
-        m_handle(m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6));
-    return element;
+    if (dim0_is_pe) {
+      const reference_type element = m_handle(
+          m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6));
+      return element;
+    } else {
+      const reference_type element =
+          m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6));
+      return element;
     }
   }
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value) &&
-          !RemoteSpaces_MemoryTraits<
-              typename T::memory_traits>::dim0_is_pe,
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value) &&
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7) const {
-    if(dim0_is_pe)
-    {        const reference_type element = m_handle(
-        m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
-    return element;
-    }
-    else{
-    const reference_type element =
-        m_handle(m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
-    return element;
+    if (dim0_is_pe) {
+      const reference_type element = m_handle(
+          m_offset_remote_dim + i0, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
+      return element;
+    } else {
+      const reference_type element = m_handle(
+          m_offset_remote_dim, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
+      return element;
     }
   }
 
   //----------------------------------------
   // Layout{Left,Right,Stride} access operators
-  // Implements global views 
+  // Implements global views
 
   struct dim0_offsets {
     size_t pe, offset;
   };
 
-  // TODO: move this to kokkos::view_offset (new template specialization 
-  // on RemoteSpace space type for all default layouts and also one for 
+  // TODO: move this to kokkos::view_offset (new template specialization
+  // on RemoteSpace space type for all default layouts and also one for
   // all partitioned laytouts. Wait for mdspan.)
   template <typename I0, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION dim0_offsets compute_dim0_offsets(const I0 &_i0) const {
+  KOKKOS_INLINE_FUNCTION dim0_offsets
+  compute_dim0_offsets(const I0 &_i0) const {
     size_t target_pe, dim0_mod, i0;
     i0 = static_cast<size_t>(_i0);
     assert(m_local_dim0);
     target_pe = i0 / m_local_dim0;
-    dim0_mod = i0 % m_local_dim0;
+    dim0_mod  = i0 % m_local_dim0;
     return {target_pe, dim0_mod};
   }
 
   template <typename I0, typename T = Traits>
 
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0,
-            typename std::enable_if<
-                std::is_same<typename T::array_layout,
-                             Kokkos::LayoutLeft>::value ||
-                std::is_same<typename T::array_layout,
-                             Kokkos::LayoutRight>::value ||
-                std::is_same<typename T::array_layout,
-                             Kokkos::LayoutStride>::value>::type * =
-                nullptr) const {
-
+  KOKKOS_INLINE_FUNCTION const reference_type reference(
+      const I0 &i0,
+      typename std::enable_if<
+          std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout,
+                       Kokkos::LayoutStride>::value>::type * = nullptr) const {
     if (m_num_pes <= 1) {
       const reference_type element = m_handle(0, m_offset(i0));
       return element;
@@ -858,10 +870,8 @@ public:
   template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1) const {
     if (m_num_pes <= 1) {
@@ -877,18 +887,15 @@ public:
   template <typename I0, typename I1, typename I2, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2,
-            typename std::enable_if<
-                std::is_same<typename T::array_layout,
-                             Kokkos::LayoutLeft>::value ||
-                std::is_same<typename T::array_layout,
-                             Kokkos::LayoutRight>::value>::type * =
-                nullptr) const {
+  reference(
+      const I0 &i0, const I1 &i1, const I2 &i2,
+      typename std::enable_if<
+          std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
+          std::is_same<typename T::array_layout,
+                       Kokkos::LayoutRight>::value>::type * = nullptr) const {
     if (m_num_pes <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2));
       return element;
@@ -903,10 +910,8 @@ public:
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3) const {
     if (m_num_pes <= 1) {
@@ -923,10 +928,8 @@ public:
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4) const {
@@ -944,10 +947,8 @@ public:
             typename I5, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5) const {
@@ -966,10 +967,8 @@ public:
             typename I5, typename I6, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6) const {
@@ -988,10 +987,8 @@ public:
             typename I5, typename I6, typename I7, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const typename std::enable_if<
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutStride>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value,
+          std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value ||
+          std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value,
       reference_type>::type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7) const {
@@ -1009,11 +1006,11 @@ public:
 
   //----------------------------------------
 
-private:
+ private:
   enum { MemorySpanMask = 8 - 1 /* Force alignment on 8 byte boundary */ };
   enum { MemorySpanSize = sizeof(typename Traits::value_type) };
 
-public:
+ public:
   /** \brief  Span, in bytes, of the referenced memory */
   KOKKOS_INLINE_FUNCTION constexpr size_t memory_span() const {
     return (m_offset.span() * sizeof(typename Traits::value_type) +
@@ -1023,8 +1020,8 @@ public:
 
   /**\brief  Span, in bytes, of the required memory */
   KOKKOS_INLINE_FUNCTION
-  static constexpr size_t
-  memory_span(typename Traits::array_layout const &arg_layout) {
+  static constexpr size_t memory_span(
+      typename Traits::array_layout const &arg_layout) {
     typedef std::integral_constant<unsigned, 0> padding;
     return (offset_type(padding(), arg_layout).span() * MemorySpanSize +
             MemorySpanMask) &
@@ -1035,45 +1032,52 @@ public:
 
   KOKKOS_INLINE_FUNCTION ~ViewMapping() {}
   KOKKOS_INLINE_FUNCTION ViewMapping()
-      : m_handle(), m_offset(), m_offset_remote_dim(0), m_local_dim0(0),
-      dim0_is_pe(1) {
+      : m_handle(),
+        m_offset(),
+        m_offset_remote_dim(0),
+        m_local_dim0(0),
+        dim0_is_pe(1) {
     m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
+    pe        = Kokkos::Experimental::get_my_pe();
   }
 
   KOKKOS_INLINE_FUNCTION ViewMapping(const ViewMapping &rhs)
-      : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
-        m_num_pes(rhs.m_num_pes), pe(rhs.pe),
+      : m_handle(rhs.m_handle),
+        m_offset(rhs.m_offset),
+        m_num_pes(rhs.m_num_pes),
+        pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_local_dim0(rhs.m_local_dim0),
         dim0_is_pe(rhs.dim0_is_pe) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
-    m_handle = rhs.m_handle;
-    m_offset = rhs.m_offset;
-    m_num_pes = rhs.m_num_pes;
+    m_handle            = rhs.m_handle;
+    m_offset            = rhs.m_offset;
+    m_num_pes           = rhs.m_num_pes;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
-    m_local_dim0 = rhs.m_local_dim0;
-    dim0_is_pe = rhs.dim0_is_pe;
-    pe = rhs.pe;
+    m_local_dim0        = rhs.m_local_dim0;
+    dim0_is_pe          = rhs.dim0_is_pe;
+    pe                  = rhs.pe;
     return *this;
   }
 
   KOKKOS_INLINE_FUNCTION ViewMapping(ViewMapping &&rhs)
-      : m_handle(rhs.m_handle), m_offset(rhs.m_offset),
-        m_num_pes(rhs.m_num_pes), pe(rhs.pe),
+      : m_handle(rhs.m_handle),
+        m_offset(rhs.m_offset),
+        m_num_pes(rhs.m_num_pes),
+        pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_local_dim0(rhs.m_local_dim0),
         dim0_is_pe(0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
-    m_handle = rhs.m_handle;
-    m_offset = rhs.m_offset;
-    m_num_pes = rhs.m_num_pes;
-    pe = rhs.pe;
+    m_handle            = rhs.m_handle;
+    m_offset            = rhs.m_offset;
+    m_num_pes           = rhs.m_num_pes;
+    pe                  = rhs.pe;
     m_offset_remote_dim = rhs.m_offset_remote_dim;
-    m_local_dim0 = rhs.m_local_dim0;
-    dim0_is_pe = rhs.dim0_is_pe;
+    m_local_dim0        = rhs.m_local_dim0;
+    dim0_is_pe          = rhs.dim0_is_pe;
     return *this;
   }
 
@@ -1081,14 +1085,13 @@ public:
 
   /**\brief  Wrap a span of memory */
   template <class... P>
-  KOKKOS_INLINE_FUNCTION
-  ViewMapping(Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-              typename Traits::array_layout const &arg_layout)
+  KOKKOS_INLINE_FUNCTION ViewMapping(
+      Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
+      typename Traits::array_layout const &arg_layout)
       : m_offset_remote_dim(0),
         m_handle(
             ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
                 .value) {
-
     typedef typename Traits::value_type value_type;
     typedef std::integral_constant<
         unsigned, Kokkos::Impl::ViewCtorProp<P...>::allow_padding
@@ -1101,23 +1104,21 @@ public:
     // Copy layout properties
     set_layout(arg_layout, layout, m_local_dim0);
 
-    m_offset = offset_type(padding(), layout);
+    m_offset  = offset_type(padding(), layout);
     m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
+    pe        = Kokkos::Experimental::get_my_pe();
   }
 
   /**\brief  Assign data */
   KOKKOS_FUNCTION
   void assign_data(pointer_type arg_ptr) { m_handle = handle_type(arg_ptr); }
 
-private:
+ private:
   template <typename T = Traits>
   KOKKOS_FUNCTION typename std::enable_if<
-      std::is_same<typename T::array_layout,
-                   Kokkos::LayoutRight>::value ||
+      std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
       std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-      std::is_same<typename T::array_layout,
-                   Kokkos::LayoutStride>::value>::type
+      std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value>::type
   set_layout(typename T::array_layout const &arg_layout,
              typename T::array_layout &layout, size_t &local_dim0) {
     for (int i = 0; i < T::rank; i++)
@@ -1127,27 +1128,27 @@ private:
         Kokkos::Experimental::get_indexing_block_size(arg_layout.dimension[0]);
     // We overallocate potentially in favor of symmetric memory allocation
     layout.dimension[0] = local_dim0;
-    
   }
 
   template <typename T = Traits>
   KOKKOS_FUNCTION typename std::enable_if<
-      (std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutLeft>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutRight>::value ||
-       std::is_same<typename T::array_layout, Kokkos::PartitionedLayoutStride>::value)>::
-      type
-      set_layout(typename T::array_layout const &arg_layout,
-                 typename T::array_layout &layout, size_t &local_dim0) {
-                                            
+      (std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutLeft>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutRight>::value ||
+       std::is_same<typename T::array_layout,
+                    Kokkos::PartitionedLayoutStride>::value)>::type
+  set_layout(typename T::array_layout const &arg_layout,
+             typename T::array_layout &layout, size_t &local_dim0) {
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
 
     // Override
     layout.dimension[0] = 1;
-    local_dim0 = 0;
+    local_dim0          = 0;
   }
 
-public:
+ public:
   //----------------------------------------
   /*  Allocate and construct mapped array.
    *  Allocate via shared allocation record and
@@ -1157,7 +1158,6 @@ public:
   Kokkos::Impl::SharedAllocationRecord<> *allocate_shared(
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
       typename Traits::array_layout const &arg_layout) {
-
     typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
 
     typedef typename alloc_prop::execution_space execution_space;
@@ -1179,7 +1179,7 @@ public:
     set_layout(arg_layout, layout, m_local_dim0);
 
     m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe = Kokkos::Experimental::get_my_pe();
+    pe        = Kokkos::Experimental::get_my_pe();
 
     m_offset = offset_type(padding(), layout);
 
@@ -1193,17 +1193,17 @@ public:
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
 
-    #ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KOKKOS_ENABLE_MPISPACE
     if (alloc_size) {
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
-      record->win);
+                             record->win);
     }
-    #else
+#else
     if (alloc_size) {
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));
     }
-    #endif
-    
+#endif
+
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
     if (alloc_size && alloc_prop::initialize) {
@@ -1218,14 +1218,12 @@ public:
 template <class DstTraits, class SrcTraits>
 class ViewMapping<DstTraits, SrcTraits,
                   Kokkos::Experimental::RemoteSpaceSpecializeTag> {
-private:
+ private:
   enum {
-    is_assignable_space =
-        Kokkos::Impl::MemorySpaceAccess<
-            typename DstTraits::memory_space,
-            typename SrcTraits::memory_space>::assignable
+    is_assignable_space = Kokkos::Impl::MemorySpaceAccess<
+        typename DstTraits::memory_space,
+        typename SrcTraits::memory_space>::assignable
   };
-
 
   enum {
     is_assignable_value_type =
@@ -1252,7 +1250,7 @@ private:
          DstTraits::dimension::rank_dynamic == 1)
   };
 
-public:
+ public:
   enum {
     is_assignable_data_type =
         is_assignable_value_type && is_assignable_dimension
@@ -1263,8 +1261,7 @@ public:
   };
 };
 
+}  // namespace Impl
+}  // namespace Kokkos
 
-} // namespace Impl
-} // namespace Kokkos
-
-#endif // KOKKOS_REMOTESPACES_VIEWMAPPING_HPP
+#endif  // KOKKOS_REMOTESPACES_VIEWMAPPING_HPP

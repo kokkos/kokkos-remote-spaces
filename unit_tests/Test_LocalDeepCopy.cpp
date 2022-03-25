@@ -62,13 +62,13 @@ void test_localdeepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t = Kokkos::View<Data_t **, Space_A>;
+  using ViewHost_t   = Kokkos::View<Data_t **, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewHost_t v_H("HostView", 1, 1);
 
-  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, 1);
   ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, 1);
 
   Kokkos::parallel_for(
@@ -79,8 +79,8 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-              team, v_R_cpy, v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy,
+                                                              v_R);
         });
       });
 
@@ -99,13 +99,13 @@ void test_localdeepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t = Kokkos::View<Data_t **, Space_A>;
+  using ViewHost_t   = Kokkos::View<Data_t **, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewHost_t v_H("HostView", 1, i1);
 
-  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, i1);
   ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, i1);
 
   Kokkos::parallel_for(
@@ -119,14 +119,12 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy,
-                                                                   v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
 
   Kokkos::deep_copy(v_H, v_R_cpy);
-  for (int j = 0; j < i1; ++j)
-    ASSERT_EQ(0x123, v_H(0, j));
+  for (int j = 0; j < i1; ++j) ASSERT_EQ(0x123, v_H(0, j));
 }
 
 template <class Data_t, class Space_A, class Space_B>
@@ -140,13 +138,13 @@ void test_localdeepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t = Kokkos::View<Data_t ***, Space_A>;
+  using ViewHost_t   = Kokkos::View<Data_t ***, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
   ViewHost_t v_H("HostView", 1, i1, i2);
 
-  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, i1, i2);
   ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, i1, i2);
 
   Kokkos::parallel_for(
@@ -161,15 +159,13 @@ void test_localdeepcopy(
 
         team.team_barrier();
         Kokkos::single(Kokkos::PerThread(team), [&]() {
-          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy,
-                                                                   v_R);
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
 
   Kokkos::deep_copy(v_H, v_R_cpy);
   for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      ASSERT_EQ(0x123, v_H(0, i, j));
+    for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
 }
 
 TEST(TEST_CATEGORY, test_localdeepcopy) {
