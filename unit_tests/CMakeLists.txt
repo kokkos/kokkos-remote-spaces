@@ -22,5 +22,10 @@ else()
 endif()
 
 add_executable(${NAME} ${TEST_SRCS})
+
+if (Kokkos_ENABLE_NVSHMEMSPACE)
+  target_link_libraries(${NAME} PRIVATE "-lnvidia-ml")
+endif()
+
 target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
 target_link_libraries(${NAME} PRIVATE gtest_main)
