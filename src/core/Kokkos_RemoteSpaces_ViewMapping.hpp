@@ -1163,7 +1163,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <class... P, typename T = Traits>
   Kokkos::Impl::SharedAllocationRecord<> *allocate_shared(
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
-      typename Traits::array_layout const &arg_layout) {
+      typename Traits::array_layout const &arg_layout,
+      bool execution_space_specified) {
     typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
 
     typedef typename alloc_prop::execution_space execution_space;
