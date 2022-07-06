@@ -114,7 +114,7 @@ target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT
 target_include_directories(kokkosremote PUBLIC $<INSTALL_INTERFACE:include>)
 
 if(Kokkos_ENABLE_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
- target_compile_definitions(kokkosremote PUBLIC KOKKOS_ENABLE_DEBUG)
+ target_compile_definitions(kokkosremote PUBLIC KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
  message(STATUS "Enabled build mode: debug")
 endif()
 
