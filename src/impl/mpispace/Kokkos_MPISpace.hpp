@@ -46,7 +46,6 @@
 #define KOKKOS_MPISPACE_HPP
 
 #include <cstring>
-#include <impl/Kokkos_Traits.hpp>
 #include <iosfwd>
 #include <string>
 #include <typeinfo>

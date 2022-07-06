@@ -49,21 +49,11 @@
 #include <Kokkos_RemoteSpaces.hpp>
 
 int main(int argc, char *argv[]) {
-  int mpi_thread_level_available;
-  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
-
-  #if (defined KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL) || (defined KOKKOS_ENABLE_SERIAL)
-    mpi_thread_level_required = MPI_THREAD_SINGLE;
-  #endif
-
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  shmem_init();
 #else
-  MPI_Init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  MPI_Init(&argc, &argv);
 #endif
-
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;

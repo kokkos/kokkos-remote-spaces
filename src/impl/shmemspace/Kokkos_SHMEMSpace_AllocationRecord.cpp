@@ -45,10 +45,6 @@
 #include <Kokkos_SHMEMSpace.hpp>
 #include <Kokkos_SHMEMSpace_AllocationRecord.hpp>
 
-#if defined(KOKKOS_ENABLE_PROFILING)
-#include <impl/Kokkos_Profiling_Interface.hpp>
-#endif
-
 namespace Kokkos {
 namespace Impl {
 

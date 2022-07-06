@@ -45,10 +45,6 @@
 #include <Kokkos_MPISpace.hpp>
 #include <Kokkos_MPISpace_AllocationRecord.hpp>
 
-#if defined(KOKKOS_ENABLE_PROFILING)
-#include <impl/Kokkos_Profiling_Interface.hpp>
-#endif
-
 namespace Kokkos {
 namespace Impl {
 
