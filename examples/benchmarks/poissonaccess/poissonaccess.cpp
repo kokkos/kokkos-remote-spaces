@@ -66,7 +66,8 @@ int main(int argc, char** argv) {
   mpi_thread_level_required = MPI_THREAD_SINGLE;
 #endif
 
-  MPI_Init_thread(&argc, &argv, mpi_thread_level_required, &mpi_thread_level_available);
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
   assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
