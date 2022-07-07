@@ -76,9 +76,6 @@ int main(int argc, char** argv) {
 
   MPI_Comm mpi_comm;
 
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
-#endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmemx_init_attr_t attr;
   mpi_comm      = MPI_COMM_WORLD;

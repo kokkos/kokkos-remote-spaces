@@ -51,6 +51,7 @@
 int main(int argc, char *argv[]) {
   int mpi_thread_level_available;
   int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+<<<<<<< HEAD
 
 #ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
   mpi_thread_level_required = MPI_THREAD_SINGLE;
@@ -58,12 +59,24 @@ int main(int argc, char *argv[]) {
 
 MPI_Init_thread(&argc, &argv, mpi_thread_level_required, &mpi_thread_level_available);
 assert(mpi_thread_level_available >= mpi_thread_level_required);
+=======
+
+#if (defined KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL) || \
+    (defined KOKKOS_ENABLE_SERIAL)
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+>>>>>>> 29147490a84ed3e85a3d64f56aa8d42fec89f4bc
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
   assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
 
+<<<<<<< HEAD
+=======
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+
+>>>>>>> 29147490a84ed3e85a3d64f56aa8d42fec89f4bc
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
