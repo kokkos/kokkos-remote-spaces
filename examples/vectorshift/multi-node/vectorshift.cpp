@@ -62,12 +62,21 @@ using HostView_t    = Kokkos::View<T **, Kokkos::HostSpace>;
   b     = tmp;
 
 int main(int argc, char *argv[]) {
-  // Init
-  MPI_Init(&argc, &argv);
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
+
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;

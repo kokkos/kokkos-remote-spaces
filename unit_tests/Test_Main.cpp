@@ -52,17 +52,17 @@ int main(int argc, char *argv[]) {
   int mpi_thread_level_available;
   int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
 
-  #if (defined KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL) || (defined KOKKOS_ENABLE_SERIAL)
-    mpi_thread_level_required = MPI_THREAD_SINGLE;
-  #endif
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+MPI_Init_thread(&argc, &argv, mpi_thread_level_required, &mpi_thread_level_available);
+assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
   shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-#else
-  MPI_Init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-#endif
-
   assert(mpi_thread_level_available >= mpi_thread_level_required);
+#endif
 
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
