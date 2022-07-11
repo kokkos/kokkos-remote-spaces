@@ -56,7 +56,7 @@ SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>::
     // Pass through allocated [ SharedAllocationHeader , user_memory ]
     // Pass through deallocation function
     : SharedAllocationRecord<void, void>(
-#ifdef KOKKOS_DEBUG
+#ifdef KOKKOS_ENABLE_DEBUG
           &SharedAllocationRecord<Kokkos::Experimental::MPISpace,
                                   void>::s_root_record,
 #endif
