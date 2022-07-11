@@ -45,10 +45,6 @@
 #include <Kokkos_NVSHMEMSpace.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 
-#if defined(KOKKOS_ENABLE_PROFILING)
-#include <impl/Kokkos_Profiling_Interface.hpp>
-#endif
-
 namespace Kokkos {
 namespace Impl {
 
