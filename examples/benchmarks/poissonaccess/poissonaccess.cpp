@@ -59,12 +59,24 @@ using Team_t        = Kokkos::TeamPolicy<>::member_type;
 constexpr uint64_t MISS_INDEX = std::numeric_limits<uint64_t>::max();
 
 int main(int argc, char** argv) {
-  MPI_Init(&argc, &argv);
-  MPI_Comm mpi_comm;
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
+
+  MPI_Comm mpi_comm;
+
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmemx_init_attr_t attr;
   mpi_comm      = MPI_COMM_WORLD;
