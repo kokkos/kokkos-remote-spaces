@@ -302,12 +302,22 @@ class ViewMapping<
     dst.m_offset_remote_dim = extents.domain_offset(0);
     dst.dim0_is_pe          = R0;
 
+    #ifdef KOKKOS_ENABLE_MPISPACE
+    // Subviews propagate MPI_Window of the original view
+    dst.m_handle = ViewDataHandle<DstTraits>::assign(
+        src.m_handle,
+        src.m_offset(0, extents.domain_offset(1), extents.domain_offset(2),
+                     extents.domain_offset(3), extents.domain_offset(4),
+                     extents.domain_offset(5), extents.domain_offset(6),
+                     extents.domain_offset(7)), src.m_handle.win);
+    #else
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
         src.m_offset(0, extents.domain_offset(1), extents.domain_offset(2),
                      extents.domain_offset(3), extents.domain_offset(4),
                      extents.domain_offset(5), extents.domain_offset(6),
                      extents.domain_offset(7)));
+    #endif
   }
 };
 
