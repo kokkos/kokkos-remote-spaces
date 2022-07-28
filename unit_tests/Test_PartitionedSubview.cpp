@@ -72,8 +72,7 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -93,10 +92,11 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
-      if (i == sub1 && j == sub2)
+      if (i == sub1 && j == sub2) {
         ASSERT_EQ(v_h(0, i, j), VAL + 2);
-      else
+      } else {
         ASSERT_EQ(v_h(0, i, j), VAL);
+      }
 }
 
 template <class Data_t>
@@ -117,8 +117,7 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -162,8 +161,7 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -230,7 +228,7 @@ void test_partitioned_subview2D_byRank(int i1, int i2) {
 TEST(TEST_CATEGORY, test_partitioned_subview) {
   // 1D subview
   test_partitioned_subview1D<int>(4, 4, 0, 0);
-  test_partitioned_subview1D<int>(50, 20, 8, 12);
+  test_partitioned_subview1D<int>(10, 10, 4, 4);
   test_partitioned_subview1D<int>(255, 20, 49, 19);
 
   // 2D subview
