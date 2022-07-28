@@ -1204,11 +1204,22 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     }
 #endif
 
+    const std::string &alloc_name =
+        static_cast<Kokkos::Impl::ViewCtorProp<void, std::string> const &>(
+            arg_prop)
+            .value;
+
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
     if (alloc_size && alloc_prop::initialize) {
-      // Construct values
-      record->m_destroy.construct_shared_allocation();
+      // Assume destruction is only required when construction is requested.
+      // The ViewValueFunctor has both value construction and destruction
+      // operators.
+      record->m_destroy = functor_type(
+          static_cast<Kokkos::Impl::ViewCtorProp<void, execution_space> const
+                          &>(arg_prop)
+              .value,
+          (value_type *)m_handle.ptr, m_offset.span(), alloc_name);
     }
 
     return record;
