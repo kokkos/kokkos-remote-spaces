@@ -228,7 +228,7 @@ void test_partitioned_subview2D_byRank(int i1, int i2) {
 TEST(TEST_CATEGORY, test_partitioned_subview) {
   // 1D subview
   test_partitioned_subview1D<int>(4, 4, 0, 0);
-  test_partitioned_subview1D<int>(10, 10, 4, 4);
+  test_partitioned_subview1D<int>(50, 20, 8, 12);
   test_partitioned_subview1D<int>(255, 20, 49, 19);
 
   // 2D subview
