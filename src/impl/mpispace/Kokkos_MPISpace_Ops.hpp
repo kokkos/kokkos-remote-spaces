@@ -56,12 +56,12 @@ namespace Impl {
     assert(win != MPI_WIN_NULL);                                               \
     int _typesize;                                                             \
     MPI_Type_size(mpi_type, &_typesize);                                       \
-    /*MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win); */                            \
+    MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win);                                 \
     MPI_Put(&val, 1, mpi_type, pe,                                             \
             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
             win);                                                              \
-    /* MPI_Win_unlock(pe, win);  */                                            \
-    MPI_Win_flush(0, win);                                                     \
+    MPI_Win_unlock(pe, win);                                                   \
+    MPI_Win_flush(pe, win);                                                    \
   }
 
 KOKKOS_REMOTESPACES_P(char, MPI_SIGNED_CHAR)
@@ -85,12 +85,12 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
     assert(win != MPI_WIN_NULL);                                              \
     int _typesize;                                                            \
     MPI_Type_size(mpi_type, &_typesize);                                      \
-    /*MPI_Win_lock(MPI_LOCK_SHARED, 0, pe, win);*/                            \
+    MPI_Win_lock(MPI_LOCK_SHARED, pe, 0, win);                                \
     MPI_Get(&val, 1, mpi_type, pe,                                            \
             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
             win);                                                             \
-    /*MPI_Win_unlock(0, win);*/                                               \
-    MPI_Win_flush(0, win);                                                    \
+    MPI_Win_unlock(pe, win);                                                  \
+    MPI_Win_flush(pe, win);                                                   \
   }
 
 KOKKOS_REMOTESPACES_G(char, MPI_SIGNED_CHAR)
