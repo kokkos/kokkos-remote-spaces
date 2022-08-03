@@ -118,12 +118,6 @@ void MPISpace::deallocate(void *const, const size_t) const {
   MPI_Win_unlock_all(current_win);
   MPI_Win_free(&current_win);
 
-  // We pass a mempory space instance do multiple Views thus
-  // setting "current_win = MPI_WIN_NULL;" will result in a wrong handle if
-  // subsequent view runs out of scope
-  // Fixme: The following only works when views are allocated sequentially
-  // We need a thread-safe map to associate views and windows
-
   if (last_valid != 0)
     current_win = mpi_windows[last_valid - 1];
   else
