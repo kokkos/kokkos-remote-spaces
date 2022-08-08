@@ -62,7 +62,6 @@ struct MPIDataHandle {
   MPIDataHandle(MPIDataHandle<T, Traits> const &arg)
       : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
 
-
   template <typename iType>
   KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {
@@ -98,7 +97,7 @@ struct ViewDataHandle<
   KOKKOS_INLINE_FUNCTION static handle_type assign(
       SrcHandleType const arg_data_ptr, size_t offset, MPI_Win &win) {
     return handle_type(arg_data_ptr + offset, win, offset);
-}
+  }
 };
 
 }  // namespace Impl
