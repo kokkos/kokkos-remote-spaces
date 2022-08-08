@@ -58,8 +58,8 @@ namespace Impl {
     MPI_Request request;                                                       \
     MPI_Type_size(mpi_type, &_typesize);                                       \
     MPI_Rput(&val, 1, mpi_type, pe,                                            \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
-            win, &request);                                                    \
+             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
+             win, &request);                                                   \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
@@ -78,17 +78,17 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_P
 
-#define KOKKOS_REMOTESPACES_G(type, mpi_type)                                 \
-  static KOKKOS_INLINE_FUNCTION void mpi_type_g(                              \
-      type &val, const size_t offset, const int pe, const MPI_Win &win) {     \
-    assert(win != MPI_WIN_NULL);                                              \
-    int _typesize;                                                            \
-    MPI_Request request;                                                      \
-    MPI_Type_size(mpi_type, &_typesize);                                      \
-    MPI_Rget(&val, 1, mpi_type, pe,                                           \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
-            win, &request);                                                   \
-    MPI_Wait(&request, MPI_STATUS_IGNORE);                                    \
+#define KOKKOS_REMOTESPACES_G(type, mpi_type)                                  \
+  static KOKKOS_INLINE_FUNCTION void mpi_type_g(                               \
+      type &val, const size_t offset, const int pe, const MPI_Win &win) {      \
+    assert(win != MPI_WIN_NULL);                                               \
+    int _typesize;                                                             \
+    MPI_Request request;                                                       \
+    MPI_Type_size(mpi_type, &_typesize);                                       \
+    MPI_Rget(&val, 1, mpi_type, pe,                                            \
+             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
+             win, &request);                                                   \
+    MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
 KOKKOS_REMOTESPACES_G(char, MPI_SIGNED_CHAR)
