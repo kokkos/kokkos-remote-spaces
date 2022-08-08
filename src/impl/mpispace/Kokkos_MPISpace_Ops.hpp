@@ -58,8 +58,8 @@ namespace Impl {
     MPI_Request request;                                                       \
     MPI_Type_size(mpi_type, &_typesize);                                       \
     MPI_Rput(&val, 1, mpi_type, pe,                                            \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
-            win, &request);                                                    \
+             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
+             win, &request);                                                    \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
@@ -86,8 +86,8 @@ KOKKOS_REMOTESPACES_P(double, MPI_DOUBLE)
     MPI_Request request;                                                      \
     MPI_Type_size(mpi_type, &_typesize);                                      \
     MPI_Rget(&val, 1, mpi_type, pe,                                           \
-            sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
-            win, &request);                                                   \
+             sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type, \
+             win, &request);                                                   \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                    \
   }
 
