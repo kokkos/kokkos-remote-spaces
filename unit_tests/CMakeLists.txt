@@ -21,13 +21,11 @@ else()
   FILE(GLOB TEST_SRCS *.cpp)
 endif()
 
-set(DEPS)
+add_executable(${NAME} ${TEST_SRCS})
 
-if (ENABLE_ACCESS_CACHING_AND_AGGREGATION) 
-  file(GLOB TEST_SRCS_EXPERIMENTAL experimental/*.cpp)
-  list(APPEND TEST_SRCS ${TEST_SRCS_EXPERIMENTAL})
+if (Kokkos_ENABLE_NVSHMEMSPACE)
+  target_link_libraries(${NAME} PRIVATE "-lnvidia-ml")
 endif()
 
-add_executable(${NAME} ${TEST_SRCS})
-target_link_libraries(${NAME} PUBLIC Kokkos::kokkosremote ${DEPS})
-target_link_libraries(${NAME} PUBLIC gtest_main)
+target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
+target_link_libraries(${NAME} PRIVATE gtest_main)

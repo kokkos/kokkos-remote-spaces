@@ -61,7 +61,7 @@ struct PartitionedLayoutLeft {
   enum : bool { is_extent_constructible = true };
 
   PartitionedLayoutLeft(PartitionedLayoutLeft const &) = default;
-  PartitionedLayoutLeft(PartitionedLayoutLeft &&) = default;
+  PartitionedLayoutLeft(PartitionedLayoutLeft &&)      = default;
   PartitionedLayoutLeft &operator=(PartitionedLayoutLeft const &) = default;
   PartitionedLayoutLeft &operator=(PartitionedLayoutLeft &&) = default;
 
@@ -82,7 +82,7 @@ struct PartitionedLayoutRight {
   enum : bool { is_extent_constructible = true };
 
   PartitionedLayoutRight(PartitionedLayoutRight const &) = default;
-  PartitionedLayoutRight(PartitionedLayoutRight &&) = default;
+  PartitionedLayoutRight(PartitionedLayoutRight &&)      = default;
   PartitionedLayoutRight &operator=(PartitionedLayoutRight const &) = default;
   PartitionedLayoutRight &operator=(PartitionedLayoutRight &&) = default;
 
@@ -107,7 +107,7 @@ struct PartitionedLayoutStride {
   enum : bool { is_extent_constructible = false };
 
   PartitionedLayoutStride(PartitionedLayoutStride const &) = default;
-  PartitionedLayoutStride(PartitionedLayoutStride &&) = default;
+  PartitionedLayoutStride(PartitionedLayoutStride &&)      = default;
   PartitionedLayoutStride &operator=(PartitionedLayoutStride const &) = default;
   PartitionedLayoutStride &operator=(PartitionedLayoutStride &&) = default;
 
@@ -119,15 +119,15 @@ struct PartitionedLayoutStride {
    *  Order = {...,2,1,0} is LayoutRight
    */
   template <typename iTypeOrder, typename iTypeDimen>
-  KOKKOS_INLINE_FUNCTION static PartitionedLayoutStride
-  order_dimensions(int const rank, iTypeOrder const *const order,
-                   iTypeDimen const *const dimen) {
+  KOKKOS_INLINE_FUNCTION static PartitionedLayoutStride order_dimensions(
+      int const rank, iTypeOrder const *const order,
+      iTypeDimen const *const dimen) {
     PartitionedLayoutStride tmp;
     // Verify valid rank order:
     int check_input = ARRAY_LAYOUT_MAX_RANK < rank ? 0 : int(1 << rank) - 1;
     for (int r = 0; r < ARRAY_LAYOUT_MAX_RANK; ++r) {
       tmp.dimension[r] = 0;
-      tmp.stride[r] = 0;
+      tmp.stride[r]    = 0;
     }
     for (int r = 0; r < rank; ++r) {
       check_input &= ~int(1 << order[r]);
@@ -270,7 +270,7 @@ struct SubviewLegalArgsCompileTime<Kokkos::LayoutLeft,
   enum : bool { value = false };
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_VIEWLAYOUT_HPP
+#endif  // KOKKOS_REMOTESPACES_VIEWLAYOUT_HPP

@@ -53,7 +53,6 @@ namespace Kokkos {
 
 template <class... Properties>
 struct ViewTraits<void, Kokkos::Experimental::SHMEMSpace, Properties...> {
-
   static_assert(
       std::is_same<typename ViewTraits<void, Properties...>::execution_space,
                    void>::value &&
@@ -72,11 +71,11 @@ struct ViewTraits<void, Kokkos::Experimental::SHMEMSpace, Properties...> {
   using memory_space = typename Kokkos::Experimental::SHMEMSpace::memory_space;
   using HostMirrorSpace = typename Kokkos::Impl::HostMirror<
       Kokkos::Experimental::SHMEMSpace>::Space;
-  using array_layout = typename execution_space::array_layout;
-  using specialize = Kokkos::Experimental::RemoteSpaceSpecializeTag;
+  using array_layout  = typename execution_space::array_layout;
+  using specialize    = Kokkos::Experimental::RemoteSpaceSpecializeTag;
   using memory_traits = typename ViewTraits<void, Properties...>::memory_traits;
 };
 
-} // namespace Kokkos
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_SHMEM_VIEWTRAITS_HPP
+#endif  // KOKKOS_REMOTESPACES_SHMEM_VIEWTRAITS_HPP

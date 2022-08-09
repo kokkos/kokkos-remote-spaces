@@ -55,7 +55,7 @@ namespace Impl {
 template <>
 class SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>
     : public SharedAllocationRecord<void, void> {
-private:
+ private:
   friend Kokkos::Experimental::MPISpace;
 
   typedef SharedAllocationRecord<void, void> RecordBase;
@@ -68,7 +68,7 @@ private:
   /**\brief  Root record for tracked allocations from this MPISpace instance */
   static RecordBase s_root_record;
 
-protected:
+ protected:
   ~SharedAllocationRecord();
   SharedAllocationRecord() = default;
 
@@ -77,7 +77,7 @@ protected:
       const std::string &arg_label, const size_t arg_alloc_size,
       const RecordBase::function_type arg_dealloc = &deallocate);
 
-public:
+ public:
   const Kokkos::Experimental::MPISpace m_space;
 
   MPI_Win win;
@@ -86,9 +86,9 @@ public:
     return std::string(RecordBase::head()->m_label);
   }
 
-  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *
-  allocate(const Kokkos::Experimental::MPISpace &arg_space,
-           const std::string &arg_label, const size_t arg_alloc_size) {
+  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *allocate(
+      const Kokkos::Experimental::MPISpace &arg_space,
+      const std::string &arg_label, const size_t arg_alloc_size) {
 #if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
     return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
 #else
@@ -115,7 +115,7 @@ public:
                             bool detail = false);
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_MPI_ALLOCREC_HPP
+#endif  // KOKKOS_MPI_ALLOCREC_HPP

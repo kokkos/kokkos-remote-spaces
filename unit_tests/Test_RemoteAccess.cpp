@@ -52,17 +52,18 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t, class Space_t> void test_remote_accesses(int size) {
+template <class Data_t, class Space_t>
+void test_remote_accesses(int size) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using TeamPolicy = Kokkos::TeamPolicy<>;
+  using TeamPolicy  = Kokkos::TeamPolicy<>;
   TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
 
   using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
-  using HostSpace_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
+  using HostSpace_t  = Kokkos::View<Data_t **, Kokkos::HostSpace>;
   HostSpace_t v_H("HostView", 1, size);
 
   // Allocate remote view

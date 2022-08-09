@@ -52,10 +52,10 @@
 #define NUM_SHIFTS 16
 #define SIZE 1024
 
-#define swap(a, b, T)                                                          \
-  T tmp = a;                                                                   \
-  a = b;                                                                       \
-  b = tmp;
+#define swap(a, b, T) \
+  T tmp = a;          \
+  a     = b;          \
+  b     = tmp;
 
 // Exercise: Change View template parameter to DefaultRemoteMemorySpace in
 // Kokkos::Experimental
@@ -66,7 +66,6 @@ using View_t = Kokkos::View<T *>;
 using HostView_t = Kokkos::View<T *, Kokkos::HostSpace>;
 
 int main(int argc, char *argv[]) {
-
   // Excercise: Uncomment networking initialization below
   /*MPI_Init(&argc, &argv);
   #ifdef KOKKOS_ENABLE_SHMEMSPACE
@@ -112,7 +111,7 @@ int main(int argc, char *argv[]) {
       // Exercise: Change iteration space to a Range to global array indexing
       Kokkos::parallel_for(
           "Shift", n, KOKKOS_LAMBDA(const int i) {
-            int j = i + k; // Shift
+            int j = i + k;  // Shift
 
             // Excersize: From global array index i, dermine PE and offset
             // within PE Update indexing to two-dimensional indexing

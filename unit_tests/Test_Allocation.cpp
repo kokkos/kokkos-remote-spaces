@@ -52,21 +52,20 @@
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class ViewType> void check_extents(ViewType view, int r) {
+template <class ViewType>
+void check_extents(ViewType view, int r) {
   int rank = view.rank;
   ASSERT_EQ(r, rank);
 }
 
 template <class ViewType, class... Args>
 void check_extents(ViewType view, int r, int N, Args... args) {
-  if (r != 0)
-    ASSERT_EQ(view.extent(r), N);
+  if (r != 0) ASSERT_EQ(view.extent(r), N);
   check_extents(view, r + 1, args...);
 }
 
 template <class DataType, class RemoteSpace, class... Args>
 void test_allocate_symmetric_remote_view_by_rank(Args... args) {
-
   int myRank, numRanks;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);

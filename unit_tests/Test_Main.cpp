@@ -47,17 +47,29 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
-#include <mpi.h>
 
 int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
 #endif
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+#endif
+
   MPI_Comm mpi_comm;
+
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
@@ -67,12 +79,13 @@ int main(int argc, char *argv[]) {
   int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
 #endif
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_finalize();
+#else
   MPI_Finalize();
+#endif
   return result;
 }

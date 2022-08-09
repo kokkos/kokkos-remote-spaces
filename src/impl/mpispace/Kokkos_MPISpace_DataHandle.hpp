@@ -48,24 +48,25 @@
 namespace Kokkos {
 namespace Impl {
 
-template <class T, class Traits> struct MPIDataHandle {
+template <class T, class Traits>
+struct MPIDataHandle {
   T *ptr;
   mutable MPI_Win win;
+  size_t win_offset;
   KOKKOS_INLINE_FUNCTION
-  MPIDataHandle() : ptr(NULL), win(MPI_WIN_NULL) {}
+  MPIDataHandle() : ptr(NULL), win(MPI_WIN_NULL), win_offset(0) {}
   KOKKOS_INLINE_FUNCTION
-  MPIDataHandle(T *ptr_, MPI_Win &win_) : ptr(ptr_), win(win_) {}
+  MPIDataHandle(T *ptr_, MPI_Win &win_, size_t offset_ = 0)
+      : ptr(ptr_), win(win_), win_offset(offset_) {}
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle(MPIDataHandle<T, Traits> const &arg)
-      : ptr(arg.ptr), win(arg.win) {}
-  KOKKOS_INLINE_FUNCTION
-  MPIDataHandle(T *ptr_) : ptr(ptr_), win(MPI_WIN_NULL) {}
+      : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
 
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits>
-  operator()(const int &pe, const iType &i) const {
+  KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits> operator()(
+      const int &pe, const iType &i) const {
     assert(win != MPI_WIN_NULL);
-    MPIDataElement<T, Traits> element(&win, pe, i);
+    MPIDataElement<T, Traits> element(&win, pe, i + win_offset);
     return element;
   }
 
@@ -78,11 +79,10 @@ struct ViewDataHandle<
     Traits, typename std::enable_if<std::is_same<
                 typename Traits::specialize,
                 Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
-
-  using value_type = typename Traits::value_type;
+  using value_type  = typename Traits::value_type;
   using handle_type = MPIDataHandle<value_type, Traits>;
   using return_type = MPIDataElement<value_type, Traits>;
-  using track_type = Kokkos::Impl::SharedAllocationTracker;
+  using track_type  = Kokkos::Impl::SharedAllocationTracker;
 
   // Fixme: Currently unused
   KOKKOS_INLINE_FUNCTION
@@ -94,15 +94,13 @@ struct ViewDataHandle<
   }
 
   template <class SrcHandleType>
-  KOKKOS_INLINE_FUNCTION static handle_type
-  assign(SrcHandleType const arg_data_ptr, size_t offset) {
-    // FIXME: Invocation of handle_type constructor sets win to MPI_WIN_NULL
-    // This is invoked by subview ViewMapping so subviews will likely fail
-    return handle_type(arg_data_ptr + offset);
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const arg_data_ptr, size_t offset, MPI_Win &win) {
+    return handle_type(arg_data_ptr + offset, win, offset);
   }
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_MPI_DATAHANDLE_HPP
+#endif  // KOKKOS_REMOTESPACES_MPI_DATAHANDLE_HPP

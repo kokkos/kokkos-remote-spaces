@@ -58,9 +58,9 @@ template <class Data_t> void test_scalar_reduce_1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t = Kokkos::View<Data_t *, Kokkos::HostSpace>;
+  using ViewHost_1D_t   = Kokkos::View<Data_t *, Kokkos::HostSpace>;
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
-  using RangePolicy_t = Kokkos::RangePolicy<>;
+  using RangePolicy_t   = Kokkos::RangePolicy<>;
 
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
@@ -88,7 +88,7 @@ template <class Data_t> void test_scalar_reduce_2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
+  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::HostSpace>;
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
@@ -108,8 +108,7 @@ template <class Data_t> void test_scalar_reduce_2D(int dim0, int dim1) {
   Kokkos::parallel_reduce(
       "Global reduce", dim0,
       KOKKOS_LAMBDA(const int i, Data_t &lsum) {
-        for (int j = 0; j < dim1; ++j)
-          lsum += v(i, j);
+        for (int j = 0; j < dim1; ++j) lsum += v(i, j);
       },
       gsum);
 
@@ -140,12 +139,11 @@ template <class Data_t> void test_scalar_reduce_partitioned_1D(int dim1) {
   // at the expense of operator cost. Here we rely on that KRS internally
   // allocates (dim1+num_ranks)/num_ranks symetrically.
   size_t dim1_block = dim1 / num_ranks;
-  size_t block = dim1_block;
-  size_t start = my_rank * block;
+  size_t block      = dim1_block;
+  size_t start      = my_rank * block;
 
   // Init
-  for (int i = 0; i < dim1_block; ++i)
-    v_h(0, i) = (Data_t)start + i;
+  for (int i = 0; i < dim1_block; ++i) v_h(0, i) = (Data_t)start + i;
 
   Kokkos::deep_copy(v_sub, v_h);
 
@@ -154,7 +152,7 @@ template <class Data_t> void test_scalar_reduce_partitioned_1D(int dim1) {
       "Global reduce", dim1_block * num_ranks,
       KOKKOS_LAMBDA(const int i, Data_t &lsum) {
         size_t pe, index;
-        pe = i / dim1_block;
+        pe    = i / dim1_block;
         index = i % dim1_block;
         lsum += v(pe, index);
       },
@@ -186,8 +184,8 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
                                Kokkos::ALL, Kokkos::ALL);
 
   size_t dim1_block = dim1 / num_ranks;
-  size_t block = dim1_block * dim2;
-  size_t start = my_rank * block;
+  size_t block      = dim1_block * dim2;
+  size_t start      = my_rank * block;
 
   // Init
   for (int i = 0; i < dim1_block; ++i)
@@ -201,10 +199,9 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
       "Global reduce", dim1_block * num_ranks,
       KOKKOS_LAMBDA(const int i, Data_t &lsum) {
         size_t pe, index;
-        pe = i / dim1_block;
+        pe    = i / dim1_block;
         index = i % dim1_block;
-        for (int j = 0; j < dim2; ++j)
-          lsum += v(pe, index, j);
+        for (int j = 0; j < dim2; ++j) lsum += v(pe, index, j);
       },
       gsum);
 
@@ -213,7 +210,6 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
 }
 
 TEST(TEST_CATEGORY, test_reduce) {
-
   // Param 1: array size
 
   // Scalar reduce
@@ -226,7 +222,7 @@ TEST(TEST_CATEGORY, test_reduce) {
   test_scalar_reduce_2D<int>(0, 0);
   test_scalar_reduce_2D<int>(1, 1);
 
-  test_scalar_reduce_2D<float>(111, 123);
+  test_scalar_reduce_2D<float>(111, 3);
   test_scalar_reduce_2D<double>(773, 3);
 
   test_scalar_reduce_partitioned_1D<int>(20);

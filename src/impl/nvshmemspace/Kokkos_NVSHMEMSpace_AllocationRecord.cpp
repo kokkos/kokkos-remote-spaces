@@ -45,14 +45,6 @@
 #include <Kokkos_NVSHMEMSpace.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 
-#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-#include <RDMA_Worker.hpp>
-#endif
-
-#if defined(KOKKOS_ENABLE_PROFILING)
-#include <impl/Kokkos_Profiling_Interface.hpp>
-#endif
-
 namespace Kokkos {
 namespace Impl {
 
@@ -64,7 +56,7 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
     // Pass through allocated [ SharedAllocationHeader , user_memory ]
     // Pass through deallocation function
     : SharedAllocationRecord<void, void>(
-#ifdef KOKKOS_DEBUG
+#ifdef KOKKOS_ENABLE_DEBUG
           &SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
                                   void>::s_root_record,
 #endif
@@ -131,8 +123,7 @@ void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
     allocate_tracked(const Kokkos::Experimental::NVSHMEMSpace &arg_space,
                      const std::string &arg_alloc_label,
                      const size_t arg_alloc_size) {
-  if (!arg_alloc_size)
-    return (void *)0;
+  if (!arg_alloc_size) return (void *)0;
 
   SharedAllocationRecord *const r =
       allocate(arg_space, arg_alloc_label, arg_alloc_size);
@@ -149,10 +140,8 @@ void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
   }
 }
 
-void *
-SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
-                       void>::reallocate_tracked(void *const arg_alloc_ptr,
-                                                 const size_t arg_alloc_size) {
+void *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
+    reallocate_tracked(void *const arg_alloc_ptr, const size_t arg_alloc_size) {
   SharedAllocationRecord *const r_old = get_record(arg_alloc_ptr);
   SharedAllocationRecord *const r_new =
       allocate(r_old->m_space, r_old->get_label(), arg_alloc_size);
@@ -212,5 +201,5 @@ void SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::
       s, "NVSHMEMSpace", &s_root_record, detail);
 }
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos

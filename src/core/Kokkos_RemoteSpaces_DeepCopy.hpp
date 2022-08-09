@@ -66,7 +66,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 1, iType> {
   using policy_type = Kokkos::RangePolicy<ExecSpace, Kokkos::IndexType<iType>>;
   using value_type = typename ViewTypeA::value_type;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-1D",
@@ -94,7 +94,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 2, iType> {
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
   using value_type = typename ViewTypeA::value_type;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-2D",
@@ -124,7 +124,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 3, iType> {
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
   using value_type = typename ViewTypeA::value_type;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for(
@@ -154,7 +154,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 4, iType> {
   using policy_type =
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for(
@@ -186,7 +186,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 5, iType> {
   using policy_type =
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-5D",
@@ -218,7 +218,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 6, iType> {
   using policy_type =
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-6D",
@@ -250,7 +250,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 7, iType> {
   using policy_type =
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-7D",
@@ -283,7 +283,7 @@ struct ViewCopy_<ViewTypeA, ViewTypeB, Layout, ExecSpace, 8, iType> {
   using policy_type =
       Kokkos::MDRangePolicy<ExecSpace, iterate_type, Kokkos::IndexType<iType>>;
 
-  ViewCopy_(const ViewTypeA &a_, const ViewTypeB &b_,
+  ViewCopy_(const ViewTypeA& a_, const ViewTypeB& b_,
             const ExecSpace space = ExecSpace())
       : a(a_), b(b_) {
     Kokkos::parallel_for("Kokkos::ViewCopy_-8D",
@@ -413,7 +413,7 @@ void view_copy_(const DstType& dst, const SrcType& src) {
   }
 }
 
-} // namespace  Impl
+}  // namespace  Impl
 
 // namespace Experimental {
 
@@ -726,15 +726,15 @@ inline void deep_copy(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value) &&
         (unsigned(ViewTraits<DT, DP...>::rank) != 0 ||
-         unsigned(ViewTraits<ST, SP...>::rank) != 0))>::type * = nullptr) {
-  using dst_type = View<DT, DP...>;
-  using src_type = View<ST, SP...>;
+         unsigned(ViewTraits<ST, SP...>::rank) != 0))>::type* = nullptr) {
+  using dst_type            = View<DT, DP...>;
+  using src_type            = View<ST, SP...>;
   using dst_execution_space = typename dst_type::execution_space;
   using src_execution_space = typename src_type::execution_space;
-  using dst_memory_space = typename dst_type::memory_space;
-  using src_memory_space = typename src_type::memory_space;
-  using dst_value_type = typename dst_type::value_type;
-  using src_value_type = typename src_type::value_type;
+  using dst_memory_space    = typename dst_type::memory_space;
+  using src_memory_space    = typename src_type::memory_space;
+  using dst_value_type      = typename dst_type::value_type;
+  using src_value_type      = typename src_type::value_type;
 
   static_assert(std::is_same<typename dst_type::value_type,
                              typename dst_type::non_const_value_type>::value,
@@ -892,8 +892,7 @@ inline void deep_copy(
           ((dst_type::rank < 7) || (dst.stride_6() == src.stride_6())) &&
           ((dst_type::rank < 8) || (dst.stride_7() == src.stride_7()))) {
     const size_t nbytes = sizeof(typename dst_type::value_type) * dst.span();
-    if ((void *)dst.data() != (void *)src.data()) {
-
+    if ((void*)dst.data() != (void*)src.data()) {
       DefaultRemoteMemorySpace().fence();
 
       Kokkos::Impl::DeepCopy<dst_memory_space, src_memory_space, ExecSpace>(
@@ -933,6 +932,6 @@ inline void deep_copy(
   }
 }
 
-} // namespace Kokkos
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_DEEPCOPY_HPP
+#endif  // KOKKOS_REMOTESPACES_DEEPCOPY_HPP

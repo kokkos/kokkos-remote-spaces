@@ -72,9 +72,7 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -94,10 +92,11 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
 
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j)
-      if (i == sub1 && j == sub2)
+      if (i == sub1 && j == sub2) {
         ASSERT_EQ(v_h(0, i, j), VAL + 2);
-      else
+      } else {
         ASSERT_EQ(v_h(0, i, j), VAL);
+      }
 }
 
 template <class Data_t>
@@ -118,9 +117,7 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -164,9 +161,7 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      v_h(0, i, j) = VAL;
+  deep_copy(v_h, VAL);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -192,7 +187,8 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
         ASSERT_EQ(v_h(0, i, j), VAL);
 }
 
-template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
+template <class Data_t>
+void test_partitioned_subview2D_byRank(int i1, int i2) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -210,8 +206,7 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
 
   // Init
   for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      v_h(0, i, j) = VAL;
+    for (int j = 0; j < i2; ++j) v_h(0, i, j) = VAL;
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -221,15 +216,13 @@ template <class Data_t> void test_partitioned_subview2D_byRank(int i1, int i2) {
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < v_sub_1.extent(1); ++j)
-          v_sub_1(i, j)++;
+        for (int j = 0; j < v_sub_1.extent(1); ++j) v_sub_1(i, j)++;
       });
 
   Kokkos::deep_copy(v_h, v_sub);
 
   for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j)
-      ASSERT_EQ(v_h(0, i, j), VAL + 1);
+    for (int j = 0; j < i2; ++j) ASSERT_EQ(v_h(0, i, j), VAL + 1);
 }
 
 TEST(TEST_CATEGORY, test_partitioned_subview) {

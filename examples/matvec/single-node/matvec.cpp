@@ -44,9 +44,9 @@
 #include <Kokkos_Core.hpp>
 #include <cassert>
 
-using ORDINAL_T = int64_t;
+using ORDINAL_T       = int64_t;
 using CONST_ORDINAL_T = const ORDINAL_T;
-using VALUE_T = double;
+using VALUE_T         = double;
 
 #define DEFAULT_DIM_SIZE 4096
 #define LEAGUE_SIZE 32
@@ -55,23 +55,22 @@ using VALUE_T = double;
 
 using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
-using Vector_t = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
-using Matrix_t = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
+using Vector_t     = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
+using Matrix_t     = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
 
 int main(int argc, char *argv[]) {
-
   // Vars
   float time = 0;
   ORDINAL_T nx;
 
   int league_size = LEAGUE_SIZE;
-  int team_size = TEAM_SIZE;
-  int vec_len = VEC_LEN;
+  int team_size   = TEAM_SIZE;
+  int vec_len     = VEC_LEN;
 
   nx = argc > 1 ? atoi(argv[1]) : DEFAULT_DIM_SIZE;
 
   Kokkos::initialize(argc, argv);
-  using TeamPolicy = Kokkos::TeamPolicy<>;
+  using TeamPolicy  = Kokkos::TeamPolicy<>;
   TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);
   {
     MatrixHost_t A_h("A_h", nx, nx);
@@ -107,8 +106,7 @@ int main(int argc, char *argv[]) {
     time = timer.seconds();
 
     Kokkos::deep_copy(b_h, b);
-    for (ORDINAL_T i = 0; i < nx; ++i)
-      assert(b_h(i) == 2 * nx);
+    for (ORDINAL_T i = 0; i < nx; ++i) assert(b_h(i) == 2 * nx);
     printf("%.2f sec, %.2f MB/sec\n", time,
            ((nx * nx + 2 * nx) * sizeof(VALUE_T) >> 10) / time);
   }

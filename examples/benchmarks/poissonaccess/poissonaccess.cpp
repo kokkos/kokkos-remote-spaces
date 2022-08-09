@@ -50,24 +50,36 @@
 #include <mpi.h>
 #include <numeric>
 
-using GenPool_t = Kokkos::Random_XorShift64_Pool<>;
+using GenPool_t     = Kokkos::Random_XorShift64_Pool<>;
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t = Kokkos::View<double **, RemoteSpace_t>;
-using Team_t = Kokkos::TeamPolicy<>::member_type;
+using RemoteView_t  = Kokkos::View<double**, RemoteSpace_t>;
+using Team_t        = Kokkos::TeamPolicy<>::member_type;
 
 #define MASK (2 << 27)
 constexpr uint64_t MISS_INDEX = std::numeric_limits<uint64_t>::max();
 
-int main(int argc, char **argv) {
-  MPI_Init(&argc, &argv);
-  MPI_Comm mpi_comm;
+int main(int argc, char** argv) {
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
+
+  MPI_Comm mpi_comm;
+
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
@@ -76,11 +88,11 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
-  int nx = 64;
-  int league_size = -1;
-  int team_size = -1;
-  int repeats = 5;
-  double lambda = 10;
+  int nx                   = 64;
+  int league_size          = -1;
+  int team_size            = -1;
+  int repeats              = 5;
+  double lambda            = 10;
   int remote_warp_fraction = 1;
 
   option gopt[] = {
@@ -94,36 +106,22 @@ int main(int argc, char **argv) {
   };
 
   int ch;
-  bool help = false;
+  bool help            = false;
   bool keepParsingOpts = true;
-  optind = 1;
+  optind               = 1;
   while ((ch = getopt_long(argc, argv, "hl:T:n:L:r:f:", gopt, NULL)) != -1 &&
          keepParsingOpts) {
     switch (ch) {
-    case 0:
-      // this set an input flag
-      break;
-    case 'l':
-      lambda = std::atof(optarg);
-      break;
-    case 'L':
-      league_size = std::atoi(optarg);
-      break;
-    case 'n':
-      nx = std::atol(optarg);
-      break;
-    case 'f':
-      remote_warp_fraction = std::atoi(optarg);
-      break;
-    case 'T':
-      team_size = std::atoi(optarg);
-      break;
-    case 'r':
-      repeats = std::atoi(optarg);
-      break;
-    case 'h':
-      help = true;
-      break;
+      case 0:
+        // this set an input flag
+        break;
+      case 'l': lambda = std::atof(optarg); break;
+      case 'L': league_size = std::atoi(optarg); break;
+      case 'n': nx = std::atol(optarg); break;
+      case 'f': remote_warp_fraction = std::atoi(optarg); break;
+      case 'T': team_size = std::atoi(optarg); break;
+      case 'r': repeats = std::atoi(optarg); break;
+      case 'h': help = true; break;
     }
   }
 
@@ -156,8 +154,8 @@ int main(int argc, char **argv) {
 
   double sqrt_lambda = sqrt(lambda);
 
-  int kokkos_argc = argc - optind + 1;
-  char **kokkos_argv = argv + optind - 1;
+  int kokkos_argc    = argc - optind + 1;
+  char** kokkos_argv = argv + optind - 1;
   if (kokkos_argv[0] != std::string("--")) {
     // there are no kokkos options
     kokkos_argv = argv;
@@ -179,11 +177,11 @@ int main(int argc, char **argv) {
     Kokkos::ScopeGuard guard(argc, argv);
 
     GenPool_t pool(5374857);
-    Kokkos::View<int *> gaps("gaps", view_size);
-    Kokkos::View<uint64_t *> misses("misses", view_size);
-    Kokkos::View<uint64_t *> indices("indices", view_size);
-    Kokkos::View<double *> target("target", view_size);
-    Kokkos::View<double *> values("values", view_size);
+    Kokkos::View<int*> gaps("gaps", view_size);
+    Kokkos::View<uint64_t*> misses("misses", view_size);
+    Kokkos::View<uint64_t*> indices("indices", view_size);
+    Kokkos::View<double*> target("target", view_size);
+    Kokkos::View<double*> values("values", view_size);
     Kokkos::TeamPolicy<> policy(league_size, team_size, 1);
     RemoteView_t remote("MyView", nproc, view_size);
 
@@ -191,10 +189,10 @@ int main(int argc, char **argv) {
     // initialize the list of indices to zero
     // randomly select gaps between misses in the index list
     Kokkos::parallel_for(
-        "fill", policy, KOKKOS_LAMBDA(const Team_t &team) {
-          int rank = team.league_rank();
+        "fill", policy, KOKKOS_LAMBDA(const Team_t& team) {
+          int rank   = team.league_rank();
           int offset = rank * team_size;
-          auto gen = pool.get_state();
+          auto gen   = pool.get_state();
           Kokkos::parallel_for(Kokkos::TeamThreadRange(team, team_size),
                                [&](int idx) {
                                  int k = 0;
@@ -208,10 +206,9 @@ int main(int argc, char **argv) {
                                  } else {
                                    // large lambda, approx with normal
                                    k = gen.normal(lambda, sqrt_lambda);
-                                   if (k <= 0)
-                                     k = 1;
+                                   if (k <= 0) k = 1;
                                  }
-                                 gaps[offset + idx] = k;
+                                 gaps[offset + idx]    = k;
                                  indices[offset + idx] = 0;
                                });
           pool.free_state(gen);
@@ -221,7 +218,7 @@ int main(int argc, char **argv) {
     // by performing a sum prefix scan
     Kokkos::parallel_scan(
         "scan", view_size,
-        KOKKOS_LAMBDA(int idx, uint64_t &sum, const bool last) {
+        KOKKOS_LAMBDA(int idx, uint64_t& sum, const bool last) {
           sum += gaps[idx];
           if (last) {
             misses[idx] = sum;
@@ -245,8 +242,8 @@ int main(int argc, char **argv) {
     // for certain teams (warps) and indices, change the stream index
     // to a remote index on another proc
     Kokkos::parallel_for(
-        "index", policy, KOKKOS_LAMBDA(const Team_t &team) {
-          uint64_t offset = uint64_t(team.league_rank()) * team_size;
+        "index", policy, KOKKOS_LAMBDA(const Team_t& team) {
+          uint64_t offset    = uint64_t(team.league_rank()) * team_size;
           int warp_remainder = team.league_rank() % remote_warp_fraction;
           Kokkos::parallel_for(
               Kokkos::TeamThreadRange(team, team_size), [&](int team_idx) {
@@ -254,14 +251,13 @@ int main(int argc, char **argv) {
                 // this warp has misses
                 if (warp_remainder == 0 && indices[local_idx] == MISS_INDEX) {
                   int rank_stride = local_idx / nproc;
-                  int dst_idx = local_idx % view_size;
-                  if (rank_stride == 0)
-                    rank_stride = 1;
+                  int dst_idx     = local_idx % view_size;
+                  if (rank_stride == 0) rank_stride = 1;
                   int dst = (rank + rank_stride) % nproc;
                   uint64_t global_dst_idx =
                       uint64_t(dst) * MASK + uint64_t(dst_idx);
                   indices[local_idx] = global_dst_idx;
-                } else { // this warp does not have misses
+                } else {  // this warp does not have misses
                   indices[local_idx] = uint64_t(rank) * MASK + local_idx;
                 }
                 remote(rank, local_idx) = local_idx;
@@ -279,7 +275,7 @@ int main(int argc, char **argv) {
       // based on the logic above, some subset of the accesses will
       //"miss", causing a remote access
       Kokkos::parallel_for(
-          "work", policy, KOKKOS_LAMBDA(const Team_t &team) {
+          "work", policy, KOKKOS_LAMBDA(const Team_t& team) {
             uint64_t offset = uint64_t(team.league_rank()) * team_size;
             Kokkos::parallel_for(
                 Kokkos::TeamThreadRange(team, team_size), [&](int team_idx) {

@@ -52,15 +52,15 @@ namespace Kokkos {
 
 enum RemoteSpaces_MemoryTraitsFlags { Dim0IsPE = 16384, Cached = 32768 };
 
-template <typename T> struct RemoteSpaces_MemoryTraits;
+template <typename T>
+struct RemoteSpaces_MemoryTraits;
 
-template <unsigned T> struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
+template <unsigned T>
+struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
   enum : bool { dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE))) };
-
-  enum : bool { is_cached = (unsigned(0) != (T & unsigned(Cached))) };
 
   enum : int { state = T };
 };
-} // namespace Kokkos
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_OPTIONS_HPP
+#endif  // KOKKOS_REMOTESPACES_OPTIONS_HPP

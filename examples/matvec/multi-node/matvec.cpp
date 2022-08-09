@@ -46,39 +46,45 @@
 #include <cassert>
 #include <mpi.h>
 
-using ORDINAL_T = int;
+using ORDINAL_T       = int;
 using CONST_ORDINAL_T = const ORDINAL_T;
-using VALUE_T = double;
+using VALUE_T         = double;
 
 #define DEFAULT_DIM_SIZE 4096
 #define LEAGUE_SIZE 32
 #define TEAM_SIZE 256
 #define VEC_LEN 1
 
-using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteSpace_t  = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteVector_t = Kokkos::View<VALUE_T **, RemoteSpace_t>;
 using VectorHost_r_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
 
 using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
-using Vector_t = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
-using Matrix_t = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
+using Vector_t     = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
+using Matrix_t     = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
 
 int main(int argc, char *argv[]) {
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
 
-  // MPI
-  int myRank, numRanks;
-  MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 
 #ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
+
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
@@ -89,13 +95,13 @@ int main(int argc, char *argv[]) {
   ORDINAL_T nx_proc;
 
   int league_size = LEAGUE_SIZE;
-  int team_size = TEAM_SIZE;
-  int vec_len = VEC_LEN;
+  int team_size   = TEAM_SIZE;
+  int vec_len     = VEC_LEN;
 
   nx = argc > 1 ? atoi(argv[1]) : DEFAULT_DIM_SIZE;
 
   Kokkos::initialize(argc, argv);
-  using TeamPolicy = Kokkos::TeamPolicy<>;
+  using TeamPolicy  = Kokkos::TeamPolicy<>;
   TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);
   {
     nx_proc = (nx + numRanks - 1) / numRanks;
@@ -125,7 +131,7 @@ int main(int argc, char *argv[]) {
                                  Kokkos::parallel_reduce(
                                      Kokkos::ThreadVectorRange(team, nx),
                                      [=](CONST_ORDINAL_T col, VALUE_T &sum) {
-                                       int rank = col / nx_proc;
+                                       int rank   = col / nx_proc;
                                        int offset = col % nx_proc;
                                        sum += A(row, col) * x(rank, offset);
                                      },
@@ -139,8 +145,7 @@ int main(int argc, char *argv[]) {
 
     // check local results
     Kokkos::deep_copy(b_h, b);
-    for (ORDINAL_T i = 0; i < nx_proc; ++i)
-      assert(b_h(i) == 2 * nx);
+    for (ORDINAL_T i = 0; i < nx_proc; ++i) assert(b_h(i) == 2 * nx);
     if (myRank == 0) {
       printf("%.2f sec, %.2f MB/sec\n", time,
              ((nx * nx + 2 * nx) * sizeof(VALUE_T) >> 10) / time);

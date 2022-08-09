@@ -46,7 +46,6 @@
 #define KOKKOS_MPISPACE_HPP
 
 #include <cstring>
-#include <impl/Kokkos_Traits.hpp>
 #include <iosfwd>
 #include <string>
 #include <typeinfo>
@@ -64,7 +63,7 @@ namespace Experimental {
 struct RemoteSpaceSpecializeTag {};
 
 class MPISpace {
-public:
+ public:
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
   using execution_space = Kokkos::OpenMP;
 #elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
@@ -76,20 +75,20 @@ public:
 #elif defined(KOKKOS_ENABLE_SERIAL)
   using execution_space = Kokkos::Serial;
 #else
-#error                                                                         \
+#error \
     "At least one of the following host execution spaces must be defined: Kokkos::OpenMP, Kokkos::Threads, Kokkos::Qthreads, or Kokkos::Serial.  You might be seeing this message if you disabled the Kokkos::Serial device explicitly using the Kokkos_ENABLE_Serial:BOOL=OFF CMake option, but did not enable any of the other host execution space devices."
 #endif
 
   using memory_space = MPISpace;
-  using device_type = Kokkos::Device<execution_space, memory_space>;
-  using size_type = size_t;
+  using device_type  = Kokkos::Device<execution_space, memory_space>;
+  using size_type    = size_t;
 
   MPISpace();
-  MPISpace(MPISpace &&rhs) = default;
+  MPISpace(MPISpace &&rhs)      = default;
   MPISpace(const MPISpace &rhs) = default;
   MPISpace &operator=(MPISpace &&) = default;
   MPISpace &operator=(const MPISpace &) = default;
-  ~MPISpace() = default;
+  ~MPISpace()                           = default;
 
   explicit MPISpace(const MPI_Comm &);
 
@@ -117,7 +116,7 @@ public:
   void impl_set_allocation_mode(const int);
   void impl_set_extent(int64_t N);
 
-private:
+ private:
   static constexpr const char *m_name = "MPI";
   friend class Kokkos::Impl::SharedAllocationRecord<
       Kokkos::Experimental::MPISpace, void>;
@@ -128,17 +127,19 @@ size_t get_my_pe();
 size_t get_indexing_block_size(size_t size);
 std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace Experimental
+}  // namespace Kokkos
 
 namespace Kokkos {
 namespace Impl {
 
-template <> struct DeepCopy<HostSpace, Kokkos::Experimental::MPISpace> {
+template <>
+struct DeepCopy<HostSpace, Kokkos::Experimental::MPISpace> {
   DeepCopy(void *dst, const void *src, size_t);
 };
 
-template <> struct DeepCopy<Kokkos::Experimental::MPISpace, HostSpace> {
+template <>
+struct DeepCopy<Kokkos::Experimental::MPISpace, HostSpace> {
   DeepCopy(void *dst, const void *src, size_t);
 };
 
@@ -170,8 +171,8 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
   enum { deepcopy = true };
 };
 
-} // namespace Impl
-} // namespace Kokkos
+}  // namespace Impl
+}  // namespace Kokkos
 
 #include <Kokkos_MPISpace_AllocationRecord.hpp>
 #include <Kokkos_MPISpace_Ops.hpp>
@@ -184,4 +185,4 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 
-#endif // #define KOKKOS_MPISPACE_HPP
+#endif  // #define KOKKOS_MPISPACE_HPP

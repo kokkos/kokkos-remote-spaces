@@ -173,8 +173,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int i1 = i / dst.extent(0);
+      int i0      = i % dst.extent(0);
+      int i1      = i / dst.extent(0);
       dst(i0, i1) = src(i0, i1);
     });
     team.team_barrier();
@@ -207,10 +207,10 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      int i2 = itmp / dst.extent(1);
+      int i0          = i % dst.extent(0);
+      int itmp        = i / dst.extent(0);
+      int i1          = itmp % dst.extent(1);
+      int i2          = itmp / dst.extent(1);
       dst(i0, i1, i2) = src(i0, i1, i2);
     });
     team.team_barrier();
@@ -244,12 +244,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      int i3 = itmp / dst.extent(2);
+      int i0              = i % dst.extent(0);
+      int itmp            = i / dst.extent(0);
+      int i1              = itmp % dst.extent(1);
+      itmp                = itmp / dst.extent(1);
+      int i2              = itmp % dst.extent(2);
+      int i3              = itmp / dst.extent(2);
       dst(i0, i1, i2, i3) = src(i0, i1, i2, i3);
     });
     team.team_barrier();
@@ -283,14 +283,14 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      int i4 = itmp / dst.extent(3);
+      int i0                  = i % dst.extent(0);
+      int itmp                = i / dst.extent(0);
+      int i1                  = itmp % dst.extent(1);
+      itmp                    = itmp / dst.extent(1);
+      int i2                  = itmp % dst.extent(2);
+      itmp                    = itmp / dst.extent(2);
+      int i3                  = itmp % dst.extent(3);
+      int i4                  = itmp / dst.extent(3);
       dst(i0, i1, i2, i3, i4) = src(i0, i1, i2, i3, i4);
     });
     team.team_barrier();
@@ -324,16 +324,16 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      itmp = itmp / dst.extent(3);
-      int i4 = itmp % dst.extent(4);
-      int i5 = itmp / dst.extent(4);
+      int i0                      = i % dst.extent(0);
+      int itmp                    = i / dst.extent(0);
+      int i1                      = itmp % dst.extent(1);
+      itmp                        = itmp / dst.extent(1);
+      int i2                      = itmp % dst.extent(2);
+      itmp                        = itmp / dst.extent(2);
+      int i3                      = itmp % dst.extent(3);
+      itmp                        = itmp / dst.extent(3);
+      int i4                      = itmp % dst.extent(4);
+      int i5                      = itmp / dst.extent(4);
       dst(i0, i1, i2, i3, i4, i5) = src(i0, i1, i2, i3, i4, i5);
     });
     team.team_barrier();
@@ -368,18 +368,18 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      itmp = itmp / dst.extent(3);
-      int i4 = itmp % dst.extent(4);
-      itmp = itmp / dst.extent(4);
-      int i5 = itmp % dst.extent(5);
-      int i6 = itmp / dst.extent(5);
+      int i0                          = i % dst.extent(0);
+      int itmp                        = i / dst.extent(0);
+      int i1                          = itmp % dst.extent(1);
+      itmp                            = itmp / dst.extent(1);
+      int i2                          = itmp % dst.extent(2);
+      itmp                            = itmp / dst.extent(2);
+      int i3                          = itmp % dst.extent(3);
+      itmp                            = itmp / dst.extent(3);
+      int i4                          = itmp % dst.extent(4);
+      itmp                            = itmp / dst.extent(4);
+      int i5                          = itmp % dst.extent(5);
+      int i6                          = itmp / dst.extent(5);
       dst(i0, i1, i2, i3, i4, i5, i6) = src(i0, i1, i2, i3, i4, i5, i6);
     });
     team.team_barrier();
@@ -429,8 +429,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
     Kokkos::Experimental::RemoteSpaces::local_deep_copy_contiguous(dst, src);
   } else {
     for (size_t i0 = 0; i0 < dst.extent(0); ++i0)
-      for (size_t i1 = 0; i1 < dst.extent(1); ++i1)
-        dst(i0, i1) = src(i0, i1);
+      for (size_t i1 = 0; i1 < dst.extent(1); ++i1) dst(i0, i1) = src(i0, i1);
   }
 }
 
@@ -616,8 +615,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int i1 = i / dst.extent(0);
+      int i0      = i % dst.extent(0);
+      int i1      = i / dst.extent(0);
       dst(i0, i1) = value;
     });
     team.team_barrier();
@@ -647,10 +646,10 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      int i2 = itmp / dst.extent(1);
+      int i0          = i % dst.extent(0);
+      int itmp        = i / dst.extent(0);
+      int i1          = itmp % dst.extent(1);
+      int i2          = itmp / dst.extent(1);
       dst(i0, i1, i2) = value;
     });
     team.team_barrier();
@@ -681,12 +680,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      int i3 = itmp / dst.extent(2);
+      int i0              = i % dst.extent(0);
+      int itmp            = i / dst.extent(0);
+      int i1              = itmp % dst.extent(1);
+      itmp                = itmp / dst.extent(1);
+      int i2              = itmp % dst.extent(2);
+      int i3              = itmp / dst.extent(2);
       dst(i0, i1, i2, i3) = value;
     });
     team.team_barrier();
@@ -717,14 +716,14 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      int i4 = itmp / dst.extent(3);
+      int i0                  = i % dst.extent(0);
+      int itmp                = i / dst.extent(0);
+      int i1                  = itmp % dst.extent(1);
+      itmp                    = itmp / dst.extent(1);
+      int i2                  = itmp % dst.extent(2);
+      itmp                    = itmp / dst.extent(2);
+      int i3                  = itmp % dst.extent(3);
+      int i4                  = itmp / dst.extent(3);
       dst(i0, i1, i2, i3, i4) = value;
     });
     team.team_barrier();
@@ -755,16 +754,16 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      itmp = itmp / dst.extent(3);
-      int i4 = itmp % dst.extent(4);
-      int i5 = itmp / dst.extent(4);
+      int i0                      = i % dst.extent(0);
+      int itmp                    = i / dst.extent(0);
+      int i1                      = itmp % dst.extent(1);
+      itmp                        = itmp / dst.extent(1);
+      int i2                      = itmp % dst.extent(2);
+      itmp                        = itmp / dst.extent(2);
+      int i3                      = itmp % dst.extent(3);
+      itmp                        = itmp / dst.extent(3);
+      int i4                      = itmp % dst.extent(4);
+      int i5                      = itmp / dst.extent(4);
       dst(i0, i1, i2, i3, i4, i5) = value;
     });
     team.team_barrier();
@@ -796,18 +795,18 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     team.team_barrier();
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N), [&](const int &i) {
-      int i0 = i % dst.extent(0);
-      int itmp = i / dst.extent(0);
-      int i1 = itmp % dst.extent(1);
-      itmp = itmp / dst.extent(1);
-      int i2 = itmp % dst.extent(2);
-      itmp = itmp / dst.extent(2);
-      int i3 = itmp % dst.extent(3);
-      itmp = itmp / dst.extent(3);
-      int i4 = itmp % dst.extent(4);
-      itmp = itmp / dst.extent(4);
-      int i5 = itmp % dst.extent(5);
-      int i6 = itmp / dst.extent(5);
+      int i0                          = i % dst.extent(0);
+      int itmp                        = i / dst.extent(0);
+      int i1                          = itmp % dst.extent(1);
+      itmp                            = itmp / dst.extent(1);
+      int i2                          = itmp % dst.extent(2);
+      itmp                            = itmp / dst.extent(2);
+      int i3                          = itmp % dst.extent(3);
+      itmp                            = itmp / dst.extent(3);
+      int i4                          = itmp % dst.extent(4);
+      itmp                            = itmp / dst.extent(4);
+      int i5                          = itmp % dst.extent(5);
+      int i6                          = itmp / dst.extent(5);
       dst(i0, i1, i2, i3, i4, i5, i6) = value;
     });
     team.team_barrier();
@@ -853,8 +852,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
     Kokkos::Experimental::RemoteSpaces::local_deep_copy_contiguous(dst, value);
   } else {
     for (size_t i0 = 0; i0 < dst.extent(0); ++i0)
-      for (size_t i1 = 0; i1 < dst.extent(1); ++i1)
-        dst(i0, i1) = value;
+      for (size_t i1 = 0; i1 < dst.extent(1); ++i1) dst(i0, i1) = value;
   }
 }
 
@@ -876,8 +874,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   } else {
     for (size_t i0 = 0; i0 < dst.extent(0); ++i0)
       for (size_t i1 = 0; i1 < dst.extent(1); ++i1)
-        for (size_t i2 = 0; i2 < dst.extent(2); ++i2)
-          dst(i0, i1, i2) = value;
+        for (size_t i2 = 0; i2 < dst.extent(2); ++i2) dst(i0, i1, i2) = value;
   }
 }
 
@@ -983,8 +980,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   }
 }
 
-} // namespace RemoteSpaces
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RemoteSpaces
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // KOKKOS_REMOTESPACES_LOCALDEEPCOPY_HPP
+#endif  // KOKKOS_REMOTESPACES_LOCALDEEPCOPY_HPP

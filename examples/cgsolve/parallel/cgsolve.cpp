@@ -61,17 +61,17 @@ typedef Kokkos::View<double **, Kokkos::PartitionedLayoutLeft, RemoteMemSpace_t>
 template <class YType, class AType, class XType>
 void spmv(YType y, AType A, XType x) {
   int numRanks = 1, rank = 0;
-  int64_t nrows = y.extent(0);
+  int64_t nrows     = y.extent(0);
   int vector_length = 8;
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 #ifdef KOKKOS_ENABLE_CUDA
   int rows_per_team = 16;
-  int team_size = 16;
+  int team_size     = 16;
 #else
   int rows_per_team = 512;
-  int team_size = 1;
+  int team_size     = 1;
 #endif
 
   auto policy =
@@ -82,7 +82,7 @@ void spmv(YType y, AType A, XType x) {
       "spmv", policy,
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
         const int64_t first_row = team.league_rank() * rows_per_team;
-        const int64_t last_row = first_row + rows_per_team < nrows
+        const int64_t last_row  = first_row + rows_per_team < nrows
                                      ? first_row + rows_per_team
                                      : nrows;
         Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_row, last_row),
@@ -120,9 +120,10 @@ void spmv(YType y, AType A, XType x) {
   RemoteMemSpace_t().fence();
 }
 
-template <class YType, class XType> double dot(YType y, XType x) {
+template <class YType, class XType>
+double dot(YType y, XType x) {
   double result = 0.0;
-  int64_t n = y.extent(0);
+  int64_t n     = y.extent(0);
   Kokkos::parallel_reduce(
       "DOT", n,
       KOKKOS_LAMBDA(const int64_t &i, double &lsum) { lsum += y(i) * x(i); },
@@ -138,7 +139,8 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
       KOKKOS_LAMBDA(const int &i) { z(i) = alpha * x(i) + beta * y(i); });
 }
 
-template <class VType> void print_vector(int label, VType v) {
+template <class VType>
+void print_vector(int label, VType v) {
   std::cout << "\n\nPRINT " << v.label() << std::endl << std::endl;
 
   int myRank = 0;
@@ -157,21 +159,19 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
   int num_iters = 0;
 
-  double normr = 0;
-  double rtrans = 0;
+  double normr     = 0;
+  double rtrans    = 0;
   double oldrtrans = 0;
 
   int64_t print_freq = max_iter / 10;
-  if (print_freq > 50)
-    print_freq = 50;
-  if (print_freq < 1)
-    print_freq = 1;
+  if (print_freq > 50) print_freq = 50;
+  if (print_freq < 1) print_freq = 1;
   VType x("x", b.extent(0));
   VType r("r", x.extent(0));
-  VType p(p_global.data(), x.extent(0)); // Globally accessible data
+  VType p(p_global.data(), x.extent(0));  // Globally accessible data
   VType Ap("Ap", x.extent(0));
 
-  double one = 1.0;
+  double one  = 1.0;
   double zero = 0.0;
 
   axpby(p, one, x, zero, x);
@@ -195,7 +195,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
       axpby(p, one, r, zero, r);
     } else {
       oldrtrans = rtrans;
-      rtrans = dot(r, r);
+      rtrans    = dot(r, r);
       MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM,
                     MPI_COMM_WORLD);
       double beta = rtrans / oldrtrans;
@@ -211,7 +211,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
       }
     }
 
-    double alpha = 0;
+    double alpha    = 0;
     double p_ap_dot = 0;
     spmv(Ap, A, p_global);
     p_ap_dot = dot(Ap, p);
@@ -238,28 +238,39 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
 }
 
 int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+#endif
 
   int myRank, numRanks;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
-#endif
 #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
-  mpi_comm = MPI_COMM_WORLD;
+  mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
 
   Kokkos::initialize(argc, argv);
   {
-    int N = argc > 1 ? atoi(argv[1]) : 100;
-    int max_iter = argc > 2 ? atoi(argv[2]) : 200;
-    double tolerance = 1e-7;
+    int N                            = argc > 1 ? atoi(argv[1]) : 100;
+    int max_iter                     = argc > 2 ? atoi(argv[2]) : 200;
+    double tolerance                 = 1e-7;
     CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
     Kokkos::View<double *, Kokkos::HostSpace> h_x =
         Impl::generate_miniFE_vector(N);
@@ -289,16 +300,16 @@ int main(int argc, char *argv[]) {
     double time = timer.seconds();
 
     // Compute Bytes and Flops
-    double spmv_bytes = A.num_rows() * sizeof(int64_t) + // A.row_ptr
-                        A.nnz() * sizeof(int64_t) +      // A.col_idx
-                        A.nnz() * sizeof(double) +       // A.values
-                        A.nnz() * sizeof(double) +       // input vector
-                        A.num_rows() * sizeof(double);   // output vector
-    double dot_bytes = A.num_rows() * sizeof(double) * 2;
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) +  // A.row_ptr
+                        A.nnz() * sizeof(int64_t) +       // A.col_idx
+                        A.nnz() * sizeof(double) +        // A.values
+                        A.nnz() * sizeof(double) +        // input vector
+                        A.num_rows() * sizeof(double);    // output vector
+    double dot_bytes   = A.num_rows() * sizeof(double) * 2;
     double axpby_bytes = A.num_rows() * sizeof(double) * 3;
 
-    double spmv_flops = A.nnz() * 2;
-    double dot_flops = A.num_rows() * 2;
+    double spmv_flops  = A.nnz() * 2;
+    double dot_flops   = A.num_rows() * 2;
     double axpby_flops = A.num_rows() * 3;
 
     int spmv_calls = 1 + num_iters;
@@ -317,12 +328,13 @@ int main(int argc, char *argv[]) {
                   MPI_COMM_WORLD);
 
     double GFlops = 1e-9 * total_flops / time;
-    double GBs = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
+    double GBs    = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
 
     if (myRank == 0) {
-      printf("N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, "
-             "%.2e, %.6lf, %.6lf, %.6lf\n",
-             N, num_iters, total_flops, time, GFlops, GBs);
+      printf(
+          "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, %.2e, "
+          "%.6lf, %.6lf, %.6lf\n",
+          N, num_iters, total_flops, time, GFlops, GBs);
     }
   }
 
