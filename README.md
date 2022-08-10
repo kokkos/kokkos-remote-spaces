@@ -2,7 +2,7 @@
 
 <img src="https://user-images.githubusercontent.com/755191/120260364-ff398a80-c252-11eb-9f01-886bb888533a.png" width="500" align="right" >
 
-Kokkos Remote Spaces adds distributed shared memory (DSM) support to the Kokkos parallel programming model. This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
+*Kokkos Remote Spaces* adds distributed shared memory (DSM) support to [*Kokkos*](https://github.com/kokkos/kokkos/). This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
 A new memory space type, namely the `DefaultRemoteMemorySpace` type, represents a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer.
 
@@ -26,9 +26,30 @@ In this chart, GI (global indexing) and LI (local indexing) mark two implementat
 
 ## Building Kokkos Remote Spaces
 
-Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a selected PGAS backend library. The following steps document the build process. Note that building in the root directory in not allowed.
+Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or later. Is a stand-alone project with dependencies on *Kokkos* and a selected *PGAS backend library*. The following steps document the build process. Note that building in the root directory in not allowed.
 
-`SHMEM`
+#### CMake paths
+
+| Path         | Description                                             |
+| ------------ | ------------------------------------------------------- |
+| Kokkos_ROOT  | Path to the root of the Kokkos install                  |
+| SHMEM_ROOT   | Path to the root of a SHMEM installation if enabled     |
+| NVSHMEM_ROOT | Path to the root of a NVSHMEM installation if enabled   |
+
+
+#### Supported CMake Options
+
+| Variable                | Default | Description                        |
+| ----------------------- | ------- | ---------------------------------- |
+| KRS_ENABLE_SHMEMSPACE| OFF     | Enables the SHMEM backend             |
+| KRS_ENABLE_SHMEMSPACE| OFF     | Enables the NVSHMEM backend           |
+| KRS_ENABLE_MPISPACE  | OFF     | Enables the MPI backend               |
+| KRS_ENABLE_TESTS     | OFF     | Enable building Gtests                |
+
+
+#### Examples
+
+Building with `SHMEM`
 ```
    $: cmake . -DKokkos_ENABLE_SHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
@@ -37,7 +58,7 @@ Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a 
    $: make
 ```
 
-`NVSHMEM`
+Building with `NVSHMEM`
 ```
    $: cmake . -DKokkos_ENABLE_NVSHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
@@ -46,7 +67,7 @@ Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a 
    $: make
 ```
 
-`MPI`
+Building with `MPI`
 ```
    $: cmake . -DKokkos_ENABLE_MPISPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
