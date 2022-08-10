@@ -34,9 +34,9 @@ pipeline {
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Release \
                                 -DKokkos_DIR=${KOKKOS_ROOT} \
-                                -DKokkos_ENABLE_SHMEMSPACE=ON \
+                                -DKRS_ENABLE_SHMEMSPACE=ON \
                                 -DSHMEM_ROOT=/opt/openmpi \
-                                -DKokkos_ENABLE_TESTS=ON \
+                                -DKRS_ENABLE_TESTS=ON \
                                 -DCMAKE_CXX_FLAGS=-Werror \
                               .. && \
                               make -j8 && cd unit_tests && mpirun -np 2 ./KokkosRemote_TestAll'''

@@ -60,14 +60,14 @@ int main(int argc, char *argv[]) {
                   &mpi_thread_level_available);
   assert(mpi_thread_level_available >= mpi_thread_level_required);
 
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KRS_ENABLE_SHMEMSPACE
   shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
   assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
 
   MPI_Comm mpi_comm;
 
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmemx_init_attr_t attr;
   mpi_comm      = MPI_COMM_WORLD;
   attr.mpi_comm = &mpi_comm;
@@ -79,10 +79,10 @@ int main(int argc, char *argv[]) {
   int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
 #endif
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KRS_ENABLE_SHMEMSPACE
   shmem_finalize();
 #else
   MPI_Finalize();

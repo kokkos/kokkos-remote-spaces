@@ -1,6 +1,6 @@
 add_executable(matvec_single matvec.cpp)
 
-if (Kokkos_ENABLE_NVSHMEMSPACE)
+if (KRS_ENABLE_NVSHMEMSPACE)
   target_link_libraries(matvec_single PRIVATE "-lnvidia-ml")
 endif()
 
