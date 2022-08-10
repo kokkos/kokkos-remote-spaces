@@ -14,6 +14,7 @@ find_package(Kokkos REQUIRED)
 option(KRS_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
 option(KRS_ENABLE_SHMEMSPACE "Whether to build with SHMEMS space" OFF)
 option(KRS_ENABLE_MPISPACE "Whether to build with MPI space" OFF)
+option(KRS_ENABLE_EXAMPLES "Whether to enable tests" OFF)
 option(KRS_ENABLE_TESTS "Whether to enable tests" OFF)
 option(KRS_ENABLE_DEBUG "Whether to enable debugging output" OFF)
 
@@ -162,7 +163,9 @@ install(EXPORT
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote
 )
 
-add_subdirectory(examples)
+IF (KRS_ENABLE_EXAMPLES)
+  add_subdirectory(examples)
+ENDIF()
 
 IF (KRS_ENABLE_TESTS)
   enable_testing()
