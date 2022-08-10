@@ -4,9 +4,9 @@
 
 Kokkos Remote Spaces adds distributed shared memory (DSM) support to the Kokkos parallel programming model. This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
-In particular, a new memory space type, namely the `DefaultRemoteMemorySpace` type, represent a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer.
+A new memory space type, namely the `DefaultRemoteMemorySpace` type, represents a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer.
 
-Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows the fit of Kokkos Remote Spaces into the landscape of Kokkos and PGAS libraries.
+Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows how Kokkos Remote Spaces fits into the landscape of Kokkos and PGAS libraries.
 
 ## Examples
 
@@ -24,13 +24,12 @@ The following charts provide a perspective on performance and development comple
 
 In this chart, GI (global indexing) and LI (local indexing) mark two implementations of CGSolve where one implementation uses Kokkos views with global layout (`GlobalLayoutLeft` and where the other uses `LayoutLeft` and thus relies on the programmer to compute the PE index. In the latter case, this computation can be implemented with a binary left-shift which yields a slight performance advantage.
 
-## Build
+## Building Kokkos Remote Spaces
 
-Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a selected PGAS backend library. The following steps document the build process from within the Kokkos Remote Spaces root directory.
+Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a selected PGAS backend library. The following steps document the build process. Note that building in the root directory in not allowed.
 
 `SHMEM`
 ```
-   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
    $: cmake . -DKokkos_ENABLE_SHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DSHMEM_ROOT=${PATH_TO_MPI}
@@ -40,7 +39,6 @@ Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a 
 
 `NVSHMEM`
 ```
-   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
    $: cmake . -DKokkos_ENABLE_NVSHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM}
@@ -50,11 +48,50 @@ Kokkos Remote Spaces is a stand-alone project with dependencies on Kokkos and a 
 
 `MPI`
 ```
-   $: export PATH=${KOKKOS_BUILD_DIR}/bin:$PATH
    $: cmake . -DKokkos_ENABLE_MPISPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DCMAKE_CXX_COMPILER=mpicxx
    $: make
+```
+
+## Building an Application with Kokkos Remote Spaces
+
+Applications depend at least on Kokkos Remote Spaces and may depend on Kokkos Kernels or others. The following sample shows a cmake build file to generate the build scripts for "MyRemoteApp". It depends on Kokkos Remote Spaces and Kokkos Kernels.
+
+
+```
+#Example
+cmake_minimum_required(VERSION 3.13)
+
+project(MyRemoteApp LANGUAGES CXX)
+
+find_package(KokkosKernels REQUIRED)
+find_package(KokkosRemote REQUIRED)
+
+add_executable(MatVec matvec.cpp)
+target_link_libraries(MatVec PRIVATE \
+         Kokkos::kokkoskernels Kokkos::kokkosremote)
+```
+
+This cmake build fike can be used as 
+
+```
+cmake .. -DKokkosKernels_ROOT=$KokkosKernels_INSTALL_PATH -DKokkosRemote_ROOT=$KokkosRemoteSpaces_INSTALL_PATH
+```
+
+## New APIs and Kokkos API overloads
+
+```
+Kokkos::Experimental::DefaultRemoteMemorySpace;
+Kokkos::Experimental::DefaultRemoteMemorySpace::fence();
+Kokkos::Experimental::PartitionedLayout;
+Kokkos::Experimental::get_local_range(View_t);
+Kokkos::Experimental::get_range(View_t, rank);
+Kokkos::View(...);}
+Kokkos::subview(...);}
+Kokkos::deep_copy(...);
+Kokkos::local_deep_copy(...);
+Kokkos::MemoryTraits::Atomic;
 ```
 
 *Note: Kokkos Remote Spaces is in an experimental development stage.*
