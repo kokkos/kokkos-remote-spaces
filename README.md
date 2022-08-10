@@ -8,6 +8,22 @@ A new memory space type, namely the `DefaultRemoteMemorySpace` type, represents 
 
 Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows how Kokkos Remote Spaces fits into the landscape of Kokkos and PGAS libraries.
 
+
+## New APIs and Kokkos API overloads
+
+```
+Kokkos::Experimental::DefaultRemoteMemorySpace;
+Kokkos::Experimental::DefaultRemoteMemorySpace::fence();
+Kokkos::Experimental::PartitionedLayout;
+Kokkos::Experimental::get_local_range(View_t);
+Kokkos::Experimental::get_range(View_t, rank);
+Kokkos::View(...);}
+Kokkos::subview(...);}
+Kokkos::deep_copy(...);
+Kokkos::local_deep_copy(...);
+Kokkos::MemoryTraits::Atomic;
+```
+
 ## Examples
 
 The following example illustrates the type definition of a Kokkos remote view (`ViewRemote_3D_t`). Further, it shows the instantiation of a remote view (`view`), in this case of a 3-dimensional array of 20 elements per dimension, and a subsequent instantiation of a subview that can span over multiple virtual address spaces (`sub_view`). It is worth pointing out that GlobalLayouts, per definition, distribute arrays by the left-most dimension. View data can be accesses similarly to Kokkos views.
@@ -50,8 +66,8 @@ Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or l
 #### Examples
 
 Building with `SHMEM`
-```
-   $: cmake . -DKokkos_ENABLE_SHMEMSPACE=ON
+```bash
+   $: cmake . -DKRS_ENABLE_SHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DSHMEM_ROOT=${PATH_TO_MPI}
            -DCMAKE_CXX_COMPILER=mpicxx
@@ -59,8 +75,8 @@ Building with `SHMEM`
 ```
 
 Building with `NVSHMEM`
-```
-   $: cmake . -DKokkos_ENABLE_NVSHMEMSPACE=ON
+```bash
+   $: cmake . -DKRS_ENABLE_NVSHMEMSPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM}
            -DCMAKE_CXX_COMPILER=nvcc_wrapper
@@ -68,8 +84,8 @@ Building with `NVSHMEM`
 ```
 
 Building with `MPI`
-```
-   $: cmake . -DKokkos_ENABLE_MPISPACE=ON
+```bash
+   $: cmake . -DKRS_ENABLE_MPISPACE=ON
            -DKokkos_DIR=${KOKKOS_BUILD_DIR}
            -DCMAKE_CXX_COMPILER=mpicxx
    $: make
@@ -80,7 +96,7 @@ Building with `MPI`
 Applications depend at least on Kokkos Remote Spaces and may depend on Kokkos Kernels or others. The following sample shows a cmake build file to generate the build scripts for "MyRemoteApp". It depends on Kokkos Remote Spaces and Kokkos Kernels.
 
 
-```
+```cmake
 #Example
 cmake_minimum_required(VERSION 3.13)
 
@@ -96,23 +112,8 @@ target_link_libraries(MatVec PRIVATE \
 
 This cmake build fike can be used as 
 
-```
+```cmake
 cmake .. -DKokkosKernels_ROOT=$KokkosKernels_INSTALL_PATH -DKokkosRemote_ROOT=$KokkosRemoteSpaces_INSTALL_PATH
-```
-
-## New APIs and Kokkos API overloads
-
-```
-Kokkos::Experimental::DefaultRemoteMemorySpace;
-Kokkos::Experimental::DefaultRemoteMemorySpace::fence();
-Kokkos::Experimental::PartitionedLayout;
-Kokkos::Experimental::get_local_range(View_t);
-Kokkos::Experimental::get_range(View_t, rank);
-Kokkos::View(...);}
-Kokkos::subview(...);}
-Kokkos::deep_copy(...);
-Kokkos::local_deep_copy(...);
-Kokkos::MemoryTraits::Atomic;
 ```
 
 *Note: Kokkos Remote Spaces is in an experimental development stage.*
