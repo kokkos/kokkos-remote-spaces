@@ -110,7 +110,7 @@ target_link_libraries(MatVec PRIVATE \
          Kokkos::kokkoskernels Kokkos::kokkosremote)
 ```
 
-This cmake build fike can be used as 
+This cmake build fike can be used as
 
 ```cmake
 cmake .. -DKokkosKernels_ROOT=$KokkosKernels_INSTALL_PATH -DKokkosRemote_ROOT=$KokkosRemoteSpaces_INSTALL_PATH

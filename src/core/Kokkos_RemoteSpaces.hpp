@@ -51,7 +51,7 @@ enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
 }
 }  // namespace Kokkos
 
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KRS_ENABLE_SHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
 class SHMEMSpace;
@@ -60,7 +60,7 @@ class SHMEMSpace;
 #include <Kokkos_SHMEMSpace.hpp>
 #endif
 
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#ifdef KRS_ENABLE_NVSHMEMSPACE
 namespace Kokkos {
 namespace Experimental {
 class NVSHMEMSpace;
@@ -69,7 +69,7 @@ class NVSHMEMSpace;
 #include <Kokkos_NVSHMEMSpace.hpp>
 #endif
 
-#ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KRS_ENABLE_MPISPACE
 namespace Kokkos {
 namespace Experimental {
 class MPISpace;
@@ -81,13 +81,13 @@ class MPISpace;
 namespace Kokkos {
 namespace Experimental {
 
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#ifdef KRS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;
 #else
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KRS_ENABLE_SHMEMSPACE
 typedef SHMEMSpace DefaultRemoteMemorySpace;
 #else
-#ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KRS_ENABLE_MPISPACE
 typedef MPISpace DefaultRemoteMemorySpace;
 #else
 error "At least one remote space must be selected."

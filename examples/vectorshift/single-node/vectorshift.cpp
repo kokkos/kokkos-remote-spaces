@@ -68,10 +68,10 @@ using HostView_t = Kokkos::View<T *, Kokkos::HostSpace>;
 int main(int argc, char *argv[]) {
   // Excercise: Uncomment networking initialization below
   /*MPI_Init(&argc, &argv);
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+  #ifdef KRS_ENABLE_SHMEMSPACE
   shmem_init();
   #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  #ifdef KRS_ENABLE_NVSHMEMSPACE
   MPI_Comm mpi_comm;
   nvshmemx_init_attr_t attr;
   mpi_comm = MPI_COMM_WORLD;
@@ -133,10 +133,10 @@ int main(int argc, char *argv[]) {
 
   // Excersize: Uncomment networking finalization below
   /*
-  #ifdef KOKKOS_ENABLE_SHMEMSPACE
+  #ifdef KRS_ENABLE_SHMEMSPACE
   shmem_finalize();
   #endif
-  #ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  #ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
   #endif
   MPI_Finalize();

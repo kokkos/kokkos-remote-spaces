@@ -302,7 +302,7 @@ class ViewMapping<
     dst.m_offset_remote_dim = extents.domain_offset(0);
     dst.dim0_is_pe          = R0;
 
-#ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
@@ -1204,7 +1204,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         ((Kokkos::Impl::ViewCtorProp<void, std::string> const &)arg_prop).value,
         alloc_size);
 
-#ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KRS_ENABLE_MPISPACE
     if (alloc_size) {
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
                              record->win);
