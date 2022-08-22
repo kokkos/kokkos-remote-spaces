@@ -1,6 +1,6 @@
 add_executable(randomaccess randomaccess.cpp)
 
-if (Kokkos_ENABLE_NVSHMEMSPACE)
+if (KRS_ENABLE_NVSHMEMSPACE)
   target_link_libraries(randomaccess PRIVATE "-lnvidia-ml")
 endif()
 

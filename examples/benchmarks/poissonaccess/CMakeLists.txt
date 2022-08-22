@@ -1,6 +1,6 @@
 add_executable(poissonaccess poissonaccess.cpp)
 
-if (Kokkos_ENABLE_NVSHMEMSPACE)
+if (KRS_ENABLE_NVSHMEMSPACE)
   target_link_libraries(poissonaccess PRIVATE "-lnvidia-ml")
 endif()
 

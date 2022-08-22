@@ -51,13 +51,13 @@ namespace Kokkos {
 namespace Experimental {
 namespace RemoteSpaces {
 
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+#ifdef KRS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;
 #else
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
+#ifdef KRS_ENABLE_SHMEMSPACE
 typedef SHMEMSpace DefaultRemoteMemorySpace;
 #else
-#ifdef KOKKOS_ENABLE_MPISPACE
+#ifdef KRS_ENABLE_MPISPACE
 typedef MPISpace DefaultRemoteMemorySpace;
 #endif
 #endif
