@@ -127,19 +127,21 @@ struct ViewDataHandle<
   using return_type = NVSHMEMDataElement<value_type, Traits>;
   using track_type  = Kokkos::Impl::SharedAllocationTracker;
 
-  KOKKOS_INLINE_FUNCTION
-  static handle_type assign(
+  template <class T = Traits>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
       value_type *arg_data_ptr, track_type const & /*arg_tracker*/,
-      typename std::enable_if_t<!RemoteSpaces_MemoryTraits<
-          typename Traits::memory_traits>::is_cached> * = 0) {
+      typename std::enable_if_t<
+          !RemoteSpaces_MemoryTraits<typename T::memory_traits>::is_cached> * =
+          0) {
     return handle_type(arg_data_ptr);
   }
 
-  KOKKOS_INLINE_FUNCTION
-  static handle_type assign(
+  template <class T = Traits>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
       value_type *arg_data_ptr, track_type const &arg_tracker,
-      typename std::enable_if_t<RemoteSpaces_MemoryTraits<
-          typename Traits::memory_traits>::is_cached> * = 0) {
+      typename std::enable_if<
+          RemoteSpaces_MemoryTraits<typename T::memory_traits>::is_cached> * =
+          0) {
     auto *record =
         arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
     return handle_type(arg_data_ptr,
