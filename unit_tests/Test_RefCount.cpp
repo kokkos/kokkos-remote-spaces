@@ -58,8 +58,8 @@ void test_reference_counting() {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  Kokkos::View<DataType*, RemoteSpace> outer("outer", num_ranks,
-                                             10 * sizeof(DataType));
+  Kokkos::View<DataType *, RemoteSpace> outer("outer", num_ranks,
+                                              10 * sizeof(DataType));
   {
     Kokkos::View<DataType *, RemoteSpace> inner = outer;
     ASSERT_EQ(inner.use_count(), 2);

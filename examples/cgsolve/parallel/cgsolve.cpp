@@ -312,8 +312,8 @@ int main(int argc, char *argv[]) {
     double dot_flops   = A.num_rows() * 2;
     double axpby_flops = A.num_rows() * 3;
 
-    int spmv_calls = 1 + num_iters;
-    int dot_calls = num_iters;
+    int spmv_calls  = 1 + num_iters;
+    int dot_calls   = num_iters;
     int axpby_calls = 2 + num_iters * 3;
 
     double total_flops = spmv_flops * spmv_calls + dot_flops * dot_calls +

@@ -62,7 +62,6 @@ void rdma_ibv_init();
 void rdma_ibv_finalize();
 
 struct Transport {
-
   struct BootstrapPort {
     uint16_t lid;
     uint8_t port;
@@ -82,8 +81,8 @@ struct Transport {
   ~Transport();
 };
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_RDMA_TRANSPORT
+#endif  // RACERLIB_RDMA_TRANSPORT

@@ -52,8 +52,8 @@ namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-template <typename T> struct RdmaScatterGatherWorker {
-
+template <typename T>
+struct RdmaScatterGatherWorker {
   int my_rank;
   int num_ranks;
 
@@ -146,8 +146,8 @@ template <typename T> struct RdmaScatterGatherWorker {
   unsigned *fence_done_flag;
 };
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_RDMA_WORKER
+#endif  // RACERLIB_RDMA_WORKER

@@ -58,9 +58,9 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
 
   typedef SharedAllocationRecord<void, void> RecordBase;
 
-  #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
   Kokkos::Experimental::RACERlib::Engine<double> e;
-  #endif
+#endif
 
   SharedAllocationRecord(const SharedAllocationRecord &) = delete;
   SharedAllocationRecord &operator=(const SharedAllocationRecord &) = delete;
@@ -118,9 +118,10 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
                             const Kokkos::Experimental::NVSHMEMSpace &,
                             bool detail = false);
 
-  #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-  Kokkos::Experimental::RACERlib::Engine<double> *  get_caching_and_aggregation_engine();
-  #endif
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+  Kokkos::Experimental::RACERlib::Engine<double>
+      *get_caching_and_aggregation_engine();
+#endif
 };
 
 }  // namespace Impl

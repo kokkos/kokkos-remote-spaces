@@ -53,9 +53,10 @@ namespace RACERlib {
 
 #ifdef RAW_CUDA
 template <typename T, class Team>
-__device__ void
-pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                     unsigned *completion_flag, Team &&team, bool final);
+__device__ void pack_response_kernel(T *local_values,
+                                     RdmaScatterGatherWorker<T> *sgw,
+                                     unsigned *completion_flag, Team &&team,
+                                     bool final);
 
 template <typename T, class Team>
 __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
@@ -65,20 +66,21 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 #else
 
 template <typename T, class Team>
-KOKKOS_FUNCTION void
-pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                     unsigned *completion_flag, Team &&team, bool final);
+KOKKOS_FUNCTION void pack_response_kernel(T *local_values,
+                                          RdmaScatterGatherWorker<T> *sgw,
+                                          unsigned *completion_flag,
+                                          Team &&team, bool final);
 
 template <typename T, class Team>
-KOKKOS_INLINE_FUNCTION void
-aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw, Team &&team,
-                          unsigned num_worker_teams);
+KOKKOS_INLINE_FUNCTION void aggregate_requests_kernel(
+    RdmaScatterGatherWorker<T> *sgw, Team &&team, unsigned num_worker_teams);
 
-#endif // RAW_CUDA
+#endif  // RAW_CUDA
 
-template <class Policy, class Lambda, class RemoteView> struct Worker {
-  KOKKOS_FUNCTION void
-  operator()(const typename Policy::member_type &team) const {
+template <class Policy, class Lambda, class RemoteView>
+struct Worker {
+  KOKKOS_FUNCTION void operator()(
+      const typename Policy::member_type &team) const {
     RdmaScatterGatherWorker<double> *sgw = m_view(0).sgw;
     if (team.league_rank() == 0) {
       debug_2("Starting kernel 2 (aggregate_requests_kernel)\n");
@@ -104,33 +106,33 @@ template <class Policy, class Lambda, class RemoteView> struct Worker {
   Worker(L &&lambda, R &&view)
       : m_lambda(std::forward<L>(lambda)), m_view(std::forward<R>(view)) {}
 
-private:
+ private:
   Lambda m_lambda;
   RemoteView m_view;
 };
 
-template <class Policy, class RemoteView> struct Respond_worker {
+template <class Policy, class RemoteView>
+struct Respond_worker {
   Respond_worker(const RemoteView &view) : m_view(view) {}
 
-  KOKKOS_FUNCTION void
-  operator()(const typename Policy::member_type &team) const {
+  KOKKOS_FUNCTION void operator()(
+      const typename Policy::member_type &team) const {
     RdmaScatterGatherWorker<double> *sgw = m_view(0).sgw;
     debug_2("Starting FINAL kernel (pack_response_kernel)\n");
     pack_response_kernel(m_view(0).ptr, sgw, sgw->fence_done_flag, team, true);
   }
 
-private:
+ private:
   RemoteView m_view;
 };
 
-} // namespace RACERlib
+}  // namespace RACERlib
 
 using namespace RACERlib;
 
 template <class Policy, class Lambda, class RemoteView>
 void remote_parallel_for(const std::string &name, Policy &&policy,
                          Lambda &&lambda, const RemoteView &view) {
-
   if (policy.league_size() == 0) {
     return;
   }
@@ -141,10 +143,10 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   int vector_length = 1;
 #endif
 
-  using PolicyType = typename std::remove_reference<Policy>::type;
-  using LambdaType = typename std::remove_reference<Lambda>::type;
+  using PolicyType   = typename std::remove_reference<Policy>::type;
+  using LambdaType   = typename std::remove_reference<Lambda>::type;
   using remote_space = typename RemoteView::memory_space;
-  using exec_space = typename RemoteView::execution_space;
+  using exec_space   = typename RemoteView::execution_space;
 
   PolicyType worker_policy(policy.league_size(), policy.team_size(),
                            vector_length);
@@ -156,7 +158,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   debug_2("Launch workers\n");
   Kokkos::parallel_for(name, worker_policy, worker);
 
-  exec_space().fence(); // CudaDeviceSync
+  exec_space().fence();  // CudaDeviceSync
   debug_2("Workers finished\n");
 
   auto respond_policy =
@@ -170,7 +172,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   // Fence the Engine (cache invalidate, MPI barrier, epoch++)
   view.impl_map().fence(exec_space{});
 
-  remote_space().fence(); // MPI barier
+  remote_space().fence();  // MPI barier
 
   // Notify final kernel to finish response packing as we guarantee that no
   // remote kernels will be requesting local data
@@ -178,11 +180,11 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   view.impl_map().clear_fence(exec_space{});
 
   // Wait for packing kernel to finish
-  exec_space().fence(); // CudaDeviceSync.
+  exec_space().fence();  // CudaDeviceSync.
   debug_2("Respond worker finished\n");
 }
 
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_RDMA_INTERFACE
+#endif  // RACERLIB_RDMA_INTERFACE

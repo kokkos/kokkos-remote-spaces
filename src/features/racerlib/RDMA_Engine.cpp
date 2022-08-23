@@ -67,14 +67,13 @@ static std::vector<PendingRdmaRequest> pending_sg_requests;
 
 static size_t aligned_size(size_t alignment, size_t size) {
   size_t npages = size / alignment;
-  if (size % alignment)
-    npages++;
+  if (size % alignment) npages++;
   return npages * alignment;
 }
 
 static void *allocate_host_pinned(size_t size, size_t &real_size) {
   size_t pagesize = (size_t)sysconf(_SC_PAGE_SIZE);
-  real_size = aligned_size(pagesize, size);
+  real_size       = aligned_size(pagesize, size);
   void *addr;
 #ifdef KOKKOS_ENABLE_CUDA
   cuda_safe(cuMemAllocHost(&addr, real_size));
@@ -96,7 +95,7 @@ static void free_host_pinned(void *buf, size_t size) {
 static void *allocate_device(size_t size, size_t &real_size) {
 #ifdef KOKKOS_ENABLE_CUDA
   size_t pagesize = (size_t)sysconf(_SC_PAGE_SIZE);
-  real_size = aligned_size(pagesize, size);
+  real_size       = aligned_size(pagesize, size);
   void *addr;
   cuda_safe(cuMemAlloc((CUdeviceptr *)&addr, real_size));
   return addr;
@@ -127,7 +126,7 @@ static ibv_mr *allocate_host_rdma_memory(Transport *tport, size_t size) {
 }
 
 static void free_host_rdma_memory(ibv_mr *mr) {
-  void *buf = mr->addr;
+  void *buf   = mr->addr;
   size_t size = mr->length;
   ibv_safe(ibv_dereg_mr(mr));
   free_host_pinned(buf, size);
@@ -162,7 +161,7 @@ static void memset_device(void *buf, int value, size_t size) {
 }
 
 static void free_device_rdma_memory(ibv_mr *mr) {
-  void *buf = mr->addr;
+  void *buf   = mr->addr;
   size_t size = mr->length;
   ibv_dereg_mr(mr);
   free_device(buf, size);
@@ -180,7 +179,7 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
   uint32_t window_offset =
       (uintptr_t(win) - uintptr_t(rx_remote_windows_mr->addr)) /
       sizeof(RemoteWindow);
-  uint64_t idx = rx_block_request_ctr % queue_size;
+  uint64_t idx         = rx_block_request_ctr % queue_size;
   uint64_t trip_number = rx_block_request_ctr / queue_size;
   uint64_t request = MAKE_BLOCK_PACK_REQUEST(win->num_entries, win->requester,
                                              trip_number, window_offset);
@@ -203,15 +202,15 @@ void RdmaScatterGatherEngine::remote_window_finish_reply() {
 
   RemoteWindow *win = pending_replies.front();
   pending_replies.pop();
-  struct ibv_sge *sge = rsp_wr->sge;
+  struct ibv_sge *sge         = rsp_wr->sge;
   struct ibv_send_wr **bad_sr = &rsp_wr->bad_req.sr;
-  struct ibv_send_wr *sr = &rsp_wr->req.sr;
+  struct ibv_send_wr *sr      = &rsp_wr->req.sr;
 
   rsp_wr->type = RdmaWorkRequest::SEND_SG_RESPONSE;
 
   sge->length = win->num_entries * win->elem_size;
-  sge->addr = (uint64_t)win->cfg.reply_tx_buf + win->offset * win->elem_size;
-  sge->lkey = win->cfg.reply_tx_key;
+  sge->addr   = (uint64_t)win->cfg.reply_tx_buf + win->offset * win->elem_size;
+  sge->lkey   = win->cfg.reply_tx_key;
 
   sr->wr.rdma.remote_addr =
       (uint64_t)win->cfg.reply_rx_buf + win->offset * win->elem_size;
@@ -222,13 +221,13 @@ void RdmaScatterGatherEngine::remote_window_finish_reply() {
         win->requester, win->reply_token, sge->addr, sr->wr.rdma.remote_addr,
         int(sge->length));
 
-  sr->next = nullptr;
-  sr->wr_id = (uint64_t)rsp_wr;
-  sr->num_sge = 1;
-  sr->sg_list = sge;
+  sr->next       = nullptr;
+  sr->wr_id      = (uint64_t)rsp_wr;
+  sr->num_sge    = 1;
+  sr->sg_list    = sge;
   sr->send_flags = IBV_SEND_SIGNALED;
-  sr->opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
-  sr->imm_data = win->reply_token;
+  sr->opcode     = IBV_WR_RDMA_WRITE_WITH_IMM;
+  sr->imm_data   = win->reply_token;
 
   ibv_safe(ibv_post_send(response_tport->qps[win->requester], sr, bad_sr));
 }
@@ -242,35 +241,35 @@ void RdmaScatterGatherEngine::response_received(RdmaWorkRequest *req,
 
 void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
                                                  uint32_t num_entries) {
-  RdmaWorkRequest *req = available_send_request_wrs.pop();
-  struct ibv_sge *sge = req->sge;
+  RdmaWorkRequest *req        = available_send_request_wrs.pop();
+  struct ibv_sge *sge         = req->sge;
   struct ibv_send_wr **bad_sr = &req->bad_req.sr;
-  struct ibv_send_wr *sr = &req->req.sr;
+  struct ibv_send_wr *sr      = &req->req.sr;
 
   uint32_t offset = tx_element_request_sent_ctrs[pe] % queue_size;
-  uint32_t end = offset + num_entries;
+  uint32_t end    = offset + num_entries;
   if (end > queue_size) {
     // first send up until wrap around
     send_remote_window(tport, pe, queue_size - offset);
     // then send the remaining
     num_entries = end - queue_size;
-    offset = 0;
+    offset      = 0;
   }
 
   RemoteWindow *win = available_tx_windows.pop();
-  win->num_entries = num_entries;
-  win->offset = offset;
-  req->buf = win;
+  win->num_entries  = num_entries;
+  win->offset       = offset;
+  req->buf          = win;
 
-  sge[0].addr = (uint64_t)win;
-  sge[0].lkey = win->local_key;
+  sge[0].addr   = (uint64_t)win;
+  sge[0].lkey   = win->local_key;
   sge[0].length = sizeof(RemoteWindow);
-  sge[1].addr = (uint64_t)tx_element_request_queue_mr->addr +
+  sge[1].addr   = (uint64_t)tx_element_request_queue_mr->addr +
                 (pe * queue_size + offset) * sizeof(uint32_t);
-  sge[1].lkey = tx_element_request_queue_mr->lkey;
+  sge[1].lkey   = tx_element_request_queue_mr->lkey;
   sge[1].length = num_entries * sizeof(uint32_t);
 
-  win->cfg = tx_remote_window_configs[pe];
+  win->cfg         = tx_remote_window_configs[pe];
   win->reply_token = available_reply_keys.pop();
   debug("Request %p with %" PRIu32 " entries at offset=%" PRIu32
         " on token=%" PRIu32 " from pe=%d",
@@ -278,19 +277,19 @@ void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
 
   PendingRdmaRequest &rdma_req = pending_sg_requests[win->reply_token];
 
-  rdma_req.sge = this;
+  rdma_req.sge         = this;
   rdma_req.num_entries = win->num_entries;
-  rdma_req.start_idx = tx_element_request_sent_ctrs[pe];
-  rdma_req.token = win->reply_token;
-  rdma_req.pe = pe;
+  rdma_req.start_idx   = tx_element_request_sent_ctrs[pe];
+  rdma_req.token       = win->reply_token;
+  rdma_req.pe          = pe;
   tx_element_request_sent_ctrs[pe] += num_entries;
 
-  sr->next = NULL;
-  sr->wr_id = (uint64_t)req;
-  sr->num_sge = 2;
-  sr->sg_list = sge;
+  sr->next       = NULL;
+  sr->wr_id      = (uint64_t)req;
+  sr->num_sge    = 2;
+  sr->sg_list    = sge;
   sr->send_flags = IBV_SEND_SIGNALED;
-  sr->opcode = IBV_WR_SEND;
+  sr->opcode     = IBV_WR_SEND;
   ibv_safe(ibv_post_send(tport->qps[pe], sr, bad_sr));
 }
 
@@ -308,37 +307,35 @@ void RdmaScatterGatherEngine::poll(Transport *tport) {
     }
     RdmaWorkRequest *req = (RdmaWorkRequest *)wc.wr_id;
     switch (req->type) {
-    case RdmaWorkRequest::SEND_SG_REQUEST: {
-      // Nothing to do, just make request available again
-      debug("cleared send request %p on cq:%p", req->buf, tport->cq);
-      time_safe(available_tx_windows.append((RemoteWindow *)req->buf));
-      time_safe(available_send_request_wrs.append(req));
-      break;
-    }
-    case RdmaWorkRequest::RECV_SG_REQUEST: {
-      time_safe(request_received(req));
-      // Go ahead and put the request back into the queue
-      ibv_safe(ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr));
-      // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
-      break;
-    }
-    case RdmaWorkRequest::RECV_SG_RESPONSE: {
-      time_safe(response_received(req, wc.imm_data));
-      // Go ahead and put the request back into the queue
-      time_safe(ibv_safe(
-          ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr)));
-      // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
-      break;
-    }
-    case RdmaWorkRequest::SEND_SG_RESPONSE: {
-      // nothing to do, just make request available again
-      debug("cleared send response on cq: %p", tport->cq);
-      time_safe(available_send_response_wrs.append(req));
-      break;
-    }
-    default:
-      Kokkos::abort("got bad work request type");
-      break;
+      case RdmaWorkRequest::SEND_SG_REQUEST: {
+        // Nothing to do, just make request available again
+        debug("cleared send request %p on cq:%p", req->buf, tport->cq);
+        time_safe(available_tx_windows.append((RemoteWindow *)req->buf));
+        time_safe(available_send_request_wrs.append(req));
+        break;
+      }
+      case RdmaWorkRequest::RECV_SG_REQUEST: {
+        time_safe(request_received(req));
+        // Go ahead and put the request back into the queue
+        ibv_safe(ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr));
+        // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
+        break;
+      }
+      case RdmaWorkRequest::RECV_SG_RESPONSE: {
+        time_safe(response_received(req, wc.imm_data));
+        // Go ahead and put the request back into the queue
+        time_safe(ibv_safe(
+            ibv_post_srq_recv(req->srq, &req->req.rr, &req->bad_req.rr)));
+        // ibv_safe(ibv_post_recv(req->qp, &req->req.rr, &req->bad_req.rr));
+        break;
+      }
+      case RdmaWorkRequest::SEND_SG_RESPONSE: {
+        // nothing to do, just make request available again
+        debug("cleared send response on cq: %p", tport->cq);
+        time_safe(available_send_response_wrs.append(req));
+        break;
+      }
+      default: Kokkos::abort("got bad work request type"); break;
     }
   }
 }
@@ -378,9 +375,9 @@ static void *run_request_thread(void *args) {
 void RdmaScatterGatherEngine::poll_requests() {
   while (is_running()) {
     time_safe(poll(request_tport));
-    uint64_t idx = tx_block_reply_ctr % queue_size;
+    uint64_t idx         = tx_block_reply_ctr % queue_size;
     uint64_t trip_number = tx_block_reply_ctr / queue_size;
-    uint64_t request = volatile_load(&tx_block_reply_cmd_queue[idx]);
+    uint64_t request     = volatile_load(&tx_block_reply_cmd_queue[idx]);
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       remote_window_finish_reply();
       ++tx_block_reply_ctr;
@@ -401,13 +398,13 @@ void RdmaScatterGatherEngine::generate_requests() {
 }
 
 void RdmaScatterGatherEngine::check_for_new_block_requests() {
-  uint64_t trip_number = tx_block_request_ctr / queue_size;
-  uint64_t queue_idx = tx_block_request_ctr % queue_size;
-  uint32_t ready_flag = MAKE_READY_FLAG(trip_number);
+  uint64_t trip_number  = tx_block_request_ctr / queue_size;
+  uint64_t queue_idx    = tx_block_request_ctr % queue_size;
+  uint32_t ready_flag   = MAKE_READY_FLAG(trip_number);
   uint64_t next_request = volatile_load(&tx_block_request_cmd_queue[queue_idx]);
 
   while (GET_BLOCK_FLAG(next_request) == ready_flag) {
-    uint32_t pe = GET_BLOCK_PE(next_request);
+    uint32_t pe          = GET_BLOCK_PE(next_request);
     uint32_t num_entries = GET_BLOCK_SIZE(next_request);
 
     debug("Got block request of size %" PRIu32 " for pe %" PRIu32
@@ -418,8 +415,8 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
 
     ++tx_block_request_ctr;
     uint64_t trip_number = tx_block_request_ctr / queue_size;
-    uint64_t queue_idx = tx_block_request_ctr % queue_size;
-    ready_flag = MAKE_READY_FLAG(trip_number);
+    uint64_t queue_idx   = tx_block_request_ctr % queue_size;
+    ready_flag           = MAKE_READY_FLAG(trip_number);
     next_request = volatile_load(&tx_block_request_cmd_queue[queue_idx]);
   }
 }
@@ -441,7 +438,7 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
   // See if any misordered requests can now be acked
   for (auto iter = misordered_acks.begin(); iter != misordered_acks.end();
        ++iter) {
-    auto tmp = iter++;
+    auto tmp                = iter++;
     PendingRdmaRequest *req = *tmp;
     if (cleared_index == req->start_idx) {
       cleared_index += req->num_entries;
@@ -503,8 +500,12 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
 
 RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
                                                  size_t elem_size)
-    : comm(c), tx_block_request_ctr(0), rx_block_request_ctr(0),
-      tx_block_reply_ctr(0), epoch(0), terminate_signal(0) {
+    : comm(c),
+      tx_block_request_ctr(0),
+      rx_block_request_ctr(0),
+      tx_block_reply_ctr(0),
+      epoch(0),
+      terminate_signal(0) {
   if (available_reply_keys.size() == 0) {
     available_reply_keys.fill_iota(1000);
     pending_sg_requests.resize(1000);
@@ -550,12 +551,12 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   ack_ctrs_h = (uint64_t *)allocate_host_pinned(num_ranks * sizeof(uint64_t),
                                                 ignore_actual_size);
   tx_element_request_acked_ctrs = new uint64_t[num_ranks];
-  tx_element_request_sent_ctrs = new uint64_t[num_ranks];
+  tx_element_request_sent_ctrs  = new uint64_t[num_ranks];
 
   for (int pe = 0; pe < num_ranks; ++pe) {
-    ack_ctrs_h[pe] = 0;
+    ack_ctrs_h[pe]                    = 0;
     tx_element_request_acked_ctrs[pe] = 0;
-    tx_element_request_sent_ctrs[pe] = 0;
+    tx_element_request_sent_ctrs[pe]  = 0;
   }
 
   // These will both get pinned so need to be page-aligned
@@ -576,15 +577,16 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   for (int w = 0; w < NUM_SEND_WRS; ++w) {
     RemoteWindow *win = (RemoteWindow *)((char *)tx_remote_windows_mr->addr +
                                          w * sizeof(RemoteWindow));
-    win->elem_size = elem_size;
-    win->local_key = tx_remote_windows_mr->lkey;
-    win->requester = my_rank;
+    win->elem_size    = elem_size;
+    win->local_key    = tx_remote_windows_mr->lkey;
+    win->requester    = my_rank;
     available_tx_windows.fill_append(win);
   }
 
   if (request_tport->pd != response_tport->pd) {
-    Kokkos::abort("Does not support request/response in different IBV "
-                  "protection domains");
+    Kokkos::abort(
+        "Does not support request/response in different IBV "
+        "protection domains");
   }
 
   // TODO
@@ -607,8 +609,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
 
   cache.init(num_ranks, rank_num_entries, elem_size);
   void *cache_arr = allocate_device(cache.cache_size, ignore_actual_size);
-  cache.flags = (unsigned int *)cache_arr;
-  cache.waiting = ((unsigned int *)cache_arr) + num_ranks * rank_num_entries;
+  cache.flags     = (unsigned int *)cache_arr;
+  cache.waiting   = ((unsigned int *)cache_arr) + num_ranks * rank_num_entries;
   cache.values = ((unsigned int *)cache_arr) + 2 * num_ranks * rank_num_entries;
 
   tx_block_request_cmd_queue = (uint64_t *)allocate_host_pinned(
@@ -629,7 +631,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
 #endif
   data.reply_tx_buffer = tx_element_reply_queue_mr->addr;
   data.reply_tx_key =
-      tx_element_reply_queue_mr->lkey; // I want my local key sent back to me
+      tx_element_reply_queue_mr->lkey;  // I want my local key sent back to me
   gethostname(data.hostname, 64);
   // We need to share what our actual remote buffer
   MPI_Allgather(&data, sizeof(RdmaScatterGatherBuffer), MPI_BYTE,
@@ -645,7 +647,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
         cuda_safe(cuIpcOpenMemHandle((CUdeviceptr *)&peer_buf,
                                      remote_bufs[pe].handle,
                                      CU_IPC_MEM_LAZY_ENABLE_PEER_ACCESS));
-        direct_ptrs_h[pe] = nullptr; // peer_buf + header_size;
+        direct_ptrs_h[pe] = nullptr;  // peer_buf + header_size;
       } else {
         direct_ptrs_h[pe] = nullptr;
       }
@@ -664,15 +666,14 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   size_t reply_buffer_stride = elem_size * queue_size;
   tx_remote_window_configs.resize(num_ranks);
   for (int pe = 0; pe < num_ranks; ++pe) {
-    if (pe == my_rank)
-      continue;
+    if (pe == my_rank) continue;
 
     RemoteWindowConfig &cfg = tx_remote_window_configs[pe];
     cfg.reply_rx_buf =
         ((char *)rx_element_reply_queue_mr->addr + reply_buffer_stride * pe);
     cfg.reply_rx_key =
         rx_element_reply_queue_mr
-            ->rkey; // remote processes will put here, send remote key
+            ->rkey;  // remote processes will put here, send remote key
     cfg.reply_tx_buf = ((char *)remote_bufs[pe].reply_tx_buffer +
                         reply_buffer_stride * my_rank);
     cfg.reply_tx_key = remote_bufs[pe].reply_tx_key;
@@ -683,24 +684,24 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
 
   uint32_t *request_buf = (uint32_t *)rx_element_request_queue_mr->addr;
   for (int r = 0; r < NUM_RECV_WRS; ++r) {
-    RdmaWorkRequest *req = available_recv_request_wrs.pop();
-    struct ibv_sge *sge = req->sge;
+    RdmaWorkRequest *req        = available_recv_request_wrs.pop();
+    struct ibv_sge *sge         = req->sge;
     struct ibv_recv_wr **bad_rr = &req->bad_req.rr;
-    struct ibv_recv_wr *rr = &req->req.rr;
+    struct ibv_recv_wr *rr      = &req->req.rr;
 
     RemoteWindow *win = get_rx_remote_window(r);
-    sge[0].length = sizeof(RemoteWindow);
-    sge[0].addr = (uint64_t)win;
-    sge[0].lkey = rx_remote_windows_mr->lkey;
-    sge[1].length = queue_size * sizeof(uint32_t);
-    sge[1].addr = (uint64_t)(request_buf + r * queue_size);
-    sge[1].lkey = rx_element_request_queue_mr->lkey;
-    req->type = RdmaWorkRequest::RECV_SG_REQUEST;
-    req->srq = request_tport->srq;
-    req->buf = win;
+    sge[0].length     = sizeof(RemoteWindow);
+    sge[0].addr       = (uint64_t)win;
+    sge[0].lkey       = rx_remote_windows_mr->lkey;
+    sge[1].length     = queue_size * sizeof(uint32_t);
+    sge[1].addr       = (uint64_t)(request_buf + r * queue_size);
+    sge[1].lkey       = rx_element_request_queue_mr->lkey;
+    req->type         = RdmaWorkRequest::RECV_SG_REQUEST;
+    req->srq          = request_tport->srq;
+    req->buf          = win;
 
-    rr->next = NULL;
-    rr->wr_id = (uint64_t)req;
+    rr->next    = NULL;
+    rr->wr_id   = (uint64_t)req;
     rr->num_sge = 2;
     rr->sg_list = sge;
 
@@ -712,19 +713,19 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   }
 
   for (int r = 0; r < NUM_RECV_WRS; ++r) {
-    RdmaWorkRequest *req = available_recv_response_wrs.pop();
-    struct ibv_sge *sge = req->sge;
+    RdmaWorkRequest *req        = available_recv_response_wrs.pop();
+    struct ibv_sge *sge         = req->sge;
     struct ibv_recv_wr **bad_rr = &req->bad_req.rr;
-    struct ibv_recv_wr *rr = &req->req.rr;
+    struct ibv_recv_wr *rr      = &req->req.rr;
 
     sge->length = sizeof(RdmaWorkRequest);
-    sge->addr = (uint64_t)req;
-    sge->lkey = all_request_mr->lkey;
-    req->type = RdmaWorkRequest::RECV_SG_RESPONSE;
-    req->srq = response_tport->srq;
+    sge->addr   = (uint64_t)req;
+    sge->lkey   = all_request_mr->lkey;
+    req->type   = RdmaWorkRequest::RECV_SG_RESPONSE;
+    req->srq    = response_tport->srq;
 
-    rr->next = nullptr;
-    rr->wr_id = (uint64_t)req;
+    rr->next    = nullptr;
+    rr->wr_id   = (uint64_t)req;
     rr->num_sge = 1;
     rr->sg_list = sge;
     ibv_safe(ibv_post_srq_recv(req->srq, rr, bad_rr));
@@ -749,6 +750,6 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   debug("Engine init finished on my_rank:%i", my_rank);
 }
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos

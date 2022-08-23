@@ -58,8 +58,8 @@ template <class T>
 KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   uint64_t *tail_ctr = &tx_element_request_ctrs[pe];
   uint64_t idx = Kokkos::atomic_fetch_add((unsigned long long *)tail_ctr, 1);
-  uint32_t trip_number = idx / queue_size;
-  uint32_t buf_slot = idx % queue_size;
+  uint32_t trip_number     = idx / queue_size;
+  uint32_t buf_slot        = idx % queue_size;
   uint64_t global_buf_slot = pe * queue_size + buf_slot;
 
   assert(trip_number < 1000);
@@ -89,14 +89,14 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   // exceeds our request idx
 
   uint64_t *ack_ptr = &ack_ctrs_d[pe];
-  uint64_t ack = volatile_load(ack_ptr);
+  uint64_t ack      = volatile_load(ack_ptr);
   while (ack <= idx) {
     ack = volatile_load(ack_ptr);
   }
 
   // at this point, our data is now available in the reply buffer
   T *reply_buffer_T = (T *)rx_element_reply_queue;
-  T ret = volatile_load(&reply_buffer_T[global_buf_slot]);
+  T ret             = volatile_load(&reply_buffer_T[global_buf_slot]);
   // update the trip count to signal any waiting threads they can go
   atomic_add((unsigned int *)&tx_element_request_trip_counts[global_buf_slot],
              1u);
@@ -114,6 +114,6 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {
 #endif
 }
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos

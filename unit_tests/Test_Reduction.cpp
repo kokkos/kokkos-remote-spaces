@@ -52,7 +52,8 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t> void test_scalar_reduce_1D(int dim0) {
+template <class Data_t>
+void test_scalar_reduce_1D(int dim0) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -82,7 +83,8 @@ template <class Data_t> void test_scalar_reduce_1D(int dim0) {
   ASSERT_EQ((dim0 - 1) * (dim0) / 2, gsum);
 }
 
-template <class Data_t> void test_scalar_reduce_2D(int dim0, int dim1) {
+template <class Data_t>
+void test_scalar_reduce_2D(int dim0, int dim1) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -116,7 +118,8 @@ template <class Data_t> void test_scalar_reduce_2D(int dim0, int dim1) {
   ASSERT_EQ((total - 1) * (total) / 2, gsum);
 }
 
-template <class Data_t> void test_scalar_reduce_partitioned_1D(int dim1) {
+template <class Data_t>
+void test_scalar_reduce_partitioned_1D(int dim1) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);

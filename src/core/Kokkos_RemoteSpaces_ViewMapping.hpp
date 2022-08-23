@@ -1058,7 +1058,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         m_num_pes(rhs.m_num_pes),
         pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
-        m_local_dim0(rhs.m_local_dim0), dim0_is_pe(rhs.dim0_is_pe) {}
+        m_local_dim0(rhs.m_local_dim0),
+        dim0_is_pe(rhs.dim0_is_pe) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
     m_handle            = rhs.m_handle;
@@ -1077,7 +1078,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         m_num_pes(rhs.m_num_pes),
         pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
-        m_local_dim0(rhs.m_local_dim0), dim0_is_pe(0) {}
+        m_local_dim0(rhs.m_local_dim0),
+        dim0_is_pe(0) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
     m_handle            = rhs.m_handle;
@@ -1234,16 +1236,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     return record;
   }
 
-  template <class ExecSpace> void fence(ExecSpace &&e) const {
-    //Flush cache
+  template <class ExecSpace>
+  void fence(ExecSpace &&e) const {
+    // Flush cache
     m_handle.e->fence();
   }
 
-  template <class ExecSpace> void clear_fence(ExecSpace &&e) const {
-    //Notify final pack_response_kernel to stop
+  template <class ExecSpace>
+  void clear_fence(ExecSpace &&e) const {
+    // Notify final pack_response_kernel to stop
     volatile_store(m_handle.e->sge->fence_done_flag, 1u);
   }
-
 };
 
 template <class DstTraits, class SrcTraits>

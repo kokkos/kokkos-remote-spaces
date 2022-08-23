@@ -57,11 +57,12 @@ namespace RACERlib {
 
 #define RACERLIB_SUCCESS 1
 
-template <typename T> struct Engine;
+template <typename T>
+struct Engine;
 
 // Todo: template this on Feature for generic Engine feature support
-template <typename T> struct Engine {
-
+template <typename T>
+struct Engine {
   void put(void *target, T &value, int PE, int offset, MPI_Comm comm_id);
   T get(void *target, int PE, int offset, MPI_Comm comm_id);
 
@@ -75,9 +76,9 @@ template <typename T> struct Engine {
   // Call this on Kokkos initialize.
   int init(
       void *target,
-      MPI_Comm comm_id); // set communicator reference, return RACERLIB_STATUS
+      MPI_Comm comm_id);  // set communicator reference, return RACERLIB_STATUS
   // Call this on kokkos finalize
-  int finalize(); // finalize communicator instance, return RECERLIB_STATUS
+  int finalize();  // finalize communicator instance, return RECERLIB_STATUS
 
   RdmaScatterGatherEngine *sge;
   RdmaScatterGatherWorker<T> *sgw;
@@ -97,8 +98,8 @@ template <typename T> struct Engine {
   void fence();
 };
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_INTERFACE
+#endif  // RACERLIB_INTERFACE

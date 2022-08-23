@@ -142,7 +142,8 @@ void test_subview2D(int i1, int i2) {
     for (int j = 0; j < v_h.extent(1); ++j) ASSERT_EQ(v_h(i, j), 2);
 }
 
-template <class Data_t> void test_subview3D(int i1, int i2, int i3) {
+template <class Data_t>
+void test_subview3D(int i1, int i2, int i3) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);

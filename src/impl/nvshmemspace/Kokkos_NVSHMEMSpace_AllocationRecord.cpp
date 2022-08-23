@@ -105,9 +105,9 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
   m_space.deallocate(SharedAllocationRecord<void, void>::m_alloc_ptr,
                      SharedAllocationRecord<void, void>::m_alloc_size);
 
-  #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)  
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
   get_caching_and_aggregation_engine()->finalize();
-  #endif
+#endif
 }
 
 SharedAllocationRecord<void, void> SharedAllocationRecord<
@@ -186,10 +186,10 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_record(
 }
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-Kokkos::Experimental::RACERlib::Engine<double> *
-SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_caching_and_aggregation_engine()
-{
-  return & e;
+Kokkos::Experimental::RACERlib::Engine<double>
+    *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
+                            void>::get_caching_and_aggregation_engine() {
+  return &e;
 }
 #endif
 

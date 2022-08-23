@@ -76,16 +76,19 @@ static inline uint32_t warp_id() { return 0; }
 #endif
 
 struct RemoteCache {
-
   RemoteCache()
-      : flags(nullptr), values(nullptr), waiting(nullptr), num_ranks(0),
-        rank_num_entries(0), modulo_mask(0) {}
+      : flags(nullptr),
+        values(nullptr),
+        waiting(nullptr),
+        num_ranks(0),
+        rank_num_entries(0),
+        modulo_mask(0) {}
 
   void init(int nranks, int rank_ne, size_t elem_sz) {
-    num_ranks = nranks;
+    num_ranks        = nranks;
     rank_num_entries = rank_ne;
-    modulo_mask = rank_num_entries - 1;
-    elem_size = elem_sz;
+    modulo_mask      = rank_num_entries - 1;
+    elem_size        = elem_sz;
 
     bool not_power_of_two = rank_num_entries & (rank_num_entries - 1);
     if (not_power_of_two) {
@@ -103,7 +106,7 @@ struct RemoteCache {
 
   template <class T, class Fallback>
   KOKKOS_FUNCTION T get(int pe, uint32_t offset, Fallback *fb) {
-    int slot = claim_slot<T>(pe, offset, fb);
+    int slot   = claim_slot<T>(pe, offset, fb);
     auto ready = ready_flag(offset);
     if (slot < 0) {
       slot = -slot;
@@ -139,7 +142,7 @@ struct RemoteCache {
 
   template <class T, class Fallback>
   KOKKOS_FUNCTION int claim_slot(int pe, uint32_t offset, Fallback *fb) {
-    auto pe_cache_slot = offset & modulo_mask;
+    auto pe_cache_slot   = offset & modulo_mask;
     auto glbl_cache_slot = global_cache_slot(pe, pe_cache_slot);
 
     T *values_T = reinterpret_cast<T *>(values);
@@ -150,17 +153,15 @@ struct RemoteCache {
     // The very last bit is used to indicate that the cache slot is pending
     // attempt to claim the cache slot
     unsigned int empty_sentinel = 0;
-    auto ready = ready_flag(offset);
-    auto new_claim = claim_flag(offset);
+    auto ready                  = ready_flag(offset);
+    auto new_claim              = claim_flag(offset);
     auto slot_value = atomic_compare_exchange(&flags[glbl_cache_slot],
                                               empty_sentinel, new_claim);
     if (slot_value == ready) {
-
       cache_debug("Returning existing value at offset %" PRIu32 "\n", offset);
       return glbl_cache_slot;
 
     } else if (slot_value == new_claim) {
-
       // We have claimed the cache line, but have not yet filled the value
       auto ticket_number = atomic_fetch_add(&waiting[glbl_cache_slot], 1);
       cache_debug("Got ticket %u at offset %" PRIu32
@@ -219,9 +220,9 @@ struct RemoteCache {
   size_t elem_size;
 };
 
-} // namespace Cache
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace Cache
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_ACCESSCACHE_HPP
+#endif  // RACERLIB_ACCESSCACHE_HPP

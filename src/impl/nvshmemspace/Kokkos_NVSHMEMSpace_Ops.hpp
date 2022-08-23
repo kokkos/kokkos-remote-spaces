@@ -52,7 +52,7 @@
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
 #include <RDMA_Worker.hpp>
-#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
+#endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {
 namespace Impl {
@@ -206,9 +206,11 @@ struct NVSHMEMDataElement {};
 // Atomic Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<(Traits::memory_traits::is_atomic &&
-    !RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached)>::type> {
+    T, Traits,
+    typename std::enable_if<(
+        Traits::memory_traits::is_atomic &&
+        !RemoteSpaces_MemoryTraits<
+            typename Traits::memory_traits>::is_cached)>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -524,9 +526,11 @@ struct NVSHMEMDataElement<
 // Default Operators
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<(!Traits::memory_traits::is_atomic &&
-    !RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached)>::type> {
+    T, Traits,
+    typename std::enable_if<(
+        !Traits::memory_traits::is_atomic &&
+        !RemoteSpaces_MemoryTraits<
+            typename Traits::memory_traits>::is_cached)>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;

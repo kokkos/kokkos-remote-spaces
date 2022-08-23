@@ -48,7 +48,7 @@
 #define RAW_CUDA
 
 #include <Kokkos_Atomic.hpp>
-#include <Kokkos_View.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <RACERlib_Config.hpp>
 #include <RDMA_Access_Cache.hpp>
@@ -72,7 +72,8 @@ namespace RACERlib {
 #define NEW_REQUEST_BIT 0
 #define NEW_REQUEST_MASK 1
 
-template <class T> struct SPSC_LockFree_Pool {
+template <class T>
+struct SPSC_LockFree_Pool {
   uint64_t read_head;
   uint64_t write_head;
   uint32_t queue_size;
@@ -80,7 +81,10 @@ template <class T> struct SPSC_LockFree_Pool {
   bool allocated;
 
   SPSC_LockFree_Pool()
-      : read_head(0), write_head(0), queue_size(0), allocated(false),
+      : read_head(0),
+        write_head(0),
+        queue_size(0),
+        allocated(false),
         queue(nullptr) {}
 
   uint32_t size() const { return queue_size; }
@@ -92,9 +96,9 @@ template <class T> struct SPSC_LockFree_Pool {
   }
 
   void fill_empty(uint32_t size) {
-    queue = new T[size];
+    queue      = new T[size];
     queue_size = size;
-    allocated = true;
+    allocated  = true;
   }
 
   void fill_append(T t) {
@@ -103,11 +107,11 @@ template <class T> struct SPSC_LockFree_Pool {
   }
 
   template <class U = T>
-  typename std::enable_if<std::is_pointer<U>::value>::type
-  fill_from_storage(uint32_t size, U u) {
-    queue = new T[size];
+  typename std::enable_if<std::is_pointer<U>::value>::type fill_from_storage(
+      uint32_t size, U u) {
+    queue      = new T[size];
     queue_size = size;
-    allocated = true;
+    allocated  = true;
     for (uint32_t i = 0; i < size; ++i) {
       queue[i] = &u[i];
     }
@@ -115,7 +119,7 @@ template <class T> struct SPSC_LockFree_Pool {
   }
 
   void fill(uint32_t size, T *t) {
-    queue = t;
+    queue      = t;
     write_head = size;
     queue_size = size;
   }
@@ -127,13 +131,13 @@ template <class T> struct SPSC_LockFree_Pool {
     }
     write_head = size;
     queue_size = size;
-    allocated = true;
+    allocated  = true;
   }
 
   void append(T t) {
     // We guarantee to only put in what was there at the beginning
     // We therefore don't need to check for overruns
-    auto idx = write_head % queue_size;
+    auto idx   = write_head % queue_size;
     queue[idx] = t;
     atomic_add(&write_head, uint64_t(1));
   }
@@ -142,7 +146,7 @@ template <class T> struct SPSC_LockFree_Pool {
     while (read_head == volatile_load(&write_head))
       ;
     auto idx = read_head % queue_size;
-    T t = queue[idx];
+    T t      = queue[idx];
     atomic_add(&read_head, uint64_t(1));
     return t;
   }
@@ -215,7 +219,6 @@ struct PendingRdmaRequest {
 };
 
 struct RdmaScatterGatherEngine {
-
   // For optimization purposes, we have a statically sized queue
   constexpr static uint32_t queue_size = QUEUE_SIZE;
 
@@ -248,7 +251,7 @@ struct RdmaScatterGatherEngine {
   void generate_requests();
 
   // Data structures used on host and device
-public:
+ public:
   uint64_t *tx_element_request_ctrs;
   uint64_t *tx_element_reply_ctrs;
   uint32_t *tx_element_request_trip_counts;
@@ -282,7 +285,7 @@ public:
   uint32_t epoch;
 
   /** The data structures only used on the host */
-private:
+ private:
   ibv_mr *rx_remote_windows_mr;
   ibv_mr *tx_remote_windows_mr;
   ibv_mr *all_request_mr;
@@ -338,12 +341,12 @@ private:
 
 void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge);
 
-#define heisenbug                                                              \
-  printf("%s:%d\n", __FILE__, __LINE__);                                       \
+#define heisenbug                        \
+  printf("%s:%d\n", __FILE__, __LINE__); \
   fflush(stdout)
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
 
-#endif // RACERLIB_RDMA_ENGINE
+#endif  // RACERLIB_RDMA_ENGINE

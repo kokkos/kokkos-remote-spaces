@@ -58,7 +58,7 @@
 
 #define NUM_SEND_WRS 16
 #define NUM_RECV_WRS 16
-#define TOTAL_NUM_WRS                                                          \
+#define TOTAL_NUM_WRS \
   (NUM_SEND_WRS + NUM_RECV_WRS + NUM_SEND_WRS + NUM_RECV_WRS)
 
 #define START_SEND_REQUEST_WRS 0
@@ -68,16 +68,16 @@
 
 #define MAKE_READY_FLAG(trip_number) (((trip_number) + 1) % 2)
 
-#define MAKE_BLOCK_GET_REQUEST(size, pe, trip_number)                          \
-  ((uint64_t(size) << BLOCK_SIZE_BIT_SHIFT) |                                  \
+#define MAKE_BLOCK_GET_REQUEST(size, pe, trip_number) \
+  ((uint64_t(size) << BLOCK_SIZE_BIT_SHIFT) |         \
    (uint64_t(pe) << BLOCK_PE_BIT_SHIFT) | MAKE_READY_FLAG(trip_number))
 
-#define MAKE_BLOCK_PACK_ACK(size, pe, trip_number)                             \
+#define MAKE_BLOCK_PACK_ACK(size, pe, trip_number) \
   MAKE_BLOCK_GET_REQUEST(size, pe, trip_number)
 
-#define MAKE_BLOCK_PACK_REQUEST(size, pe, trip_number, window)                 \
-  ((uint64_t(size) << BLOCK_SIZE_BIT_SHIFT) |                                  \
-   (uint64_t(pe) << BLOCK_PE_BIT_SHIFT) | MAKE_READY_FLAG(trip_number) |       \
+#define MAKE_BLOCK_PACK_REQUEST(size, pe, trip_number, window)           \
+  ((uint64_t(size) << BLOCK_SIZE_BIT_SHIFT) |                            \
+   (uint64_t(pe) << BLOCK_PE_BIT_SHIFT) | MAKE_READY_FLAG(trip_number) | \
    (uint64_t(window) << BLOCK_WINDOW_BIT_SHIFT))
 
 #define GET_ELEMENT_FLAG(request) (request & 1)
@@ -88,41 +88,41 @@
 
 #define GET_BLOCK_SIZE(request) ((request) >> BLOCK_SIZE_BIT_SHIFT)
 
-#define GET_BLOCK_WINDOW(request)                                              \
+#define GET_BLOCK_WINDOW(request) \
   (((request)&BLOCK_WINDOW_MASK) >> BLOCK_WINDOW_BIT_SHIFT)
 
-#define MAKE_ELEMENT_REQUEST(offset, trip_number)                              \
+#define MAKE_ELEMENT_REQUEST(offset, trip_number) \
   (((offset) << ELEMENT_OFFSET_BIT_SHIFT) | MAKE_READY_FLAG(trip_number))
 
 #define GET_ELEMENT_OFFSET(request) ((request >> ELEMENT_OFFSET_BIT_SHIFT))
 
 #define GET_ELEMENT_FLAG(request) (request & 1)
 
-#define cuda_safe(...)                                                         \
-  do {                                                                         \
-    CUresult result = (__VA_ARGS__);                                           \
-    if (CUDA_SUCCESS != result) {                                              \
-      std::cout << result << std::endl;                                        \
-      fprintf(stderr, "%s:%d: CUDA failed\n", __FILE__, __LINE__);             \
-      exit(-1);                                                                \
-    }                                                                          \
+#define cuda_safe(...)                                             \
+  do {                                                             \
+    CUresult result = (__VA_ARGS__);                               \
+    if (CUDA_SUCCESS != result) {                                  \
+      std::cout << result << std::endl;                            \
+      fprintf(stderr, "%s:%d: CUDA failed\n", __FILE__, __LINE__); \
+      exit(-1);                                                    \
+    }                                                              \
   } while (0)
 
-#define time_safe(...)                                                         \
-  do {                                                                         \
-    auto start = rdtsc();                                                      \
-    __VA_ARGS__;                                                               \
-    auto stop = rdtsc();                                                       \
-    if ((stop - start) > 10000000000ULL) {                                     \
-      fprintf(stderr, "call took way too long (%llu-%llu) at %s:%d\n", start,  \
-              stop, __FILE__, __LINE__);                                       \
-      ::abort();                                                               \
-    }                                                                          \
+#define time_safe(...)                                                        \
+  do {                                                                        \
+    auto start = rdtsc();                                                     \
+    __VA_ARGS__;                                                              \
+    auto stop = rdtsc();                                                      \
+    if ((stop - start) > 10000000000ULL) {                                    \
+      fprintf(stderr, "call took way too long (%llu-%llu) at %s:%d\n", start, \
+              stop, __FILE__, __LINE__);                                      \
+      ::abort();                                                              \
+    }                                                                         \
   } while (0)
 
-#define debugf(str, ...)                                                       \
-  assert(request_tport != NULL);                                               \
-  printf("PE %d: " str "\n", request_tport->my_rank, __VA_ARGS__);             \
+#define debugf(str, ...)                                           \
+  assert(request_tport != NULL);                                   \
+  printf("PE %d: " str "\n", request_tport->my_rank, __VA_ARGS__); \
   fflush(stdout)
 
 #define debugf_2(str) printf(str "\n");
@@ -139,28 +139,28 @@
 #define debug_2(...)
 #endif
 
-#define assert_ibv(elem)                                                       \
-  if (!elem) {                                                                 \
-    fprintf(stderr, "call failed at %s:%d\n", __FILE__, __LINE__);             \
-    MPI_Abort(MPI_COMM_WORLD, 1);                                              \
-  } else {                                                                     \
+#define assert_ibv(elem)                                           \
+  if (!elem) {                                                     \
+    fprintf(stderr, "call failed at %s:%d\n", __FILE__, __LINE__); \
+    MPI_Abort(MPI_COMM_WORLD, 1);                                  \
+  } else {                                                         \
   }
 
-#define ibv_safe(...)                                                          \
-  do {                                                                         \
-    auto start = rdtsc();                                                      \
-    int rc = __VA_ARGS__;                                                      \
-    if (rc != 0) {                                                             \
-      fprintf(stderr, "call failed with rc=%d at %s:%d\n", rc, __FILE__,       \
-              __LINE__);                                                       \
-      MPI_Abort(MPI_COMM_WORLD, 1);                                            \
-    }                                                                          \
-    auto stop = rdtsc();                                                       \
-    if ((stop - start) > 100000000000ULL) {                                    \
-      fprintf(stderr, "call took way too long (%llu-%llu) at %s:%d\n", start,  \
-              stop, __FILE__, __LINE__);                                       \
-      ::abort();                                                               \
-    }                                                                          \
+#define ibv_safe(...)                                                         \
+  do {                                                                        \
+    auto start = rdtsc();                                                     \
+    int rc     = __VA_ARGS__;                                                 \
+    if (rc != 0) {                                                            \
+      fprintf(stderr, "call failed with rc=%d at %s:%d\n", rc, __FILE__,      \
+              __LINE__);                                                      \
+      MPI_Abort(MPI_COMM_WORLD, 1);                                           \
+    }                                                                         \
+    auto stop = rdtsc();                                                      \
+    if ((stop - start) > 100000000000ULL) {                                   \
+      fprintf(stderr, "call took way too long (%llu-%llu) at %s:%d\n", start, \
+              stop, __FILE__, __LINE__);                                      \
+      ::abort();                                                              \
+    }                                                                         \
   } while (0)
 
 #define ARCH_PPC64
@@ -169,14 +169,15 @@
 static inline unsigned long long rdtsc() {
   unsigned long long int result = 0;
   unsigned long int upper, lower, tmp;
-  __asm__ volatile("0:                  \n"
-                   "\tmftbu   %0           \n"
-                   "\tmftb    %1           \n"
-                   "\tmftbu   %2           \n"
-                   "\tcmpw    %2,%0        \n"
-                   "\tbne     0b         \n"
-                   : "=r"(upper), "=r"(lower), "=r"(tmp));
-  result = tmp; // get rid of compiler warnings
+  __asm__ volatile(
+      "0:                  \n"
+      "\tmftbu   %0           \n"
+      "\tmftb    %1           \n"
+      "\tmftbu   %2           \n"
+      "\tcmpw    %2,%0        \n"
+      "\tbne     0b         \n"
+      : "=r"(upper), "=r"(lower), "=r"(tmp));
+  result = tmp;  // get rid of compiler warnings
   result = upper;
   result = result << 32;
   result = result | lower;
@@ -191,4 +192,4 @@ static inline uint64_t rdtsc(void) {
 }
 #endif
 
-#endif // RACERLIB_RDMA_HELPERS
+#endif  // RACERLIB_RDMA_HELPERS

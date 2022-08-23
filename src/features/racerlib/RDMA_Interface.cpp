@@ -63,20 +63,21 @@ aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
     Kokkos::Impl::CudaTeamMember const &team, unsigned num_worker_teams);
 
 template <typename T, class Team>
-__device__ void
-pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                     unsigned *completion_flag, Team &&team, bool final) {
+__device__ void pack_response_kernel(T *local_values,
+                                     RdmaScatterGatherWorker<T> *sgw,
+                                     unsigned *completion_flag, Team &&team,
+                                     bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
-  int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
-  int total_threads = blockDim.x * blockDim.y;
+  int my_thread       = threadIdx.x * blockDim.y + threadIdx.y;
+  int total_threads   = blockDim.x * blockDim.y;
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
 
   completion = 0;
-  request = 0;
+  request    = 0;
 
   while (completion < 1) {
-    uint64_t idx = sgw->rx_block_request_ctr % queue_size;
+    uint64_t idx         = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
 
     if (my_thread == 0) {
@@ -87,8 +88,8 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
 
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       uint32_t num_requests = GET_BLOCK_SIZE(request);
-      uint32_t pe = GET_BLOCK_PE(request);
-      uint32_t window = GET_BLOCK_WINDOW(request);
+      uint32_t pe           = GET_BLOCK_PE(request);
+      uint32_t window       = GET_BLOCK_WINDOW(request);
       uint32_t reply_offset =
           pe * queue_size + sgw->tx_element_reply_ctrs[pe] % queue_size;
       uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
@@ -123,12 +124,11 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
       completion = volatile_load(completion_flag);
     }
     __syncthreads();
-  } // While loop
+  }  // While loop
 
   __syncthreads();
 
   if (my_thread == 0) {
-
     volatile_store(completion_flag, 0u);
   }
 }
@@ -137,19 +137,18 @@ template <typename T, class Team>
 __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                                           Team &&team,
                                           unsigned num_worker_teams) {
-  int my_thread = threadIdx.x * blockDim.y + threadIdx.y;
-  int total_threads = blockDim.x * blockDim.y;
-  uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
-  static constexpr uint32_t mtu = 16384; // try to at least send 16K elements
+  int my_thread                 = threadIdx.x * blockDim.y + threadIdx.y;
+  int total_threads             = blockDim.x * blockDim.y;
+  uint32_t queue_size           = RdmaScatterGatherEngine::queue_size;
+  static constexpr uint32_t mtu = 16384;  // try to at least send 16K elements
   static constexpr uint32_t max_mtu_stalls = 4;
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
-  KOKKOS_REMOTE_SHARED int misses[32]; // TODO, make this an array
+  KOKKOS_REMOTE_SHARED int misses[32];  // TODO, make this an array
 
-  for (int i = 0; i < 32; ++i)
-    misses[i] = 0;
+  for (int i = 0; i < 32; ++i) misses[i] = 0;
 
-  completion = 0;
+  completion     = 0;
   total_requests = 0;
 
   __syncthreads();
@@ -184,10 +183,10 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
         while (requests_done < total_requests) {
           uint64_t my_offset = head + requests_done + my_thread;
           if (my_offset < total_requests) {
-            uint64_t my_idx = my_offset % queue_size;
+            uint64_t my_idx         = my_offset % queue_size;
             uint64_t my_trip_number = my_offset / queue_size;
-            uint32_t ready_flag = MAKE_READY_FLAG(my_trip_number);
-            uint32_t req_slot = my_idx + pe * queue_size;
+            uint32_t ready_flag     = MAKE_READY_FLAG(my_trip_number);
+            uint32_t req_slot       = my_idx + pe * queue_size;
             uint32_t next_request =
                 volatile_load(&sgw->tx_element_request_queue[req_slot]);
             while (GET_BLOCK_FLAG(next_request) != ready_flag) {
@@ -207,7 +206,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
         if (my_thread == 0) {
           uint64_t tail_idx = sgw->tx_block_request_ctr++;
           sgw->tx_element_aggregate_ctrs[pe] += total_requests;
-          uint64_t queue_idx = tail_idx % queue_size;
+          uint64_t queue_idx   = tail_idx % queue_size;
           uint64_t trip_number = tail_idx / queue_size;
           uint64_t request =
               MAKE_BLOCK_GET_REQUEST(total_requests, pe, trip_number);
@@ -222,7 +221,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 
     __syncthreads();
 
-  } // While loop
+  }  // While loop
 
   __syncthreads();
 
@@ -250,15 +249,14 @@ template <class T, class Team>
 KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                                                Team &&team,
                                                unsigned num_worker_teams) {
-  uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
-  static constexpr uint32_t mtu = 16384; // try to at least send 16K elements
+  uint32_t queue_size           = RdmaScatterGatherEngine::queue_size;
+  static constexpr uint32_t mtu = 16384;  // try to at least send 16K elements
   static constexpr uint32_t max_mtu_stalls = 4;
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
   KOKKOS_REMOTE_SHARED int
-      misses[32]; // TODO, make this an array, I'm too lazy right now
-  for (int i = 0; i < 32; ++i)
-    misses[i] = 0;
+      misses[32];  // TODO, make this an array, I'm too lazy right now
+  for (int i = 0; i < 32; ++i) misses[i] = 0;
 
   completion = 0;
 
@@ -267,7 +265,7 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
     for (int pe = 0; pe < sgw->num_ranks; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
-        total_requests = 0;
+        total_requests                  = 0;
         uint64_t last_cleared_on_device = sgw->ack_ctrs_d[pe];
         if (head > last_cleared_on_device) {
           uint64_t last_cleared_on_host = volatile_load(&sgw->ack_ctrs_h[pe]);
@@ -287,26 +285,24 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
       });
       team.team_barrier();
       if (total_requests > 0) {
-        auto vec_length = 1; // team.vector_length();
+        auto vec_length     = 1;  // team.vector_length();
         uint64_t num_passes = total_requests / vec_length;
-        if (total_requests % vec_length)
-          num_passes++;
+        if (total_requests % vec_length) num_passes++;
 
         Kokkos::parallel_for(
             Kokkos::TeamThreadRange(team, 0, num_passes),
             [&](const int64_t pass) {
               uint64_t start = pass * vec_length;
-              uint64_t stop = start + vec_length;
-              if (stop > total_requests)
-                stop = total_requests;
+              uint64_t stop  = start + vec_length;
+              if (stop > total_requests) stop = total_requests;
               Kokkos::parallel_for(
                   Kokkos::ThreadVectorRange(team, start, stop),
                   [=](uint64_t offset) {
-                    uint64_t my_offset = head + offset;
+                    uint64_t my_offset      = head + offset;
                     uint64_t my_trip_number = my_offset / queue_size;
-                    uint64_t my_idx = my_offset % queue_size;
-                    uint64_t ready_flag = MAKE_READY_FLAG(my_trip_number);
-                    uint64_t req_slot = my_idx + pe * queue_size;
+                    uint64_t my_idx         = my_offset % queue_size;
+                    uint64_t ready_flag     = MAKE_READY_FLAG(my_trip_number);
+                    uint64_t req_slot       = my_idx + pe * queue_size;
                     uint32_t next_request =
                         volatile_load(&sgw->tx_element_request_queue[req_slot]);
                     while (GET_BLOCK_FLAG(next_request) != ready_flag) {
@@ -324,7 +320,7 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
         Kokkos::single(Kokkos::PerTeam(team), [&]() {
           uint64_t tail_idx = sgw->tx_block_request_ctr++;
           sgw->tx_element_aggregate_ctrs[pe] += total_requests;
-          uint64_t queue_idx = tail_idx % queue_size;
+          uint64_t queue_idx   = tail_idx % queue_size;
           uint64_t trip_number = tail_idx / queue_size;
           uint64_t request =
               MAKE_BLOCK_GET_REQUEST(total_requests, pe, trip_number);
@@ -348,9 +344,10 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 }
 
 template <typename T, class Team>
-KOKKOS_FUNCTION void
-pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
-                     unsigned *completion_flag, Team &&team, bool final) {
+KOKKOS_FUNCTION void pack_response_kernel(T *local_values,
+                                          RdmaScatterGatherWorker<T> *sgw,
+                                          unsigned *completion_flag,
+                                          Team &&team, bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t request;
 
@@ -358,7 +355,7 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
 
   uint32_t queue_size = RdmaScatterGatherEngine::queue_size;
   while (completion == 0) {
-    uint64_t idx = sgw->rx_block_request_ctr % queue_size;
+    uint64_t idx         = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
       request = volatile_load(&sgw->rx_block_request_cmd_queue[idx]);
@@ -366,34 +363,32 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
     team.team_barrier();
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       uint32_t num_requests = GET_BLOCK_SIZE(request);
-      uint32_t pe = GET_BLOCK_PE(request);
-      uint32_t window = GET_BLOCK_WINDOW(request);
+      uint32_t pe           = GET_BLOCK_PE(request);
+      uint32_t window       = GET_BLOCK_WINDOW(request);
       uint32_t reply_offset =
           pe * queue_size + sgw->tx_element_reply_ctrs[pe] % queue_size;
       uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
       T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
 
-      auto vec_length = 1; // team.vector_length();
+      auto vec_length     = 1;  // team.vector_length();
       uint64_t num_passes = num_requests / vec_length;
-      if (num_requests % vec_length)
-        num_passes++;
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 0, num_passes),
-                           [&](const int64_t pass) {
-                             uint64_t start = pass * vec_length;
-                             uint64_t stop = start + vec_length;
-                             if (stop > num_requests)
-                               stop = num_requests;
-                             Kokkos::parallel_for(
-                                 Kokkos::ThreadVectorRange(team, start, stop),
-                                 [=](uint64_t my_index) {
-                                   // This needs to be volatile to force
-                                   // visibility from the IB send
-                                   uint32_t offset = GET_ELEMENT_OFFSET(
-                                       volatile_load(&offsets[my_index]));
-                                   reply_tx_buffer_T[my_index] =
-                                       local_values[offset];
-                                 });
-                           });
+      if (num_requests % vec_length) num_passes++;
+      Kokkos::parallel_for(
+          Kokkos::TeamThreadRange(team, 0, num_passes),
+          [&](const int64_t pass) {
+            uint64_t start = pass * vec_length;
+            uint64_t stop  = start + vec_length;
+            if (stop > num_requests) stop = num_requests;
+            Kokkos::parallel_for(
+                Kokkos::ThreadVectorRange(team, start, stop),
+                [=](uint64_t my_index) {
+                  // This needs to be volatile to force
+                  // visibility from the IB send
+                  uint32_t offset =
+                      GET_ELEMENT_OFFSET(volatile_load(&offsets[my_index]));
+                  reply_tx_buffer_T[my_index] = local_values[offset];
+                });
+          });
       Kokkos::single(Kokkos::PerTeam(team), [&]() {
         ++sgw->rx_block_request_ctr;
         sgw->tx_element_reply_ctrs[pe] += num_requests;
@@ -414,8 +409,8 @@ pack_response_kernel(T *local_values, RdmaScatterGatherWorker<T> *sgw,
                  [&]() { volatile_store(completion_flag, 0u); });
 }
 
-#endif // RAW_CUDA
+#endif  // RAW_CUDA
 
-} // namespace RACERlib
-} // namespace Experimental
-} // namespace Kokkos
+}  // namespace RACERlib
+}  // namespace Experimental
+}  // namespace Kokkos
