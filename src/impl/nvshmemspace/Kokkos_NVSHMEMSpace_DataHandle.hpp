@@ -111,7 +111,7 @@ template <class T, class Traits> struct NVSHMEMDataHandle
 
 template <class Traits>
 struct ViewDataHandle<
-    Traits, typename std::enable_if<(std::is_same<
+    Traits, typename std::enable_if<std::is_same<
                 typename Traits::specialize,
                 Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
   using value_type  = typename Traits::value_type;
