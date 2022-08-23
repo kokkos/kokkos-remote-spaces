@@ -47,13 +47,20 @@
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
 #include <RDMA_Worker.hpp>
-#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
+#endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {
 namespace Impl {
 
+template <class T, class Traits, class IsCached = void>
+struct NVSHMEMDataHandle;
+
 template <class T, class Traits>
-struct NVSHMEMDataHandle {
+struct NVSHMEMDataHandle<
+    T, Traits,
+    typename std::enable_if<(
+        !RemoteSpaces_MemoryTraits<
+            typename Traits::memory_traits>::is_cached)>::type> {
   T *ptr;
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle() : ptr(NULL) {}
@@ -73,13 +80,12 @@ struct NVSHMEMDataHandle {
   T *operator+(size_t &offset) const { return ptr + offset; }
 };
 
-#if defined (KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-// Cached NVSHMEMDataElement (Requires RDMA_Worker.hpp)
-
-template <class T, class Traits> struct NVSHMEMDataHandle
-<T, Traits, typename std::enable_if<(RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached)>::type> {
-
+template <class T, class Traits>
+struct NVSHMEMDataHandle<
+    T, Traits,
+    typename std::enable_if<(
+        RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached)>::
+        type> {
   using Worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
   using Engine = Kokkos::Experimental::RACERlib::Engine<T>;
 
@@ -94,35 +100,50 @@ template <class T, class Traits> struct NVSHMEMDataHandle
       : ptr(ptr_), e(e_), sgw(sgw_) {}
 
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr), e(arg.e), sgw(arg.sgw) {}
+  NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg)
+      : ptr(arg.ptr), e(arg.e), sgw(arg.sgw) {}
 
   template <typename iType>
-  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits>
-  operator()(const int &pe, const iType &i) const {
-   NVSHMEMDataElement<T, Traits> element(ptr, sgw, pe, i);
-   return element;
+  KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
+      const int &pe, const iType &i) const {
+    NVSHMEMDataElement<T, Traits> element(ptr, sgw, pe, i);
+    return element;
   }
 
   KOKKOS_INLINE_FUNCTION
   T *operator+(size_t &offset) const { return ptr + offset; }
 };
 
-#endif // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
-
 template <class Traits>
 struct ViewDataHandle<
-    Traits, typename std::enable_if<std::is_same<
-                typename Traits::specialize,
-                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
+    Traits,
+    typename std::enable_if<(
+        std::is_same<typename Traits::specialize,
+                     Kokkos::Experimental::RemoteSpaceSpecializeTag>::value &&
+        !RemoteSpaces_MemoryTraits<
+            typename Traits::memory_traits>::is_cached)>::type> {
   using value_type  = typename Traits::value_type;
   using handle_type = NVSHMEMDataHandle<value_type, Traits>;
   using return_type = NVSHMEMDataElement<value_type, Traits>;
   using track_type  = Kokkos::Impl::SharedAllocationTracker;
 
   KOKKOS_INLINE_FUNCTION
-  static handle_type assign(value_type *arg_data_ptr,
-                            track_type const & /*arg_tracker*/) {
+  static handle_type assign(
+      value_type *arg_data_ptr, track_type const & /*arg_tracker*/,
+      typename std::enable_if_t<!RemoteSpaces_MemoryTraits<
+          typename Traits::memory_traits>::is_cached> * = 0) {
     return handle_type(arg_data_ptr);
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  static handle_type assign(
+      value_type *arg_data_ptr, track_type const &arg_tracker,
+      typename std::enable_if_t<RemoteSpaces_MemoryTraits<
+          typename Traits::memory_traits>::is_cached> * = 0) {
+    auto *record =
+        arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
+    return handle_type(arg_data_ptr,
+                       record->get_caching_and_aggregation_engine()->sgw);
   }
 
   template <class SrcHandleType>
