@@ -21,17 +21,18 @@ else()
   FILE(GLOB TEST_SRCS *.cpp)
 endif()
 
-add_executable(${NAME} ${TEST_SRCS})
-
-if (KRS_ENABLE_NVSHMEMSPACE)
-  target_link_libraries(${NAME} PRIVATE "-lnvidia-ml")
-endif()
-
 if (KRS_ENABLE_RACERLIB)
   file(GLOB TEST_SRCS_EXPERIMENTAL experimental/*.cpp)
   list(APPEND TEST_SRCS ${TEST_SRCS_EXPERIMENTAL})
   message(STATUS "Enabled experimental unit test(s)")
 endif()
+
+add_executable(${NAME} ${TEST_SRCS})
+
+if (KRS_ENABLE_NVSHMEMSPACE)
+  target_link_libraries(${NAME} PRIVATE "-lnvidia-ml -lcublas")
+endif()
+
 
 target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
 target_link_libraries(${NAME} PRIVATE gtest_main)
