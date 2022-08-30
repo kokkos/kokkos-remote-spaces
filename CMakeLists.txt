@@ -3,6 +3,9 @@ cmake_minimum_required (VERSION 3.12)
 project(KokkosRemote
   LANGUAGES CXX
   VERSION 0.1.0)
+  
+message(STATUS "Setting policy CMP0074 to use <Package>_ROOT variables")
+cmake_policy(SET CMP0074 NEW)
 
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
