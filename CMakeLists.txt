@@ -126,6 +126,10 @@ if (PUBLIC_DEPS)
   target_link_libraries(kokkosremote PUBLIC ${PUBLIC_DEPS})
 endif()
 
+if (KRS_ENABLE_NVSHMEMSPACE)
+  target_link_libraries(kokkosremote PRIVATE "-lnvidia-ml")
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
