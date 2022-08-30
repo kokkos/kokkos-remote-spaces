@@ -138,7 +138,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   }
 
 #ifdef KOKKOS_ENABLE_CUDA
-  int vector_length = policy.vector_length();
+  int vector_length = 1;//policy.vector_length();
 #else
   int vector_length = 1;
 #endif

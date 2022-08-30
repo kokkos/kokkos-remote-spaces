@@ -85,7 +85,7 @@ void NVSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
 }
 
 void NVSHMEMSpace::fence() {
-  Kokkos::fence();
+  //Kokkos::fence(); /*DO NOT FENCE HERE!!!*/
   nvshmem_barrier_all();
 }
 
