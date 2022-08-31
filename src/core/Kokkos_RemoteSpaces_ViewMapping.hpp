@@ -902,11 +902,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
           std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
   reference(
-      const I0 &i0, const I1 &i1, const I2 &i2,
-      typename std::enable_if<
-          std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value>::type * = nullptr) const {
+      const I0 &i0, const I1 &i1, const I2 &i2) const {
     if (m_num_pes <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2));
       return element;
