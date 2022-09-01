@@ -15,6 +15,7 @@ SET(NAME KokkosRemote_TestAll)
 
 if (KRS_ENABLE_RACERLIB) #For RACERlib, compile just this unit test
   file(GLOB TEST_SRCS_EXPERIMENTAL experimental/*.cpp)
+  list(APPEND TEST_SRCS_EXPERIMENTAL "Test_Main.cpp")
   list(APPEND TEST_SRCS ${TEST_SRCS_EXPERIMENTAL})
   message(STATUS "Enabled experimental unit test(s)")
 else()
@@ -28,11 +29,6 @@ else()
 endif()
 
 add_executable(${NAME} ${TEST_SRCS})
-
-if (KRS_ENABLE_NVSHMEMSPACE)
-  target_link_libraries(${NAME} PRIVATE "-lnvidia-ml -lcublas")
-endif()
-
 
 target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
 target_link_libraries(${NAME} PRIVATE gtest_main)
