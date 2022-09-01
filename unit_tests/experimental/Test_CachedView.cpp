@@ -142,7 +142,8 @@ void test_cached_view1D(int dim0) {
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
-  test_cached_view1D<double>(87654321);  //~700 MB
+  //test_cached_view1D<double>(87654321);  //~700 MB
+  test_cached_view1D<double>(16); 
   // Do not repeat tests here - the ipc mem alloc might fail (to be fixed)
 }
 
