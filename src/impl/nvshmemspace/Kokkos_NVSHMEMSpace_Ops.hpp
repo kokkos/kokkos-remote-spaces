@@ -835,16 +835,16 @@ struct NVSHMEMDataElement<
   }
 };
 
-
-#if defined (KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+#if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
 // Cached NVSHMEMDataElement (Requires RDMA_Worker.hpp)
 
 template <class T, class Traits>
 struct NVSHMEMDataElement<
-    T, Traits, typename std::enable_if<(!Traits::memory_traits::is_atomic &&
-    RemoteSpaces_MemoryTraits<
-        typename Traits::memory_traits>::is_cached)>::type> {
-
+    T, Traits,
+    typename std::enable_if<(
+        !Traits::memory_traits::is_atomic &&
+        RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached)>::
+        type> {
   using worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
   worker *sgw;
   typedef const T const_value_type;
@@ -865,13 +865,14 @@ struct NVSHMEMDataElement<
       void *shm_ptr = sgw->direct_ptrs[pe];
       if (shm_ptr) {
         T *t = (T *)shm_ptr;
-       // printf("FUNKY\n");
+        // printf("FUNKY\n");
         return volatile_load(&t[offset]);
       }
-      //printf("Requesting from pe: %i, offset: %i\n", pe, offset);
+      // printf("Requesting from pe: %i, offset: %i\n", pe, offset);
       return sgw->request(pe, offset);
     } else {
-    //  printf("XXX: %u, %f, %i, %i\n", offset, ptr[offset], sgw->my_rank, pe);
+      //  printf("XXX: %u, %f, %i, %i\n", offset, ptr[offset], sgw->my_rank,
+      //  pe);
       return ptr[offset];
     }
   }
@@ -984,7 +985,7 @@ struct NVSHMEMDataElement<
   }
 };
 
-#endif //KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
+#endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 }  // namespace Impl
 }  // namespace Kokkos

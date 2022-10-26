@@ -1214,7 +1214,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     if (alloc_size) {
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
       record->get_caching_and_aggregation_engine()->init((void *)record->data(),
-                                          MPI_COMM_WORLD);
+                                                         MPI_COMM_WORLD);
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
                              record->get_caching_and_aggregation_engine(),
                              record->get_caching_and_aggregation_engine()->sgw);

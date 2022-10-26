@@ -223,7 +223,9 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
 
   }  // While loop
 
+
   __syncthreads();
+  debug_2("Exiting kernel 0\n");
 
   if (my_thread == 0) {
     volatile_store(sgw->request_done_flag, 0u);

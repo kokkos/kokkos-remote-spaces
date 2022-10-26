@@ -123,17 +123,17 @@
 #define debugf(str, ...)                                           \
   assert(request_tport != NULL);                                   \
   printf("PE %d: " str "\n", request_tport->my_rank, __VA_ARGS__); \
-  fflush(stdout)
+  fflush(stdout);
 
-#define debugf_2(str) printf(str "\n");
+#define debugf_2(...) printf( __VA_ARGS__);
 
-#ifdef KOKKOS_IBV_DEBUG
-#define debug(...)
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#define debug(...) debugf(__VA_ARGS__)
 #else
 #define debug(...)
 #endif
 
-#ifdef KOKKOS_IBV_DEBUG
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
 #define debug_2(...) debugf_2(__VA_ARGS__)
 #else
 #define debug_2(...)

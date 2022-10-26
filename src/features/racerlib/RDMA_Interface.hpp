@@ -83,20 +83,20 @@ struct Worker {
       const typename Policy::member_type &team) const {
     RdmaScatterGatherWorker<double> *sgw = m_view(0).sgw;
     if (team.league_rank() == 0) {
-      debug_2("Starting kernel 2 (aggregate_requests_kernel)\n");
+      debug_2("Starting kernel 0 (aggregate_requests_kernel)\n");
       aggregate_requests_kernel(sgw, team, team.league_size() - 2);
     } else if (team.league_rank() == 1) {
       debug_2("Starting kernel 1 (pack_response_kernel)\n");
       pack_response_kernel(m_view(0).ptr, sgw, sgw->response_done_flag, team,
                            false);
     } else {
-      debug_2("Starting kernel 3 (user)\n");
+      debug_2("Starting kernel 2 (user)\n");
       auto new_team = team.shrink_league(2);
       m_lambda(new_team);
       team.team_barrier();
       Kokkos::single(
           Kokkos::PerTeam(team), KOKKOS_LAMBDA() {
-            debug_2("User kernel 3 done\n");
+            debug_2("User kernel 2 done\n");
             atomic_fetch_add(sgw->request_done_flag, 1);
           });
     }
@@ -138,7 +138,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   }
 
 #ifdef KOKKOS_ENABLE_CUDA
-  int vector_length = 1;//policy.vector_length();
+  int vector_length = 1;  // policy.vector_length();
 #else
   int vector_length = 1;
 #endif
@@ -157,8 +157,8 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   // *** Launch kernel triplet ***
   debug_2("Launch workers\n");
   Kokkos::parallel_for(name, worker_policy, worker);
-
-  exec_space().fence();  // CudaDeviceSync
+    
+  Kokkos::fence();
   debug_2("Workers finished\n");
 
   auto respond_policy =
@@ -180,7 +180,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
   view.impl_map().clear_fence(exec_space{});
 
   // Wait for packing kernel to finish
-  exec_space().fence();  // CudaDeviceSync.
+  Kokkos::fence();
   debug_2("Respond worker finished\n");
 }
 
