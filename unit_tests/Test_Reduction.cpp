@@ -59,7 +59,7 @@ void test_scalar_reduce_1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t   = Kokkos::View<Data_t *, Kokkos::HostSpace>;
+  using ViewHost_1D_t   = Kokkos::View<Data_t *, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
   using RangePolicy_t   = Kokkos::RangePolicy<>;
 
@@ -90,7 +90,7 @@ void test_scalar_reduce_2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::HostSpace>;
+  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
