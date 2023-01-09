@@ -59,7 +59,8 @@ void test_globalview1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t   = Kokkos::View<Data_t *, Kokkos::LayoutLeft, Kokkos::HostSpace>;
+  using ViewHost_1D_t =
+      Kokkos::View<Data_t *, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
   using TeamPolicy_t    = Kokkos::TeamPolicy<>;
 
@@ -94,7 +95,8 @@ void test_globalview2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
+  using ViewHost_2D_t =
+      Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
   using TeamPolicy_t    = Kokkos::TeamPolicy<>;
 
@@ -132,7 +134,8 @@ void test_globalview3D(int dim0, int dim1, int dim2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t   = Kokkos::View<Data_t ***, Kokkos::LayoutLeft, Kokkos::HostSpace>;
+  using ViewHost_3D_t =
+      Kokkos::View<Data_t ***, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
   using TeamPolicy_t    = Kokkos::TeamPolicy<>;
 

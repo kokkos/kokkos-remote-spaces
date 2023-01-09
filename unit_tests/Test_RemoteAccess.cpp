@@ -63,7 +63,8 @@ void test_remote_accesses(int size) {
   TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
 
   using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
-  using HostSpace_t  = Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
+  using HostSpace_t =
+      Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   HostSpace_t v_H("HostView", 1, size);
 
   // Allocate remote view
