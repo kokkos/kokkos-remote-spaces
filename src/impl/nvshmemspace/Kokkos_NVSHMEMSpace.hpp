@@ -65,23 +65,12 @@ class RemoteSpaceSpecializeTag {};
 
 class NVSHMEMSpace {
  public:
-#if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
-  using execution_space = Kokkos::OpenMP;
-#elif defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_THREADS)
-  using execution_space = Kokkos::Threads;
-#elif defined(KOKKOS_ENABLE_OPENMP)
-  using execution_space = Kokkos::OpenMP;
-#elif defined(KOKKOS_ENABLE_THREADS)
-  using execution_space = Kokkos::Threads;
-#elif defined(KOKKOS_ENABLE_SERIAL)
-  using execution_space = Kokkos::Serial;
+#if defined(KOKKOS_ENABLE_CUDA)
+  using execution_space = Kokkos::Cuda;
 #else
 #error \
-    "At least one of the following host execution spaces must be defined: Kokkos::OpenMP, Kokkos::Threads, Kokkos::Qthreads, or Kokkos::Serial.  \
-        You might be seeing this message if you disabled the Kokkos::Serial device explicitly using the Kokkos_ENABLE_Serial:BOOL=OFF \
-        CMake option, but did not enable any of the other host execution space devices."
+    "At least the following device execution space must be defined: Kokkos::Cuda."
 #endif
-
   using memory_space = NVSHMEMSpace;
   using device_type  = Kokkos::Device<execution_space, memory_space>;
   using size_type    = size_t;
