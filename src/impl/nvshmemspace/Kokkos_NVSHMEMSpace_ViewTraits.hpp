@@ -74,6 +74,7 @@ struct ViewTraits<void, Kokkos::Experimental::NVSHMEMSpace, Properties...> {
   using array_layout  = typename execution_space::array_layout;
   using specialize    = Kokkos::Experimental::RemoteSpaceSpecializeTag;
   using memory_traits = typename ViewTraits<void, Properties...>::memory_traits;
+  using hooks_policy  = typename ViewTraits<void, Properties...>::hooks_policy;
 };
 
 }  // namespace Kokkos
