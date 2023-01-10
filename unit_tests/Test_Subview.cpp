@@ -59,9 +59,9 @@ void test_subview1D(int i1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t =
-      Kokkos::View<Data_t *, Kokkos::LayoutLeft, Kokkos::HostSpace>;
+  
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
+  using ViewHost_1D_t = typename ViewRemote_1D_t::HostMirror;
 
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -104,11 +104,8 @@ void test_subview2D(int i1, int i2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t =
-      Kokkos::View<Data_t **, Kokkos::LayoutLeft, Kokkos::HostSpace>;
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
-
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+  using ViewHost_2D_t = typename ViewRemote_2D_t::HostMirror;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
@@ -151,21 +148,18 @@ void test_subview3D(int i1, int i2, int i3) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutLeft, Kokkos::HostSpace>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
-  ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2, i3);
-  ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
+  ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", i1, i2, i3);
+  ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
   auto remote_range =
       Kokkos::Experimental::get_range(i1, (my_rank + 1) % num_ranks);
 
   // Set to next rank
   auto v_sub_1 = Kokkos::subview(v, remote_range, Kokkos::ALL, Kokkos::ALL);
-  auto v_sub_2 = ViewRemote_2D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_sub_2 = ViewRemote_3D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
 
   size_t iters = remote_range.second - remote_range.first;
 
@@ -201,21 +195,18 @@ void test_subview3D_DCCopiesSubviewAccess(int i1, int i2, int i3) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutLeft, Kokkos::HostSpace>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
-  ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", i1, i2, i3);
-  ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
+  ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", i1, i2, i3);
+  ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
 
   auto remote_range =
       Kokkos::Experimental::get_range(i1, (my_rank + 1) % num_ranks);
 
   // Set to next rank
   auto v_sub_1 = Kokkos::subview(v, remote_range, Kokkos::ALL, Kokkos::ALL);
-  auto v_sub_2 = ViewRemote_2D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_sub_2 = ViewRemote_3D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
 
   size_t iters = remote_range.second - remote_range.first;
 

@@ -61,13 +61,12 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutRight, Kokkos::HostSpace>;
+  
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_1D_t =
       Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
@@ -107,13 +106,11 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutRight, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
       Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+      using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
@@ -152,13 +149,11 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutRight, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
@@ -197,13 +192,11 @@ void test_partitioned_subview2D_byRank(int i1, int i2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t =
-      Kokkos::View<Data_t ***, Kokkos::LayoutRight, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
       Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
