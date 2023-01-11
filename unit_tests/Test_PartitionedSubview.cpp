@@ -61,7 +61,6 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_1D_t =
@@ -110,7 +109,7 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
       Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-      using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", num_ranks, i1, i2);
   ViewHost_3D_t v_h("HostView", 1, i1, i2);

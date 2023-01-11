@@ -60,8 +60,8 @@ void test_globalview1D(int dim0) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
-  using ViewHost_1D_t = typename ViewRemote_1D_t::HostMirror;
-  
+  using ViewHost_1D_t   = typename ViewRemote_1D_t::HostMirror;
+
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
@@ -94,7 +94,7 @@ void test_globalview2D(int dim0, int dim1) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
-  using ViewHost_2D_t = typename ViewRemote_2D_t::HostMirror;
+  using ViewHost_2D_t   = typename ViewRemote_2D_t::HostMirror;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
@@ -131,7 +131,7 @@ void test_globalview3D(int dim0, int dim1, int dim2) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
-  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
+  using ViewHost_3D_t   = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
   ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
