@@ -658,7 +658,6 @@ inline void deep_copy(
         "fence");
 
     DefaultRemoteMemorySpace().fence();
-
     if ((void*)dst.data() != (void*)src.data()) {
       Kokkos::Impl::DeepCopy<dst_memory_space, src_memory_space>(
           dst.data(), src.data(), nbytes);
@@ -871,7 +870,6 @@ inline void deep_copy(
 
       Kokkos::Impl::DeepCopy<dst_memory_space, src_memory_space, ExecSpace>(
           exec_space, dst.data(), src.data(), nbytes);
-
       DefaultRemoteMemorySpace().fence();
     }
   } else {
@@ -893,7 +891,6 @@ inline void deep_copy(
       cpy_exec_space().fence(
           "Kokkos::deep_copy: view-to-view noncontiguous copy on space, post "
           "copy");
-
       DefaultRemoteMemorySpace().fence();
 
     } else {
