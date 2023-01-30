@@ -42,8 +42,7 @@ void test_atomic_globalview1D(int dim0) {
   ViewHost_1D_t v_h("HostView", v.extent(0));
 
   // Init
-  for (int i = 0; i < v_h.extent(0); ++i) v_h(i) = 0;
-
+  Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
@@ -52,7 +51,6 @@ void test_atomic_globalview1D(int dim0) {
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
-
   for (int i = 0; i < local_range.second - local_range.first; ++i) {
     ASSERT_EQ(v_h(i), num_ranks);
   }
@@ -65,30 +63,29 @@ void test_atomic_globalview2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::HostSpace>;
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t,
-                                       Kokkos::MemoryTraits<Kokkos::Atomic>>;
-  using TeamPolicy_t    = Kokkos::TeamPolicy<>;
-
-  ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
+  using ViewRemote_2D_t =
+      Kokkos::View<Data_t **, Kokkos::LayoutLeft, RemoteSpace_t,
+                   Kokkos::MemoryTraits<Kokkos::Atomic>>;
+  using ViewHost_2D_t = typename ViewRemote_2D_t::HostMirror;
+  ViewRemote_2D_t v   = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
 
   // Init
-  for (int i = 0; i < v_h.extent(0); ++i)
-    for (int j = 0; j < v_h.extent(1); ++j) v_h(i, j) = 0;
-
+  Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < dim1; ++j) v(i, j)++;
+        for (int j = 0; j < v.extent(1); ++j) v(i, j)++;
       });
 
   Kokkos::deep_copy(v_h, v);
-  auto local_range = Kokkos::Experimental::get_local_range(dim0);
 
+  auto local_range = Kokkos::Experimental::get_local_range(dim0);
   for (int i = 0; i < local_range.second - local_range.first; ++i)
-    for (int j = 0; j < v_h.extent(1); ++j) ASSERT_EQ(v_h(i, j), num_ranks);
+    for (int j = 0; j < v_h.extent(1); ++j) {
+      ASSERT_EQ(v_h(i, j), num_ranks);
+    }
 }
 
 template <class Data_t>
@@ -98,18 +95,15 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t   = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
   using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t,
                                        Kokkos::MemoryTraits<Kokkos::Atomic>>;
-  using TeamPolicy_t    = Kokkos::TeamPolicy<>;
+  using ViewHost_3D_t   = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
   ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
-  // Init
-  for (int i = 0; i < v_h.extent(0); ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l) v_h(i, j, l) = 0;
 
+  // Init
+  Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
 
   Kokkos::parallel_for(
@@ -121,11 +115,11 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
-
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
-      for (int l = 0; l < v_h.extent(2); ++l)
+      for (int l = 0; l < v_h.extent(2); ++l) {
         ASSERT_EQ(v_h(i, j, l), num_ranks);
+      }
 }
 
 TEST(TEST_CATEGORY, test_atomic_globalview) {

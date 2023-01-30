@@ -22,6 +22,36 @@
 namespace Kokkos {
 namespace Impl {
 
+template <typename ExecutionSpace>
+SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
+    SharedAllocationRecord(
+        const ExecutionSpace &execution_space,
+        const Kokkos::Experimental::SHMEMSpace &arg_space,
+        const std::string &arg_label, const size_t arg_alloc_size,
+        const SharedAllocationRecord<void, void>::function_type arg_dealloc)
+    // Pass through allocated [ SharedAllocationHeader , user_memory ]
+    // Pass through deallocation function
+    : SharedAllocationRecord<void, void>(
+          execution_space,
+          reinterpret_cast<SharedAllocationHeader *>(arg_space.allocate(
+              sizeof(SharedAllocationHeader) + arg_alloc_size)),
+          sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
+          arg_label),
+      m_space(arg_space) {
+#if defined(KOKKOS_ENABLE_PROFILING)
+  if (Kokkos::Profiling::profileLibraryLoaded()) {
+    Kokkos::Profiling::allocateData(
+        Kokkos::Profiling::SpaceHandle(arg_space.name()), arg_label, data(),
+        arg_alloc_size);
+  }
+#endif
+  // Fill in the Header information
+  RecordBase::m_alloc_ptr->m_record =
+      static_cast<SharedAllocationRecord<void, void> *>(this);
+  strncpy(RecordBase::m_alloc_ptr->m_label, arg_label.c_str(),
+          SharedAllocationHeader::maximum_label_length);
+}
+
 SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>::
     SharedAllocationRecord(
         const Kokkos::Experimental::SHMEMSpace &arg_space,

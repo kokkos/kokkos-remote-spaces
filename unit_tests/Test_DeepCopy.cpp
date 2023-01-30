@@ -36,13 +36,11 @@ void test_deepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t   = Kokkos::View<Data_t **, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, 1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
-
-  Kokkos::TeamPolicy<Space_B> team_policy(1, 1, 1);
 
   RemoteSpace_t().fence();
 
@@ -65,13 +63,11 @@ void test_deepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t   = Kokkos::View<Data_t **, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, i1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
-
-  Kokkos::TeamPolicy<Space_B> team_policy(1, Kokkos::AUTO, 1);
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
@@ -94,13 +90,11 @@ void test_deepcopy(
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_t   = Kokkos::View<Data_t ***, Space_A>;
   using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, i1, i2);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
-
-  Kokkos::TeamPolicy<Space_B> team_policy(1, Kokkos::AUTO, 1);
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) {
@@ -123,7 +117,7 @@ void test_deepcopy(
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_t = Kokkos::View<Data_t **, Space_A>;
-  using ViewHost_t   = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, 1);
   v_H(0, 0)        = 0x123;
@@ -148,7 +142,7 @@ void test_deepcopy(
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_t = Kokkos::View<Data_t **, Space_A>;
-  using ViewHost_t   = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, i1);
   for (int i = 0; i < i1; ++i) v_H(0, i) = 0x123;
@@ -173,7 +167,7 @@ void test_deepcopy(
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Space_A>;
-  using ViewHost_t   = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
 
   ViewHost_t v_H("HostView", 1, i1, i2);
 

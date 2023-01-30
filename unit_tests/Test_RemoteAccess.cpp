@@ -37,17 +37,19 @@ void test_remote_accesses(int size) {
   TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
 
   using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
-  using HostSpace_t  = Kokkos::View<Data_t **, Kokkos::HostSpace>;
-  HostSpace_t v_H("HostView", 1, size);
+  using HostSpace_t  = typename RemoteView_t::HostMirror;
+  RemoteView_t v_R   = RemoteView_t("RemoteView", num_ranks, size);
+  HostSpace_t v_H("HostView", v_R.extent(0), size);
 
   // Allocate remote view
-  RemoteView_t v_R = RemoteView_t("RemoteView", num_ranks, size);
 
   RemoteSpace_t().fence();
 
+  int next_rank = (my_rank + 1) % num_ranks;
+
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {
-        v_R(num_ranks - my_rank - 1, i) = (Data_t)my_rank * size + i;
+        v_R(next_rank, i) = (Data_t)my_rank * size + i;
       });
 
   Kokkos::deep_copy(v_H, v_R);
@@ -55,7 +57,7 @@ void test_remote_accesses(int size) {
   Data_t check(0), ref(0);
   for (int i = 0; i < size; i++) {
     check += v_H(0, i);
-    ref += (num_ranks - my_rank - 1) * size + i;
+    ref += next_rank * size + i;
   }
   ASSERT_EQ(check, ref);
 }

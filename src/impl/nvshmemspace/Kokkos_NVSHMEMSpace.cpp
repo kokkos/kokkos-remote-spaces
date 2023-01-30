@@ -16,7 +16,6 @@
 //
 //@HEADER
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_NVSHMEMSpace.hpp>
 #include <nvshmem.h>
 

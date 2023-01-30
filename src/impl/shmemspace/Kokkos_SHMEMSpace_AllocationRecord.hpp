@@ -47,7 +47,15 @@ class SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
 
  protected:
   ~SharedAllocationRecord();
+
   SharedAllocationRecord() = default;
+
+  template <typename ExecutionSpace>
+  SharedAllocationRecord(
+      const ExecutionSpace &execution_space,
+      const Kokkos::Experimental::SHMEMSpace &arg_space,
+      const std::string &arg_label, const size_t arg_alloc_size,
+      const RecordBase::function_type arg_dealloc = &deallocate);
 
   SharedAllocationRecord(
       const Kokkos::Experimental::SHMEMSpace &arg_space,
