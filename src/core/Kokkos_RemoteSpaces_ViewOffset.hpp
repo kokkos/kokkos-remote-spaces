@@ -622,7 +622,7 @@ struct ViewOffset<
 
   template <class DimRHS>
   KOKKOS_INLINE_FUNCTION constexpr ViewOffset(
-      const ViewOffset<DimRHS, Kokkos::LayoutLeft, void> &rhs,
+      const ViewOffset<DimRHS, Kokkos::PartitionedLayoutLeft, void> &rhs,
       const SubviewExtents<DimRHS::rank, dimension_type::rank> &sub)
       : m_dim(sub.range_extent(0), sub.range_extent(1), sub.range_extent(2),
               sub.range_extent(3), sub.range_extent(4), sub.range_extent(5),
