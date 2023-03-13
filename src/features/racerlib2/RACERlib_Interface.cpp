@@ -54,85 +54,36 @@ template class Engine<double>;
 template class Engine<size_t>;
 // etc.
 
-extern Transport *request_tport;
-
-void rdma_ibv_finalize();
-
-#define RACERLIB_SUCCESS 1
 
 template <typename T>
-void Engine<T>::put(void *allocation, T &value, int PE, int offset,
-                    MPI_Comm comm_id){
-    // do nothin'
-};
-
-template <typename T>
-T Engine<T>::get(void *allocation, int PE, int offset, MPI_Comm comm_id) {
-  return 1;
-};
-
-template <typename T>
-int Engine<T>::start(void *target, MPI_Comm comm_id) {
-  // Do nothing since we're triggering the device-side
-  // kernels in the remote_paralle_for (for now)
-  // The host side is lauched at init (for now)
-  return RACERLIB_SUCCESS;
-}
-
-template <typename T>
-int Engine<T>::stop(void *target, MPI_Comm comm_id) {
-  // Call this at View memory deallocation (~allocation record);
-  return RACERLIB_SUCCESS;
-}
-
-template <typename T>
-int Engine<T>::flush(void *allocation, MPI_Comm comm_id) {
-  // Call this on fence. We need to make sure that at sychronization points,
-  // caches are empty
-  return RACERLIB_SUCCESS;
-}
-
-template <typename T>
-int Engine<T>::init(void *device_data, MPI_Comm comm_id) {
-  // Init components
-  allocate_host_device_component(device_data, comm_id);
-  return RACERLIB_SUCCESS;
-}
-template <typename T>
-int Engine<T>::finalize()  // finalize communicator instance, return
-                           // RECERLIB_STATUS
-{
-  fence();
-  deallocate_host_component();
-  rdma_ibv_finalize();
-  return RACERLIB_SUCCESS;
-}
-
-// Todo: template this on Feature for generic Engine feature support
-
-template <typename T>
-Engine<T>::Engine(void *target, MPI_Comm comm_id) {}
+Engine<T>::Engine(void *target) {}
 
 template <typename T>
 Engine<T>::Engine() {}
 
 template <typename T>
-void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
-  // Init RDMA transport layer
-  rdma_ibv_init();
+void Engine<T>::deallocate_device_component(void *data) {
+  cuda_safe(cuMemFree((CUdeviceptr)data));
+}
 
-  // Create the RdmaScatterGatherEngine (Host side)
-  sge = new RdmaScatterGatherEngine(comm, data, sizeof(T));
-  sges.insert(sge);
-
+template <typename T>
+void Engine<T>::allocate_device_component(void *data,  MPI_Comm comm) {
   // Create the device worker object and copy to device
   RdmaScatterGatherWorker<T> dev_worker;
 
+  MPI_Comm_size(comm, &num_ranks);
+  MPI_Comm_rank(comm, &my_rank);
+
   // Configure dev_worker
-  dev_worker.tx_element_request_ctrs =
-      sge->tx_element_request_ctrs;  // already a device buffer
+
+  /*dev_worker.tx_element_request_ctrs = (uint64_t *)allocate_device(
+      num_ranks * sizeof(uint64_t), ignore_actual_size);
+  memset_device(dev_worker.tx_element_request_ctrs, 0, num_ranks * sizeof(uint64_t));*/
+    
+    /*
   dev_worker.rx_element_reply_queue =
       sge->rx_element_reply_queue_mr->addr;  // already a device buffer
+  
   dev_worker.tx_element_reply_queue = sge->tx_element_reply_queue_mr->addr;
   dev_worker.tx_element_request_trip_counts =
       sge->tx_element_request_trip_counts;
@@ -155,45 +106,61 @@ void Engine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
   dev_worker.tx_element_request_ctrs    = sge->tx_element_request_ctrs;
   dev_worker.my_rank                    = sge->my_rank;
   dev_worker.request_done_flag          = sge->request_done_flag;
-  dev_worker.response_done_flag         = sge->response_done_flag;
+  dev_worker.response_done_flag         = sge->response_done_flag;*/
 
   // Set host-pinned memory pointers
-  cuda_safe(cuMemHostGetDevicePointer((CUdeviceptr *)&dev_worker.ack_ctrs_h,
-                                      sge->ack_ctrs_h, 0));
-  cuda_safe(cuMemHostGetDevicePointer(
-      (CUdeviceptr *)&dev_worker.fence_done_flag, sge->fence_done_flag, 0));
+
   // Device malloc of worker and copy
   cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
   cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
                   cudaMemcpyHostToDevice);
-  debug("Host engine allocated. %i\n", 0);
+  debug("Engine allocated. %i\n", 0);
 }
 
-// Use for host-sided memory spaces (MPI, SHMEM)
-// Not used for NVSHMEM
 template <typename T>
-void Engine<T>::allocate_host_host_component() {
-  // Create here a PThread ensemble
-  // Call into Feature Init(); //Here the RDMAEngine initializes
-  // Assign Call backs
-  sgw                          = new RdmaScatterGatherWorker<T>;
-  sgw->tx_element_request_ctrs = sge->tx_element_request_ctrs;
-  sgw->ack_ctrs_h              = sge->ack_ctrs_h;
-  sgw->tx_element_request_queue =
-      (uint32_t *)sge->tx_element_request_queue_mr->addr;
-  sgw->rx_element_reply_queue = sge->rx_element_reply_queue_mr->addr;
-  sgw->my_rank                = sge->my_rank;
-
-  debug("Host engine allocated. %i\n", 0);
+int Engine<T>::init(void *device_data,  MPI_Comm comm) {
+  // Init components
+  allocate_device_component(device_data, comm);
+  return RACERLIB_SUCCESS;
 }
-
-// Dealloc all for now.
 template <typename T>
-void Engine<T>::deallocate_host_component() {
-  for (RdmaScatterGatherEngine *sge : sges) {
-    delete sge;
-  }
-  debug_2("Host engine deallocated. \n");
+int Engine<T>::finalize()  // finalize instance, return
+                           // RECERLIB_STATUS
+{
+  fence();
+  deallocate_device_component((void *)sgw);
+
+/*
+  MPI_Barrier(comm);
+
+  void *ignore;
+
+  stop_running();
+  pthread_join(request_thread, &ignore);
+  pthread_join(ack_thread, &ignore);
+  pthread_join(response_thread, &ignore);
+
+  free_device_rdma_memory(rx_element_reply_queue_mr);
+  free_device_rdma_memory(tx_element_reply_queue_mr);
+  free_host_rdma_memory(rx_remote_windows_mr);
+  free_host_rdma_memory(tx_remote_windows_mr);
+  free_host_rdma_memory(all_request_mr);
+
+  free_host_pinned(ack_ctrs_h, num_ranks * sizeof(uint64_t));
+  free_device_rdma_memory(tx_element_request_queue_mr);
+  free_device(tx_element_request_sent_ctrs, num_ranks * sizeof(uint64_t));
+  free_device(tx_element_aggregate_ctrs, num_ranks * sizeof(uint64_t));
+
+  free_device(ack_ctrs_d, num_ranks * sizeof(uint64_t));
+  free_device(cache.flags, cache.cache_size);
+
+  debug("Shutting down RdmaScatterGatherEngine: %i", 0);
+
+  delete[] tx_element_request_acked_ctrs;
+*/
+
+
+  return RACERLIB_SUCCESS;
 }
 
 template <typename T>
@@ -202,18 +169,13 @@ RdmaScatterGatherWorker<T> *Engine<T>::get_worker() const {
 }
 
 template <typename T>
-RdmaScatterGatherEngine *Engine<T>::get_engine() const {
-  return sge;
+Engine<T>::~Engine() {
+  /*TBD*/
 }
 
 template <typename T>
-Engine<T>::~Engine() {}
-
-template <typename T>
 void Engine<T>::fence() {
-  for (RdmaScatterGatherEngine *sge : sges) {
-    sge->fence();
-  }
+  /*TBD*/
 }
 
 }  // namespace RACERlib

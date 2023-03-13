@@ -862,12 +862,11 @@ struct NVSHMEMDataElement<
     bool nonlocal = pe != sgw->my_rank;
 
     if (nonlocal) {
-      void *shm_ptr = sgw->direct_ptrs[pe];
-      if (shm_ptr) {
-        T *t = (T *)shm_ptr;
-        // printf("FUNKY\n");
-        return volatile_load(&t[offset]);
-      }
+      /* void *shm_ptr = sgw->direct_ptrs[pe];
+       if (shm_ptr) {
+         T *t = (T *)shm_ptr;
+         return volatile_load(&t[offset]); //TODO
+       }*/
       // printf("Requesting from pe: %i, offset: %i\n", pe, offset);
       return sgw->request(pe, offset);
     } else {

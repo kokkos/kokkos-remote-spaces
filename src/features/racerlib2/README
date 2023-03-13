@@ -1,0 +1,1 @@
+Implementation of access caching and aggregation in CUDA using active kernels (helpers) and host-device queue processing.

@@ -183,7 +183,9 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
   uint64_t trip_number = rx_block_request_ctr / queue_size;
   uint64_t request = MAKE_BLOCK_PACK_REQUEST(win->num_entries, win->requester,
                                              trip_number, window_offset);
-  volatile_store(&rx_block_request_cmd_queue[idx], request);
+  atomic_store(&rx_block_request_cmd_queue[idx], request,
+               Kokkos::Impl::memory_order_seq_cst_t());
+  memory_fence();
 
   debug("Starting reply %" PRIu64 " back to %d on token %" PRIu32
         " on index %" PRIu64 " on window %u from %p to %p",
@@ -377,7 +379,8 @@ void RdmaScatterGatherEngine::poll_requests() {
     time_safe(poll(request_tport));
     uint64_t idx         = tx_block_reply_ctr % queue_size;
     uint64_t trip_number = tx_block_reply_ctr / queue_size;
-    uint64_t request     = volatile_load(&tx_block_reply_cmd_queue[idx]);
+    uint64_t request     = atomic_load(&tx_block_reply_cmd_queue[idx],
+                                   Kokkos::Impl::memory_order_seq_cst_t());
     if (GET_BLOCK_FLAG(request) == MAKE_READY_FLAG(trip_number)) {
       remote_window_finish_reply();
       ++tx_block_reply_ctr;
@@ -401,7 +404,8 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
   uint64_t trip_number  = tx_block_request_ctr / queue_size;
   uint64_t queue_idx    = tx_block_request_ctr % queue_size;
   uint32_t ready_flag   = MAKE_READY_FLAG(trip_number);
-  uint64_t next_request = volatile_load(&tx_block_request_cmd_queue[queue_idx]);
+  uint64_t next_request = atomic_load(&tx_block_request_cmd_queue[queue_idx],
+                                      Kokkos::Impl::memory_order_seq_cst_t());
 
   while (GET_BLOCK_FLAG(next_request) == ready_flag) {
     uint32_t pe          = GET_BLOCK_PE(next_request);
@@ -417,7 +421,8 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
     uint64_t trip_number = tx_block_request_ctr / queue_size;
     uint64_t queue_idx   = tx_block_request_ctr % queue_size;
     ready_flag           = MAKE_READY_FLAG(trip_number);
-    next_request = volatile_load(&tx_block_request_cmd_queue[queue_idx]);
+    next_request         = atomic_load(&tx_block_request_cmd_queue[queue_idx],
+                               Kokkos::Impl::memory_order_seq_cst_t());
   }
 }
 
@@ -452,7 +457,9 @@ void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
         req.pe, cleared_index, req.token);
 
   tx_element_request_acked_ctrs[req.pe] = cleared_index;
-  volatile_store(&ack_ctrs_h[req.pe], cleared_index);
+  atomic_store(&ack_ctrs_h[req.pe], cleared_index,
+               Kokkos::Impl::memory_order_seq_cst_t());
+  memory_fence();
 
   available_reply_keys.append(req.token);
 }
@@ -742,7 +749,8 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
   response_done_flag = request_done_flag + 1;
   fence_done_flag =
       (unsigned *)allocate_host_pinned(sizeof(unsigned), ignore_actual_size);
-  volatile_store(fence_done_flag, 0u);
+  atomic_store(fence_done_flag, 0u, Kokkos::Impl::memory_order_seq_cst_t());
+  memory_fence();
   memset_device(request_done_flag, 0, 2 * sizeof(unsigned));
 
   run_on_core(0);

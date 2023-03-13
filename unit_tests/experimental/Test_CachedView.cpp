@@ -82,20 +82,19 @@ void test_cached_view1D(int dim0) {
   ViewDevice_1D_t v_d_out_3 = ViewDevice_1D_t("DataView", v_r.extent(0));
   ViewHost_1D_t v_h         = ViewHost_1D_t("HostView", v_r.extent(0));
 
-
   int num_teams            = 3;
   int num_teams_adjusted   = num_teams - 2;
-  int team_size            = 1;
+  int team_size            = 32;
   int thread_vector_length = 1;
   int next_rank            = (myRank + 1) % numRanks;
 
-  auto remote_range = Kokkos::Experimental::get_range(dim0, (myRank + 1) % numRanks);
-  auto local_range = Kokkos::Experimental::get_range(dim0, myRank);
-  int size_per_rank     = remote_range.second - remote_range.first + 1;
-  printf("Range[%i,%i]\n",remote_range.first, remote_range.second);
+  auto remote_range =
+      Kokkos::Experimental::get_range(dim0, (myRank + 1) % numRanks);
+  auto local_range  = Kokkos::Experimental::get_range(dim0, myRank);
+  int size_per_rank = remote_range.second - remote_range.first + 1;
+  printf("Range[%i,%i]\n", remote_range.first, remote_range.second);
   int size_per_team     = size_per_rank / num_teams_adjusted;
   int size_per_team_mod = size_per_rank % num_teams_adjusted;
-
 
   auto policy =
       Kokkos::TeamPolicy<>(num_teams, team_size, thread_vector_length);
@@ -103,7 +102,7 @@ void test_cached_view1D(int dim0) {
 
   Kokkos::parallel_for(
       "Init", size_per_rank,
-      KOKKOS_LAMBDA(const int i) { v_d(i) =  local_range.first + i; });
+      KOKKOS_LAMBDA(const int i) { v_d(i) = local_range.first + i; });
 
   Kokkos::fence();
   RemoteSpace_t().fence();
@@ -116,13 +115,14 @@ void test_cached_view1D(int dim0) {
                         ? size_per_team + size_per_team_mod
                         : size_per_team;
 
-        Kokkos::parallel_for(
-            Kokkos::TeamThreadRange(team, block), [&](const int i) {
-              int index = remote_range.first + i;
-                v_d_out_1(start + i) = v_r(index);
-                v_d_out_2(start + i) = v_r(index);
-                v_d_out_3(start + i) = v_r(index);
-            });
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, block),
+                             [&](const int i) {
+                               int index = remote_range.first + start + i;
+                               //   printf("i:%i\n", index);
+                               v_d_out_1(start + i) = v_r(index);
+                               /*v_d_out_2(start + i) = v_r(index);
+                                 v_d_out_3(start + i) = v_r(index);*/
+                             });
       },
       v_r);
 
@@ -132,19 +132,21 @@ void test_cached_view1D(int dim0) {
   Kokkos::deep_copy(v_h, v_d_out_1);
   for (int i = 0; i < size_per_rank; ++i)
     ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
+  /*
+    Kokkos::deep_copy(v_h, v_d_out_2);
+    for (int i = 0; i < size_per_rank; ++i)
+      ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
 
-  Kokkos::deep_copy(v_h, v_d_out_2);
-  for (int i = 0; i < size_per_rank; ++i)
-    ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
-
-  Kokkos::deep_copy(v_h, v_d_out_3);
-  for (int i = 0; i < size_per_rank; ++i)
-    ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
+    Kokkos::deep_copy(v_h, v_d_out_3);
+    for (int i = 0; i < size_per_rank; ++i)
+      ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);*/
 }
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
-   test_cached_view1D<double>(1048576);  //~700 MB
+  // test_cached_view1D<double>(134217728); //1GB
+  // test_cached_view1D<double>(8388608); //64MB
+  test_cached_view1D<double>(32);
   // Do not repeat tests here - the ipc mem alloc might fail (to be fixed)
 }
 

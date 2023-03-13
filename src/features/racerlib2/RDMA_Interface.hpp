@@ -47,6 +47,8 @@
 
 #include <RDMA_Worker.hpp>
 
+#define RAW_CUDA
+
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {

@@ -21,6 +21,7 @@ option(KRS_ENABLE_EXAMPLES "Whether to enable tests" OFF)
 option(KRS_ENABLE_TESTS "Whether to enable tests" OFF)
 option(KRS_ENABLE_DEBUG "Whether to enable debugging output" OFF)
 option(KRS_ENABLE_RACERLIB "Whether to enable RACERlib (requires NVSHMEMSPACE)")
+option(KRS_ENABLE_RACERLIB2 "Whether to enable RACERlib2 (requires NVSHMEMSPACE)")
 
 set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
@@ -81,12 +82,12 @@ endif()
 message(STATUS "Enabled remote spaces: ${BACKENDS}")
 
 list(LENGTH BACKENDS N_BACKENDS)
-if (NOT ${N_BACKENDS} EQUAL "1")
+if (NOT ${N_BACKENDS} EQUAL "1" OR (KRS_ENABLE_RACERLIB AND KRS_ENABLE_RACERLIB2))
   message(FATAL_ERROR "Must give a single valid backend")
 endif()
 
-set(SOURCES)
-set(HEADERS)
+set(SOURCES_RACERLIB)
+set(HEADERS_RACERLIB)
 
 if (KRS_ENABLE_RACERLIB)
   message(STATUS "Enabled RACERlib")
@@ -95,13 +96,32 @@ if (KRS_ENABLE_RACERLIB)
   endif()
   file(GLOB DIR_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib/*.cpp)
   file(GLOB DIR_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib/*.hpp)
-  list(APPEND SOURCES ${DIR_SRCS})
-  list(APPEND HEADERS ${DIR_HDRS})
-  add_library(racerlib ${HEADERS} ${SOURCES})
+  list(APPEND SOURCES_RACERLIB ${DIR_SRCS})
+  list(APPEND HEADERS_RACERLIB ${DIR_HDRS})
+  add_library(racerlib ${HEADERS_RACERLIB} ${SOURCES_RACERLIB})
   if(KRS_ENABLE_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(racerlib PUBLIC KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
   endif()
   target_include_directories(racerlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib>)
+  target_compile_definitions(racerlib PUBLIC KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+  target_link_libraries(racerlib PUBLIC ${PUBLIC_DEPS} Kokkos::kokkos)
+  list(APPEND PUBLIC_DEPS racerlib)
+endif()
+
+if (KRS_ENABLE_RACERLIB2)
+  message(STATUS "Enabled RACERlib2")
+  if (NOT ${BACKEND_NAME} STREQUAL "NVSHMEMSPACE")
+    message(FATAL_ERROR "RACERlib2 requires NVSHMEM")
+  endif()
+  file(GLOB DIR_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib2/*.cpp)
+  file(GLOB DIR_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib2/*.hpp)
+  list(APPEND SOURCES_RACERLIB ${DIR_SRCS})
+  list(APPEND HEADERS_RACERLIB ${DIR_HDRS})
+  add_library(racerlib ${HEADERS_RACERLIB} ${SOURCES_RACERLIB})
+  if(KRS_ENABLE_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(racerlib PUBLIC KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
+  endif()
+  target_include_directories(racerlib PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib2>)
   target_compile_definitions(racerlib PUBLIC KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
   target_link_libraries(racerlib PUBLIC ${PUBLIC_DEPS} Kokkos::kokkos)
   list(APPEND PUBLIC_DEPS racerlib)
@@ -173,6 +193,11 @@ install(FILES
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+install(FILES
+  ${HEADERS_RACERLIB}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
 install(
   TARGETS kokkosremote ${PUBLIC_DEPS}
   EXPORT KokkosRemoteTargets
@@ -186,6 +211,7 @@ install(EXPORT
   NAMESPACE Kokkos::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote
 )
+
 
 IF (KRS_ENABLE_EXAMPLES)
   add_subdirectory(examples)

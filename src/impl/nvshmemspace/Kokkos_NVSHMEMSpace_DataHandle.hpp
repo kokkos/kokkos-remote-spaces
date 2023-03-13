@@ -147,8 +147,9 @@ struct ViewDataHandle<
           0) {
     auto *record =
         arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
-    return handle_type(arg_data_ptr,
-                       record->get_caching_and_aggregation_engine()->sgw);
+    return handle_type(
+        arg_data_ptr,
+        record->get_caching_and_aggregation_engine()->get_worker());
   }
 
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
