@@ -21,7 +21,7 @@
 #include <Kokkos_Core.hpp>
 
 #ifdef KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
-#include <RACERlib_Interface.hpp>
+#include <RACERlib_HostInterface.hpp>
 #endif
 
 namespace Kokkos {

@@ -25,7 +25,7 @@
 #include <Kokkos_RemoteSpaces_Options.hpp>
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-#include <RDMA_Worker.hpp>
+#include <RACERlib_DeviceOps.hpp>
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {

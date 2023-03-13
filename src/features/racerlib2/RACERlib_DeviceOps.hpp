@@ -45,8 +45,8 @@
 #ifndef RACERLIB_RDMA_WORKER
 #define RACERLIB_RDMA_WORKER
 
-#include <RDMA_Access_Cache.hpp>
-#include <RDMA_Helpers.hpp>
+#include <AccessCache.hpp>
+#include <Helpers.hpp>
 
 namespace Kokkos {
 namespace Experimental {

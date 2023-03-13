@@ -42,7 +42,7 @@
 //@HEADER
 */
 
-#include <RACERlib_Interface.hpp>
+#include <RACERlib_HostInterface.hpp>
 
 namespace Kokkos {
 namespace Experimental {

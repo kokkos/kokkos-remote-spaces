@@ -42,7 +42,7 @@
 //@HEADER
 */
 
-#include <RDMA_Interface.hpp>
+#include <RACERlib_DeviceInterface.hpp>
 
 namespace Kokkos {
 namespace Experimental {

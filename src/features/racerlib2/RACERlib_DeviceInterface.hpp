@@ -45,7 +45,7 @@
 #ifndef RACERLIB_RDMA_INTERFACE
 #define RACERLIB_RDMA_INTERFACE
 
-#include <RDMA_Worker.hpp>
+#include <RACERlib_DeviceOps.hpp>
 
 #define RAW_CUDA
 

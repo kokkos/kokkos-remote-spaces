@@ -46,8 +46,8 @@
 #define RACERLIB2_INTERFACE
 
 #include <Kokkos_Core.hpp>
-#include <RDMA_Helpers.hpp>
-#include <RDMA_Interface.hpp>
+#include <Helpers.hpp>
+#include <RACERlib_DeviceInterface.hpp>
 #include <mpi.h>
 
 namespace Kokkos {

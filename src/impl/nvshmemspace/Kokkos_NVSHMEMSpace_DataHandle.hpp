@@ -20,7 +20,7 @@
 #define KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-#include <RDMA_Worker.hpp>
+#include <RACERlib_DeviceOps.hpp>
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {
