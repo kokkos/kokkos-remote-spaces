@@ -1,46 +1,20 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
 #ifndef TEST_SUBVIEW_HPP_
 #define TEST_SUBVIEW_HPP_
@@ -59,9 +33,8 @@ void test_scalar_reduce_1D(int dim0) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_1D_t   = Kokkos::View<Data_t *, Kokkos::HostSpace>;
   using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
-  using RangePolicy_t   = Kokkos::RangePolicy<>;
+  using ViewHost_1D_t   = typename ViewRemote_1D_t::HostMirror;
 
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
   ViewHost_1D_t v_h("HostView", v.extent(0));
@@ -90,8 +63,8 @@ void test_scalar_reduce_2D(int dim0, int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_2D_t   = Kokkos::View<Data_t **, Kokkos::HostSpace>;
   using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewHost_2D_t   = typename ViewRemote_2D_t::HostMirror;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
   ViewHost_2D_t v_h("HostView", v.extent(0), v.extent(1));
@@ -125,11 +98,11 @@ void test_scalar_reduce_partitioned_1D(int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t = Kokkos::View<Data_t **, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
       Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
       Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v =
       ViewRemote_3D_t("RemoteView", num_ranks /*dim0*/, dim1 / num_ranks);
@@ -172,11 +145,11 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewHost_3D_t = Kokkos::View<Data_t ***, Kokkos::HostSpace>;
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
       Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
+  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v =
       ViewRemote_3D_t("RemoteView", num_ranks /*dim0*/, dim1 / num_ranks, dim2);

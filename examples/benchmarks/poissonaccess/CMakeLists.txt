@@ -1,3 +1,2 @@
 add_executable(poissonaccess poissonaccess.cpp)
-
 target_link_libraries(poissonaccess PRIVATE Kokkos::kokkosremote)

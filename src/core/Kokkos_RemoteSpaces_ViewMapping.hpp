@@ -1,46 +1,20 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
 #ifndef KOKKOS_REMOTESPACES_VIEWMAPPING_HPP
 #define KOKKOS_REMOTESPACES_VIEWMAPPING_HPP
@@ -901,12 +875,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
           std::is_same<typename T::array_layout, Kokkos::LayoutRight>::value ||
           std::is_same<typename T::array_layout, Kokkos::LayoutStride>::value,
       reference_type>::type
-  reference(
-      const I0 &i0, const I1 &i1, const I2 &i2,
-      typename std::enable_if<
-          std::is_same<typename T::array_layout, Kokkos::LayoutLeft>::value ||
-          std::is_same<typename T::array_layout,
-                       Kokkos::LayoutRight>::value>::type * = nullptr) const {
+  reference(const I0 &i0, const I1 &i1, const I2 &i2) const {
     if (m_num_pes <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2));
       return element;
@@ -1170,14 +1139,25 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
       typename Traits::array_layout const &arg_layout,
       bool execution_space_specified) {
-    typedef Kokkos::Impl::ViewCtorProp<P...> alloc_prop;
+    using alloc_prop = Kokkos::Impl::ViewCtorProp<P...>;
 
-    typedef typename alloc_prop::execution_space execution_space;
-    typedef typename T::memory_space memory_space;
-    typedef typename T::value_type value_type;
-    typedef ViewValueFunctor<execution_space, value_type> functor_type;
-    typedef Kokkos::Impl::SharedAllocationRecord<memory_space, functor_type>
-        record_type;
+    using execution_space = typename alloc_prop::execution_space;
+    using memory_space    = typename Traits::memory_space;
+    static_assert(
+        SpaceAccessibility<execution_space, memory_space>::accessible);
+    using value_type = typename Traits::value_type;
+    using functor_type =
+        ViewValueFunctor<Kokkos::Device<execution_space, memory_space>,
+                         value_type>;
+    using record_type =
+        Kokkos::Impl::SharedAllocationRecord<memory_space, functor_type>;
+
+    m_num_pes = Kokkos::Experimental::get_num_pes();
+    pe        = Kokkos::Experimental::get_my_pe();
+
+    // Copy layout properties
+    typename T::array_layout layout;
+    set_layout(arg_layout, layout, m_local_dim0);
 
     // Query the mapping for byte-size of allocation.
     // If padding is allowed then pass in sizeof value type
@@ -1185,17 +1165,18 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     typedef std::integral_constant<
         unsigned, alloc_prop::allow_padding ? sizeof(value_type) : 0>
         padding;
-    typename T::array_layout layout;
-
-    // Copy layout properties
-    set_layout(arg_layout, layout, m_local_dim0);
-
-    m_num_pes = Kokkos::Experimental::get_num_pes();
-    pe        = Kokkos::Experimental::get_my_pe();
 
     m_offset = offset_type(padding(), layout);
 
-    const size_t alloc_size = memory_span();
+    const size_t alloc_size =
+        (m_offset.span() * MemorySpanSize + MemorySpanMask) &
+        ~size_t(MemorySpanMask);
+    const std::string &alloc_name =
+        Impl::get_property<Impl::LabelTag>(arg_prop);
+    const execution_space &exec_space =
+        Impl::get_property<Impl::ExecutionSpaceTag>(arg_prop);
+    const memory_space &mem_space =
+        Impl::get_property<Impl::MemorySpaceTag>(arg_prop);
 
     // Create shared memory tracking record with allocate memory from the memory
     // space
@@ -1224,24 +1205,24 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     }
 #endif
 
+    functor_type functor =
+        execution_space_specified
+            ? functor_type(exec_space, (value_type *)m_handle.ptr,
+                           m_offset.span(), alloc_name)
+            : functor_type((value_type *)m_handle.ptr, m_offset.span(),
+                           alloc_name);
+
     //  Only initialize if the allocation is non-zero.
     //  May be zero if one of the dimensions is zero.
-    if (alloc_size && alloc_prop::initialize) {
-      const std::string &alloc_name =
-          static_cast<Kokkos::Impl::ViewCtorProp<void, std::string> const &>(
-              arg_prop)
-              .value;
-
-      // Assume destruction is only required when construction is requested.
-      // The ViewValueFunctor has both value construction and destruction
-      // operators.
-      record->m_destroy = functor_type(
-          static_cast<Kokkos::Impl::ViewCtorProp<void, execution_space> const
-                          &>(arg_prop)
-              .value,
-          (value_type *)m_handle.ptr, m_offset.span(), alloc_name);
-    }
-
+    if constexpr (alloc_prop::initialize)
+      if (alloc_size) {
+        // Assume destruction is only required when construction is requested.
+        // The ViewValueFunctor has both value construction and destruction
+        // operators.
+        record->m_destroy = std::move(functor);
+        // Construct values
+        record->m_destroy.construct_shared_allocation();
+      }
     return record;
   }
 
@@ -1261,7 +1242,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 template <class DstTraits, class SrcTraits>
 class ViewMapping<DstTraits, SrcTraits,
                   Kokkos::Experimental::RemoteSpaceSpecializeTag> {
- private:
+ public:
   enum {
     is_assignable_space = Kokkos::Impl::MemorySpaceAccess<
         typename DstTraits::memory_space,
