@@ -13,7 +13,7 @@ endif()
 
 SET(NAME KokkosRemote_TestAll)
 
-if (KRS_ENABLE_RACERLIB) #For RACERlib, compile just this unit test
+if (KRS_ENABLE_RACERLIB OR KRS_ENABLE_RACERLIB2) #For RACERlib, compile just this unit test
   file(GLOB TEST_SRCS_EXPERIMENTAL experimental/*.cpp)
   list(APPEND TEST_SRCS_EXPERIMENTAL "Test_Main.cpp")
   list(APPEND TEST_SRCS ${TEST_SRCS_EXPERIMENTAL})

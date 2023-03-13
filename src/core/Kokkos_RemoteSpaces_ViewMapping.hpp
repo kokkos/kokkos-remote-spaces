@@ -1194,11 +1194,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 #else
     if (alloc_size) {
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
+    if constexpr (RemoteSpaces_MemoryTraits<
+            typename Traits::memory_traits>::is_cached)
+    {
       record->get_caching_and_aggregation_engine()->init((void *)record->data(),
                                                          MPI_COMM_WORLD);
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()),
                              record->get_caching_and_aggregation_engine(),
                              record->get_caching_and_aggregation_engine()->sgw);
+
+
+    }
 #else
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));
 #endif
@@ -1235,7 +1241,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <class ExecSpace>
   void clear_fence(ExecSpace &&e) const {
     // Notify final pack_response_kernel to stop
-    volatile_store(m_handle.e->sge->fence_done_flag, 1u);
+    //volatile_store(m_handle.e->sge->fence_done_flag, 1u);
   }
 };
 
