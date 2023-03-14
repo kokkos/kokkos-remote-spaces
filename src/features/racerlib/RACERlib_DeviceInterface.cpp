@@ -122,7 +122,8 @@ __device__ void pack_response_kernel(T *local_values,
       __threadfence_system();
 
       if (my_thread == 0) {
-        atomic_store(&sgw->tx_block_reply_cmd_queue[idx], request, Kokkos::Impl::memory_order_seq_cst_t());
+        atomic_store(&sgw->tx_block_reply_cmd_queue[idx], request,
+                     Kokkos::Impl::memory_order_seq_cst_t());
         memory_fence();
       }
     }
@@ -166,8 +167,8 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   while (completion < num_worker_teams) {
     for (int pe = 0; pe < sgw->num_ranks; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
-      
-      if(pe == sgw->my_rank) continue;
+
+      if (pe == sgw->my_rank) continue;
 
       if (my_thread == 0) {
         uint64_t last_cleared_on_device = sgw->ack_ctrs_d[pe];
@@ -185,14 +186,14 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
         memory_fence();
         total_requests = max_index - head;
 
-        //printf("Total Req:%i\n", int(total_requests));
+        // printf("Total Req:%i\n", int(total_requests));
         if (total_requests < mtu && misses[pe] < max_mtu_stalls) {
           total_requests = 0;
           ++misses[pe];
         } else {
           misses[pe] = 0;
         }
-     }
+      }
 
       __threadfence_system();
       __syncthreads();
@@ -214,8 +215,10 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                   atomic_load(&sgw->tx_element_request_queue[req_slot],
                               Kokkos::Impl::memory_order_seq_cst_t());
             }
-           // printf("pe %i, tid %i, offset %i, trip %i, reqDone %i, totReq %i\n", pe , 
-            //int(my_idx), next_request, int(my_trip_number), int(requests_done), int(total_requests) );
+            // printf("pe %i, tid %i, offset %i, trip %i, reqDone %i, totReq
+            // %i\n", pe ,
+            // int(my_idx), next_request, int(my_trip_number),
+            // int(requests_done), int(total_requests) );
             // This looks stupid, but is necessary to make visible to peer
             // devices
             // sgw->tx_element_request_queue[req_slot] = next_request;
@@ -240,10 +243,9 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                        Kokkos::Impl::memory_order_seq_cst_t());
           memory_fence();
         }
-
       }
-        __threadfence_system();
-        __syncthreads();
+      __threadfence_system();
+      __syncthreads();
     }
     if (my_thread == 0) {
       completion = atomic_load(sgw->request_done_flag,

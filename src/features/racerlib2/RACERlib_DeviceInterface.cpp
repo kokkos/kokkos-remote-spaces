@@ -80,8 +80,7 @@ __device__ void pack_response_kernel(T *local_values,
     uint64_t idx         = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
 
-
-    //FOR NOW COMMENTED OUT
+    // FOR NOW COMMENTED OUT
     /*if (my_thread == 0) {
       request = atomic_load(&sgw->rx_block_request_cmd_queue[idx],
                             Kokkos::Impl::memory_order_seq_cst_t());
@@ -123,11 +122,11 @@ __device__ void pack_response_kernel(T *local_values,
       // Force visibility
       __threadfence_system();
 
-    //FOR NOW COMMENTED OUT
-     /* if (my_thread == 0) {
-        atomic_store(&sgw->tx_block_reply_cmd_queue[idx], request, Kokkos::Impl::memory_order_seq_cst_t());
-        memory_fence();
-      }*/
+      // FOR NOW COMMENTED OUT
+      /* if (my_thread == 0) {
+         atomic_store(&sgw->tx_block_reply_cmd_queue[idx], request,
+       Kokkos::Impl::memory_order_seq_cst_t()); memory_fence();
+       }*/
     }
 
     if (my_thread == 0) {
@@ -150,10 +149,10 @@ template <typename T, class Team>
 __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                                           Team &&team,
                                           unsigned num_worker_teams) {
-  int my_thread                 = threadIdx.x * blockDim.y + threadIdx.y;
-  int total_threads             = blockDim.x * blockDim.y;
-  uint32_t queue_size           = QUEUE_SIZE;
- 
+  int my_thread       = threadIdx.x * blockDim.y + threadIdx.y;
+  int total_threads   = blockDim.x * blockDim.y;
+  uint32_t queue_size = QUEUE_SIZE;
+
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
 
@@ -185,8 +184,10 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
                   atomic_load(&sgw->tx_element_request_queue[req_slot],
                               Kokkos::Impl::memory_order_seq_cst_t());
             }
-           // printf("pe %i, tid %i, offset %i, trip %i, reqDone %i, totReq %i\n", pe , 
-            //int(my_idx), next_request, int(my_trip_number), int(requests_done), int(total_requests) );
+            // printf("pe %i, tid %i, offset %i, trip %i, reqDone %i, totReq
+            // %i\n", pe ,
+            // int(my_idx), next_request, int(my_trip_number),
+            // int(requests_done), int(total_requests) );
             // This looks stupid, but is necessary to make visible to peer
             // devices
             // sgw->tx_element_request_queue[req_slot] = next_request;
@@ -207,15 +208,14 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
           uint64_t trip_number = tail_idx / queue_size;
           uint64_t request =
               MAKE_BLOCK_GET_REQUEST(total_requests, pe, trip_number);
-              //FOR NOW COMMENTED OUT
-      /*    atomic_store(&sgw->tx_block_request_cmd_queue[queue_idx], request,
-                       Kokkos::Impl::memory_order_seq_cst_t());*/
+          // FOR NOW COMMENTED OUT
+          /*    atomic_store(&sgw->tx_block_request_cmd_queue[queue_idx],
+             request, Kokkos::Impl::memory_order_seq_cst_t());*/
           memory_fence();
         }
-
       }
-        __threadfence_system();
-        __syncthreads();
+      __threadfence_system();
+      __syncthreads();
     }
     if (my_thread == 0) {
       completion = atomic_load(sgw->request_done_flag,

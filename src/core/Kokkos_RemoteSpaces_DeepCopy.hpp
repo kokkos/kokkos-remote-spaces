@@ -658,7 +658,7 @@ inline void deep_copy(
         "fence");
 
     DefaultRemoteMemorySpace().fence();
-    if ((void*)dst.data() != (void*)src.data()) {
+    if ((void *)dst.data() != (void *)src.data()) {
       Kokkos::Impl::DeepCopy<dst_memory_space, src_memory_space>(
           dst.data(), src.data(), nbytes);
       Kokkos::fence(

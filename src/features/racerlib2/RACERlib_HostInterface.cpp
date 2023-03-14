@@ -54,7 +54,6 @@ template class Engine<double>;
 template class Engine<size_t>;
 // etc.
 
-
 template <typename T>
 Engine<T>::Engine(void *target) {}
 
@@ -67,7 +66,7 @@ void Engine<T>::deallocate_device_component(void *data) {
 }
 
 template <typename T>
-void Engine<T>::allocate_device_component(void *data,  MPI_Comm comm) {
+void Engine<T>::allocate_device_component(void *data, MPI_Comm comm) {
   // Create the device worker object and copy to device
   RdmaScatterGatherWorker<T> dev_worker;
 
@@ -78,35 +77,36 @@ void Engine<T>::allocate_device_component(void *data,  MPI_Comm comm) {
 
   /*dev_worker.tx_element_request_ctrs = (uint64_t *)allocate_device(
       num_ranks * sizeof(uint64_t), ignore_actual_size);
-  memset_device(dev_worker.tx_element_request_ctrs, 0, num_ranks * sizeof(uint64_t));*/
-    
-    /*
-  dev_worker.rx_element_reply_queue =
-      sge->rx_element_reply_queue_mr->addr;  // already a device buffer
-  
-  dev_worker.tx_element_reply_queue = sge->tx_element_reply_queue_mr->addr;
-  dev_worker.tx_element_request_trip_counts =
-      sge->tx_element_request_trip_counts;
-  // already a device buffer
-  dev_worker.cache       = sge->cache;
-  dev_worker.direct_ptrs = sge->direct_ptrs_d;  // already a device buffer
-  dev_worker.tx_element_request_queue =
-      (uint32_t *)sge->tx_element_request_queue_mr->addr;
-  dev_worker.ack_ctrs_d            = sge->ack_ctrs_d;
-  dev_worker.tx_element_reply_ctrs = sge->tx_element_reply_ctrs;
-  dev_worker.rx_element_request_queue =
-      (uint32_t *)sge->rx_element_request_queue_mr->addr;
-  dev_worker.num_ranks                  = sge->num_ranks;
-  dev_worker.tx_element_aggregate_ctrs  = sge->tx_element_aggregate_ctrs;
-  dev_worker.tx_block_request_cmd_queue = sge->tx_block_request_cmd_queue;
-  dev_worker.tx_block_reply_cmd_queue   = sge->tx_block_reply_cmd_queue;
-  dev_worker.tx_block_request_ctr       = sge->tx_block_request_ctr;
-  dev_worker.rx_block_request_cmd_queue = sge->rx_block_request_cmd_queue;
-  dev_worker.rx_block_request_ctr       = sge->rx_block_request_ctr;
-  dev_worker.tx_element_request_ctrs    = sge->tx_element_request_ctrs;
-  dev_worker.my_rank                    = sge->my_rank;
-  dev_worker.request_done_flag          = sge->request_done_flag;
-  dev_worker.response_done_flag         = sge->response_done_flag;*/
+  memset_device(dev_worker.tx_element_request_ctrs, 0, num_ranks *
+  sizeof(uint64_t));*/
+
+  /*
+dev_worker.rx_element_reply_queue =
+    sge->rx_element_reply_queue_mr->addr;  // already a device buffer
+
+dev_worker.tx_element_reply_queue = sge->tx_element_reply_queue_mr->addr;
+dev_worker.tx_element_request_trip_counts =
+    sge->tx_element_request_trip_counts;
+// already a device buffer
+dev_worker.cache       = sge->cache;
+dev_worker.direct_ptrs = sge->direct_ptrs_d;  // already a device buffer
+dev_worker.tx_element_request_queue =
+    (uint32_t *)sge->tx_element_request_queue_mr->addr;
+dev_worker.ack_ctrs_d            = sge->ack_ctrs_d;
+dev_worker.tx_element_reply_ctrs = sge->tx_element_reply_ctrs;
+dev_worker.rx_element_request_queue =
+    (uint32_t *)sge->rx_element_request_queue_mr->addr;
+dev_worker.num_ranks                  = sge->num_ranks;
+dev_worker.tx_element_aggregate_ctrs  = sge->tx_element_aggregate_ctrs;
+dev_worker.tx_block_request_cmd_queue = sge->tx_block_request_cmd_queue;
+dev_worker.tx_block_reply_cmd_queue   = sge->tx_block_reply_cmd_queue;
+dev_worker.tx_block_request_ctr       = sge->tx_block_request_ctr;
+dev_worker.rx_block_request_cmd_queue = sge->rx_block_request_cmd_queue;
+dev_worker.rx_block_request_ctr       = sge->rx_block_request_ctr;
+dev_worker.tx_element_request_ctrs    = sge->tx_element_request_ctrs;
+dev_worker.my_rank                    = sge->my_rank;
+dev_worker.request_done_flag          = sge->request_done_flag;
+dev_worker.response_done_flag         = sge->response_done_flag;*/
 
   // Set host-pinned memory pointers
 
@@ -118,7 +118,7 @@ void Engine<T>::allocate_device_component(void *data,  MPI_Comm comm) {
 }
 
 template <typename T>
-int Engine<T>::init(void *device_data,  MPI_Comm comm) {
+int Engine<T>::init(void *device_data, MPI_Comm comm) {
   // Init components
   allocate_device_component(device_data, comm);
   return RACERLIB_SUCCESS;
@@ -130,35 +130,34 @@ int Engine<T>::finalize()  // finalize instance, return
   fence();
   deallocate_device_component((void *)sgw);
 
-/*
-  MPI_Barrier(comm);
+  /*
+    MPI_Barrier(comm);
 
-  void *ignore;
+    void *ignore;
 
-  stop_running();
-  pthread_join(request_thread, &ignore);
-  pthread_join(ack_thread, &ignore);
-  pthread_join(response_thread, &ignore);
+    stop_running();
+    pthread_join(request_thread, &ignore);
+    pthread_join(ack_thread, &ignore);
+    pthread_join(response_thread, &ignore);
 
-  free_device_rdma_memory(rx_element_reply_queue_mr);
-  free_device_rdma_memory(tx_element_reply_queue_mr);
-  free_host_rdma_memory(rx_remote_windows_mr);
-  free_host_rdma_memory(tx_remote_windows_mr);
-  free_host_rdma_memory(all_request_mr);
+    free_device_rdma_memory(rx_element_reply_queue_mr);
+    free_device_rdma_memory(tx_element_reply_queue_mr);
+    free_host_rdma_memory(rx_remote_windows_mr);
+    free_host_rdma_memory(tx_remote_windows_mr);
+    free_host_rdma_memory(all_request_mr);
 
-  free_host_pinned(ack_ctrs_h, num_ranks * sizeof(uint64_t));
-  free_device_rdma_memory(tx_element_request_queue_mr);
-  free_device(tx_element_request_sent_ctrs, num_ranks * sizeof(uint64_t));
-  free_device(tx_element_aggregate_ctrs, num_ranks * sizeof(uint64_t));
+    free_host_pinned(ack_ctrs_h, num_ranks * sizeof(uint64_t));
+    free_device_rdma_memory(tx_element_request_queue_mr);
+    free_device(tx_element_request_sent_ctrs, num_ranks * sizeof(uint64_t));
+    free_device(tx_element_aggregate_ctrs, num_ranks * sizeof(uint64_t));
 
-  free_device(ack_ctrs_d, num_ranks * sizeof(uint64_t));
-  free_device(cache.flags, cache.cache_size);
+    free_device(ack_ctrs_d, num_ranks * sizeof(uint64_t));
+    free_device(cache.flags, cache.cache_size);
 
-  debug("Shutting down RdmaScatterGatherEngine: %i", 0);
+    debug("Shutting down RdmaScatterGatherEngine: %i", 0);
 
-  delete[] tx_element_request_acked_ctrs;
-*/
-
+    delete[] tx_element_request_acked_ctrs;
+  */
 
   return RACERLIB_SUCCESS;
 }

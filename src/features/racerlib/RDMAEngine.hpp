@@ -143,7 +143,8 @@ struct SPSC_LockFree_Pool {
   }
 
   T pop() {
-    while (read_head == atomic_load(&write_head, Kokkos::Impl::memory_order_seq_cst_t()))
+    while (read_head ==
+           atomic_load(&write_head, Kokkos::Impl::memory_order_seq_cst_t()))
       ;
     auto idx = read_head % queue_size;
     T t      = queue[idx];

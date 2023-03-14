@@ -68,18 +68,18 @@ struct Engine {
   int my_rank;
   // Call this on Kokkos initialize.
   int init(
-      void *target, MPI_Comm comm );  // set communicator reference, return RACERLIB_STATUS
+      void *target,
+      MPI_Comm comm);  // set communicator reference, return RACERLIB_STATUS
   // Call this on kokkos finalize
   int finalize();  // finalize communicator instance, return RECERLIB_STATUS
   Engine();
   Engine(void *target);
-  void allocate_device_component(void *data,  MPI_Comm comm);
+  void allocate_device_component(void *data, MPI_Comm comm);
   void deallocate_device_component(void *data);
   RdmaScatterGatherWorker<T> *get_worker() const;
   ~Engine();
   void fence();
 };
-
 
 }  // namespace RACERlib
 }  // namespace Experimental

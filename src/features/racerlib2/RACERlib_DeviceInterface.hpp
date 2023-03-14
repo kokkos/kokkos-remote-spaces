@@ -157,7 +157,7 @@ void remote_parallel_for(const std::string &name, Policy &&policy,
       std::forward<Lambda>(lambda), view);
 
   // *** Launch kernel triplet ***
-  debug_2("Launch workers:%i\n",policy.league_size());
+  debug_2("Launch workers:%i\n", policy.league_size());
   Kokkos::parallel_for(name, worker_policy, worker);
 
   Kokkos::fence();
