@@ -42,7 +42,7 @@
 //@HEADER
 */
 
-#include <RDMA_Interface.hpp>
+#include <RACERlib_DeviceInterface.hpp>
 
 namespace Kokkos {
 namespace Experimental {
@@ -200,12 +200,12 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
       if (total_requests > 0) {
         unsigned requests_done = 0;
         while (requests_done < total_requests) {
-          uint64_t my_offset = requests_done + my_thread;
-          if (my_offset < /*head +*/ total_requests) { //FIXME
+          uint64_t my_offset = head + requests_done + my_thread;
+          if (my_offset < head + total_requests) {
             uint64_t my_idx         = my_offset % queue_size;
             uint64_t my_trip_number = my_offset / queue_size;
             uint32_t ready_flag     = MAKE_READY_FLAG(my_trip_number);
-            uint32_t req_slot       = head + my_idx + pe * queue_size;
+            uint32_t req_slot       = my_idx + pe * queue_size;
             uint32_t next_request =
                 atomic_load(&sgw->tx_element_request_queue[req_slot],
                             Kokkos::Impl::memory_order_seq_cst_t());
@@ -320,7 +320,7 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
       });
       team.team_barrier();
       if (total_requests > 0) {
-        auto vec_length     = 1;  // team.vector_length();
+        auto vec_length     = team.vector_length();
         uint64_t num_passes = total_requests / vec_length;
         if (total_requests % vec_length) num_passes++;
 

@@ -50,11 +50,11 @@
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <RACERlib_Config.hpp>
-#include <RDMA_Access_Cache.hpp>
-#include <RDMA_Helpers.hpp>
-#include <RDMA_Transport.hpp>
-#include <RDMA_Worker.hpp>
+#include <Config.hpp>
+#include <AccessCache.hpp>
+#include <Helpers.hpp>
+#include <RDMATransport.hpp>
+#include <RACERlib_DeviceOps.hpp>
 
 #include <infiniband/verbs.h>
 #include <iostream>

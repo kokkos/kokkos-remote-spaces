@@ -46,10 +46,10 @@
 #define RACERLIB_INTERFACE
 
 #include <Kokkos_Core.hpp>
-#include <RDMA_Engine.hpp>
-#include <RDMA_Helpers.hpp>
-#include <RDMA_Interface.hpp>
-#include <RDMA_Transport.hpp>
+#include <RDMAEngine.hpp>
+#include <Helpers.hpp>
+#include <RACERlib_DeviceInterface.hpp>
+#include <RDMATransport.hpp>
 
 namespace Kokkos {
 namespace Experimental {

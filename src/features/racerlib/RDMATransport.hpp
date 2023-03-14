@@ -46,7 +46,7 @@
 #define RACERLIB_RDMA_TRANSPORT
 
 #include <Kokkos_Core.hpp>
-#include <RDMA_Helpers.hpp>
+#include <Helpers.hpp>
 
 #include <infiniband/verbs.h>
 #include <mpi.h>

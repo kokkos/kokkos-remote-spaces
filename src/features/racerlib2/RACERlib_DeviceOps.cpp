@@ -100,7 +100,7 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   // at this point, our data is now available in the reply buffer
   T *reply_buffer_T = (T *)rx_element_reply_queue;
   T ret             = atomic_load(&reply_buffer_T[global_buf_slot], Kokkos::Impl::memory_order_seq_cst_t());
-  memory_fence();
+  /*memory_fence();
   // update the trip count to signal any waiting threads they can go
   atomic_fetch_add((unsigned int *)&tx_element_request_trip_counts[global_buf_slot],
              1u); /*IS THIS NECCASSARY? FIXME*/

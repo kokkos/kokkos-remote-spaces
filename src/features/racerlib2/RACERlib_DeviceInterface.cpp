@@ -80,10 +80,12 @@ __device__ void pack_response_kernel(T *local_values,
     uint64_t idx         = sgw->rx_block_request_ctr % queue_size;
     uint64_t trip_number = sgw->rx_block_request_ctr / queue_size;
 
-    if (my_thread == 0) {
+
+    //FOR NOW COMMENTED OUT
+    /*if (my_thread == 0) {
       request = atomic_load(&sgw->rx_block_request_cmd_queue[idx],
                             Kokkos::Impl::memory_order_seq_cst_t());
-    }
+    }*/
 
     __syncthreads();
 
@@ -121,10 +123,11 @@ __device__ void pack_response_kernel(T *local_values,
       // Force visibility
       __threadfence_system();
 
-      if (my_thread == 0) {
+    //FOR NOW COMMENTED OUT
+     /* if (my_thread == 0) {
         atomic_store(&sgw->tx_block_reply_cmd_queue[idx], request, Kokkos::Impl::memory_order_seq_cst_t());
         memory_fence();
-      }
+      }*/
     }
 
     if (my_thread == 0) {
@@ -150,13 +153,9 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   int my_thread                 = threadIdx.x * blockDim.y + threadIdx.y;
   int total_threads             = blockDim.x * blockDim.y;
   uint32_t queue_size           = QUEUE_SIZE;
-  static constexpr uint32_t mtu = 16384;  // try to at least send 16K elements
-  static constexpr uint32_t max_mtu_stalls = 4;
+ 
   KOKKOS_REMOTE_SHARED unsigned completion;
   KOKKOS_REMOTE_SHARED uint64_t total_requests;
-  KOKKOS_REMOTE_SHARED int misses[32];  // TODO, make this an array
-
-  for (int i = 0; i < 32; ++i) misses[i] = 0;
 
   completion     = 0;
   total_requests = 0;
@@ -166,46 +165,18 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
   while (completion < num_worker_teams) {
     for (int pe = 0; pe < sgw->num_ranks; ++pe) {
       uint64_t head = sgw->tx_element_aggregate_ctrs[pe];
-      
-      if(pe == sgw->my_rank) continue;
-
-      if (my_thread == 0) {
-        uint64_t last_cleared_on_device = sgw->ack_ctrs_d[pe];
-        if (head > last_cleared_on_device) {
-          uint64_t last_cleared_on_host = atomic_load(
-              &sgw->ack_ctrs_h[pe], Kokkos::Impl::memory_order_seq_cst_t());
-          if (last_cleared_on_device < last_cleared_on_host) {
-            atomic_store(&sgw->ack_ctrs_d[pe], last_cleared_on_host,
-                         Kokkos::Impl::memory_order_seq_cst_t());
-            memory_fence();
-          }
-        }
-        uint64_t max_index =
-            Kokkos::atomic_fetch_add(&sgw->tx_element_request_ctrs[pe], 0u);
-        memory_fence();
-        total_requests = max_index - head;
-
-        //printf("Total Req:%i\n", int(total_requests));
-        if (total_requests < mtu && misses[pe] < max_mtu_stalls) {
-          total_requests = 0;
-          ++misses[pe];
-        } else {
-          misses[pe] = 0;
-        }
-     }
-
       __threadfence_system();
       __syncthreads();
 
       if (total_requests > 0) {
         unsigned requests_done = 0;
         while (requests_done < total_requests) {
-          uint64_t my_offset = requests_done + my_thread;
-          if (my_offset < /*head +*/ total_requests) { //FIXME
+          uint64_t my_offset = head + requests_done + my_thread;
+          if (my_offset < total_requests) {
             uint64_t my_idx         = my_offset % queue_size;
             uint64_t my_trip_number = my_offset / queue_size;
             uint32_t ready_flag     = MAKE_READY_FLAG(my_trip_number);
-            uint32_t req_slot       = head + my_idx + pe * queue_size;
+            uint32_t req_slot       = my_idx + pe * queue_size;
             uint32_t next_request =
                 atomic_load(&sgw->tx_element_request_queue[req_slot],
                             Kokkos::Impl::memory_order_seq_cst_t());
@@ -236,8 +207,9 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
           uint64_t trip_number = tail_idx / queue_size;
           uint64_t request =
               MAKE_BLOCK_GET_REQUEST(total_requests, pe, trip_number);
-          atomic_store(&sgw->tx_block_request_cmd_queue[queue_idx], request,
-                       Kokkos::Impl::memory_order_seq_cst_t());
+              //FOR NOW COMMENTED OUT
+      /*    atomic_store(&sgw->tx_block_request_cmd_queue[queue_idx], request,
+                       Kokkos::Impl::memory_order_seq_cst_t());*/
           memory_fence();
         }
 

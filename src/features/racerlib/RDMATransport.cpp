@@ -42,7 +42,7 @@
 //@HEADER
 */
 
-#include <RDMA_Transport.hpp>
+#include <RDMATransport.hpp>
 
 namespace Kokkos {
 namespace Experimental {

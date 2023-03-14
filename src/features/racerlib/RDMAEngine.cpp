@@ -42,8 +42,8 @@
 //@HEADER
 */
 
-#include <RDMA_Engine.hpp>
-#include <RDMA_Helpers.hpp>
+#include <RDMAEngine.hpp>
+#include <Helpers.hpp>
 
 #include <infiniband/verbs.h>
 

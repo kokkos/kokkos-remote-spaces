@@ -114,7 +114,7 @@ void Engine<T>::allocate_device_component(void *data,  MPI_Comm comm) {
   cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
   cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
                   cudaMemcpyHostToDevice);
-  debug("Engine allocated. %i\n", 0);
+  debug("RACERlib2 device queues allocated. %i\n", 0);
 }
 
 template <typename T>

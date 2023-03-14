@@ -47,7 +47,7 @@
 
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Core.hpp>
-#include <RACERlib_Config.hpp>
+#include <Config.hpp>
 
 namespace Kokkos {
 namespace Experimental {
