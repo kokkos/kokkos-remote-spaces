@@ -47,6 +47,8 @@
 
 #include <RACERlib_DeviceOps.hpp>
 
+#define RAW_CUDA
+
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {

@@ -1239,7 +1239,11 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <class ExecSpace>
   void clear_fence(ExecSpace &&e) const {
     // Notify final pack_response_kernel to stop
-    // volatile_store(m_handle.e->sge->fence_done_flag, 1u);
+    #ifdef KOKKOS_IS_RACERlib2
+    // Do nothing for RACERlib2
+    #else
+    volatile_store(m_handle.e->sge->fence_done_flag, 1u);
+    #endif
   }
 };
 

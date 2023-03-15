@@ -45,8 +45,6 @@
 #ifndef RACERLIB_RDMA_ENGINE
 #define RACERLIB_RDMA_ENGINE
 
-#define RAW_CUDA
-
 #include <Kokkos_Atomic.hpp>
 #include <Kokkos_Core.hpp>
 
