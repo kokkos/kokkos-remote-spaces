@@ -75,21 +75,19 @@ void test_cached_view1D(int dim0) {
       Kokkos::View<Data_t *, RemoteSpace_t,
                    Kokkos::MemoryTraits<RemoteTraits::Cached>>;
 
-  ViewRemote_1D_t v_r       = ViewRemote_1D_t("RemoteView", dim0);
-  ViewDevice_1D_t v_d       = ViewDevice_1D_t(v_r.data(), v_r.extent(0));
-  ViewDevice_1D_t v_d_out_1 = ViewDevice_1D_t("DataView", v_r.extent(0));
-  ViewDevice_1D_t v_d_out_2 = ViewDevice_1D_t("DataView", v_r.extent(0));
-  ViewDevice_1D_t v_d_out_3 = ViewDevice_1D_t("DataView", v_r.extent(0));
-  ViewHost_1D_t v_h         = ViewHost_1D_t("HostView", v_r.extent(0));
+  ViewRemote_1D_t v_r     = ViewRemote_1D_t("RemoteView", dim0);
+  ViewDevice_1D_t v_d     = ViewDevice_1D_t(v_r.data(), v_r.extent(0));
+  ViewDevice_1D_t v_d_out = ViewDevice_1D_t("DataView", v_r.extent(0));
+  ViewHost_1D_t v_h       = ViewHost_1D_t("HostView", v_r.extent(0));
 
-  int num_teams            = 3;
+  int num_teams            = 8;
   int num_teams_adjusted   = num_teams - 2;
   int team_size            = 32;
   int thread_vector_length = 1;
   int next_rank            = (myRank + 1) % numRanks;
 
   auto remote_range =
-      Kokkos::Experimental::get_range(dim0, (myRank + 1) % numRanks);
+      Kokkos::Experimental::get_range(dim0, next_rank);
   auto local_range  = Kokkos::Experimental::get_range(dim0, myRank);
   int size_per_rank = remote_range.second - remote_range.first + 1;
   printf("Range[%i,%i]\n", remote_range.first, remote_range.second);
@@ -118,10 +116,7 @@ void test_cached_view1D(int dim0) {
         Kokkos::parallel_for(Kokkos::TeamThreadRange(team, block),
                              [&](const int i) {
                                int index = remote_range.first + start + i;
-                               //   printf("i:%i\n", index);
-                               v_d_out_1(start + i) = v_r(index);
-                               /*v_d_out_2(start + i) = v_r(index);
-                                 v_d_out_3(start + i) = v_r(index);*/
+                               v_d_out(start + i) = v_r(index);
                              });
       },
       v_r);
@@ -129,24 +124,17 @@ void test_cached_view1D(int dim0) {
   Kokkos::fence();
   RemoteSpace_t().fence();
 
-  Kokkos::deep_copy(v_h, v_d_out_1);
+  Kokkos::deep_copy(v_h, v_d_out);
   for (int i = 0; i < size_per_rank; ++i)
     ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
-  /*
-    Kokkos::deep_copy(v_h, v_d_out_2);
-    for (int i = 0; i < size_per_rank; ++i)
-      ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);
-
-    Kokkos::deep_copy(v_h, v_d_out_3);
-    for (int i = 0; i < size_per_rank; ++i)
-      ASSERT_EQ(v_h(i), next_rank * size_per_rank + i);*/
 }
 
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
   // test_cached_view1D<double>(134217728); //1GB
-  // test_cached_view1D<double>(8388608); //64MB
-  test_cached_view1D<double>(32);
+  test_cached_view1D<double>(8388608); //64MB
+  //test_cached_view1D<double>(262144); //2MB
+  //test_cached_view1D<double>(32);
   // Do not repeat tests here - the ipc mem alloc might fail (to be fixed)
 }
 

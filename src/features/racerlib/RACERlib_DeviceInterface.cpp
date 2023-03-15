@@ -185,8 +185,6 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
             Kokkos::atomic_fetch_add(&sgw->tx_element_request_ctrs[pe], 0u);
         memory_fence();
         total_requests = max_index - head;
-
-        // printf("Total Req:%i\n", int(total_requests));
         if (total_requests < mtu && misses[pe] < max_mtu_stalls) {
           total_requests = 0;
           ++misses[pe];
@@ -195,9 +193,7 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
         }
       }
 
-      __threadfence_system();
       __syncthreads();
-
       if (total_requests > 0) {
         unsigned requests_done = 0;
         while (requests_done < total_requests) {
@@ -228,9 +224,11 @@ __device__ void aggregate_requests_kernel(RdmaScatterGatherWorker<T> *sgw,
           }
           requests_done += total_threads;
         }
+      
 
         // We have written the requests, now make them peer visible
         __threadfence_system();
+        __syncthreads();
 
         if (my_thread == 0) {
           uint64_t tail_idx = sgw->tx_block_request_ctr++;
@@ -414,7 +412,7 @@ KOKKOS_FUNCTION void pack_response_kernel(T *local_values,
       uint32_t *offsets = sgw->rx_element_request_queue + window * queue_size;
       T *reply_tx_buffer_T = ((T *)sgw->tx_element_reply_queue) + reply_offset;
 
-      auto vec_length     = 1;  // team.vector_length();
+      auto vec_length     = team.vector_length();
       uint64_t num_passes = num_requests / vec_length;
       if (num_requests % vec_length) num_passes++;
       Kokkos::parallel_for(
