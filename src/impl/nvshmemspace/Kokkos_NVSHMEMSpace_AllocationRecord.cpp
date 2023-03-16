@@ -122,7 +122,7 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
                      SharedAllocationRecord<void, void>::m_alloc_size);
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-  get_caching_and_aggregation_engine()->finalize();
+  get_racerlib()->finalize();
 #endif
 }
 
@@ -202,9 +202,8 @@ SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>::get_record(
 }
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-Kokkos::Experimental::RACERlib::Engine<double>
-    *SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace,
-                            void>::get_caching_and_aggregation_engine() {
+Kokkos::Experimental::RACERlib::HostEngine<double> *SharedAllocationRecord<
+    Kokkos::Experimental::NVSHMEMSpace, void>::get_racerlib() {
   return &e;
 }
 #endif

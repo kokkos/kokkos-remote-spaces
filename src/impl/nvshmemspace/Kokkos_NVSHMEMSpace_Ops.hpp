@@ -25,7 +25,7 @@
 #include <Kokkos_RemoteSpaces_Options.hpp>
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-#include <RACERlib_DeviceOps.hpp>
+#include <RACERlib_DeviceWorker.hpp>
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {
@@ -819,8 +819,8 @@ struct NVSHMEMDataElement<
         !Traits::memory_traits::is_atomic &&
         RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached)>::
         type> {
-  using worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
-  worker *sgw;
+  using worker_t = Kokkos::Experimental::RACERlib::DeviceWorker<T>;
+  worker_t *worker;
   typedef const T const_value_type;
   typedef T non_const_value_type;
   uint32_t offset;
@@ -828,23 +828,23 @@ struct NVSHMEMDataElement<
   int pe;
 
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataElement(T *ptr_, worker *sgw_, int pe_, int i_)
-      : ptr(ptr_), sgw(sgw_), pe(pe_), offset(i_) {}
+  NVSHMEMDataElement(T *ptr_, worker_t *sgw_, int pe_, int i_)
+      : ptr(ptr_), worker(sgw_), pe(pe_), offset(i_) {}
 
   KOKKOS_INLINE_FUNCTION
   T request(int pe, uint32_t offset) const {
-    bool nonlocal = pe != sgw->my_rank;
+    bool nonlocal = pe != worker->my_rank;
 
     if (nonlocal) {
-      /* void *shm_ptr = sgw->direct_ptrs[pe];
+      /* void *shm_ptr = worker->direct_ptrs[pe];
        if (shm_ptr) {
          T *t = (T *)shm_ptr;
          return volatile_load(&t[offset]); //TODO
        }*/
       // printf("Requesting from pe: %i, offset: %i\n", pe, offset);
-      return sgw->request(pe, offset);
+      return worker->request(pe, offset);
     } else {
-      //  printf("XXX: %u, %f, %i, %i\n", offset, ptr[offset], sgw->my_rank,
+      //  printf("XXX: %u, %f, %i, %i\n", offset, ptr[offset], worker->my_rank,
       //  pe);
       return ptr[offset];
     }
@@ -951,7 +951,7 @@ struct NVSHMEMDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator=(const_value_type &val) const {
-    if (sgw->rank == pe) {
+    if (worker->rank == pe) {
       ptr[offset] = val;
     }
     return val;

@@ -86,11 +86,9 @@ void test_cached_view1D(int dim0) {
   int thread_vector_length = 1;
   int next_rank            = (myRank + 1) % numRanks;
 
-  auto remote_range =
-      Kokkos::Experimental::get_range(dim0, next_rank);
-  auto local_range  = Kokkos::Experimental::get_range(dim0, myRank);
-  int size_per_rank = remote_range.second - remote_range.first + 1;
-  printf("Range[%i,%i]\n", remote_range.first, remote_range.second);
+  auto remote_range     = Kokkos::Experimental::get_range(dim0, next_rank);
+  auto local_range      = Kokkos::Experimental::get_range(dim0, myRank);
+  int size_per_rank     = remote_range.second - remote_range.first + 1;
   int size_per_team     = size_per_rank / num_teams_adjusted;
   int size_per_team_mod = size_per_rank % num_teams_adjusted;
 
@@ -132,9 +130,9 @@ void test_cached_view1D(int dim0) {
 TEST(TEST_CATEGORY, test_cached_view) {
   // 1D
   // test_cached_view1D<double>(134217728); //1GB
-  test_cached_view1D<double>(8388608); //64MB
-  //test_cached_view1D<double>(262144); //2MB
-  //test_cached_view1D<double>(32);
+  test_cached_view1D<double>(8388608);  // 64MB
+  // test_cached_view1D<double>(262144); //2MB
+  // test_cached_view1D<double>(32);
   // Do not repeat tests here - the ipc mem alloc might fail (to be fixed)
 }
 

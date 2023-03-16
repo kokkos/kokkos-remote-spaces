@@ -1,46 +1,20 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
 #include <RDMAEngine.hpp>
 #include <Helpers.hpp>
@@ -60,7 +34,7 @@ namespace RACERlib {
 extern Transport *request_tport;
 extern Transport *response_tport;
 
-static std::vector<RdmaScatterGatherEngine *> heaps;
+static std::vector<RDMAEngine *> heaps;
 
 static SPSC_LockFree_Pool<uint32_t> available_reply_keys;
 static std::vector<PendingRdmaRequest> pending_sg_requests;
@@ -167,7 +141,7 @@ static void free_device_rdma_memory(ibv_mr *mr) {
   free_device(buf, size);
 }
 
-void RdmaScatterGatherEngine::request_received(RdmaWorkRequest *req) {
+void RDMAEngine::request_received(RdmaWorkRequest *req) {
   RemoteWindow *win = (RemoteWindow *)req->buf;
   // at this point, we don't need any checks on the epoch
   // we could receive a request with a mismatch epoch number
@@ -175,7 +149,7 @@ void RdmaScatterGatherEngine::request_received(RdmaWorkRequest *req) {
   remote_window_start_reply(win);
 }
 
-void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
+void RDMAEngine::remote_window_start_reply(RemoteWindow *win) {
   uint32_t window_offset =
       (uintptr_t(win) - uintptr_t(rx_remote_windows_mr->addr)) /
       sizeof(RemoteWindow);
@@ -195,7 +169,7 @@ void RdmaScatterGatherEngine::remote_window_start_reply(RemoteWindow *win) {
   ++rx_block_request_ctr;
 }
 
-void RdmaScatterGatherEngine::remote_window_finish_reply() {
+void RDMAEngine::remote_window_finish_reply() {
   RdmaWorkRequest *rsp_wr = available_send_response_wrs.pop();
 
   if (pending_replies.empty()) {
@@ -234,15 +208,14 @@ void RdmaScatterGatherEngine::remote_window_finish_reply() {
   ibv_safe(ibv_post_send(response_tport->qps[win->requester], sr, bad_sr));
 }
 
-void RdmaScatterGatherEngine::response_received(RdmaWorkRequest *req,
-                                                uint32_t token) {
+void RDMAEngine::response_received(RdmaWorkRequest *req, uint32_t token) {
   debug("Received response token=%" PRIu32, token);
   PendingRdmaRequest &pending_req = pending_sg_requests[token];
   ack_response(pending_req);
 }
 
-void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
-                                                 uint32_t num_entries) {
+void RDMAEngine::send_remote_window(Transport *tport, int pe,
+                                    uint32_t num_entries) {
   RdmaWorkRequest *req        = available_send_request_wrs.pop();
   struct ibv_sge *sge         = req->sge;
   struct ibv_send_wr **bad_sr = &req->bad_req.sr;
@@ -295,7 +268,7 @@ void RdmaScatterGatherEngine::send_remote_window(Transport *tport, int pe,
   ibv_safe(ibv_post_send(tport->qps[pe], sr, bad_sr));
 }
 
-void RdmaScatterGatherEngine::poll(Transport *tport) {
+void RDMAEngine::poll(Transport *tport) {
   ibv_wc wc;
   // uint64_t start = rdtsc();
   int num_entries = ibv_poll_cq(tport->cq, 1, &wc);
@@ -355,26 +328,26 @@ static void run_on_core(int id) {
 
 static void *run_response_thread(void *args) {
   run_on_core(4);
-  RdmaScatterGatherEngine *engine = (RdmaScatterGatherEngine *)args;
+  RDMAEngine *engine = (RDMAEngine *)args;
   engine->poll_requests();
   return nullptr;
 }
 
 static void *run_ack_thread(void *args) {
   run_on_core(2);
-  RdmaScatterGatherEngine *engine = (RdmaScatterGatherEngine *)args;
+  RDMAEngine *engine = (RDMAEngine *)args;
   engine->poll_responses();
   return nullptr;
 }
 
 static void *run_request_thread(void *args) {
   run_on_core(6);
-  RdmaScatterGatherEngine *engine = (RdmaScatterGatherEngine *)args;
+  RDMAEngine *engine = (RDMAEngine *)args;
   engine->generate_requests();
   return nullptr;
 }
 
-void RdmaScatterGatherEngine::poll_requests() {
+void RDMAEngine::poll_requests() {
   while (is_running()) {
     time_safe(poll(request_tport));
     uint64_t idx         = tx_block_reply_ctr % queue_size;
@@ -388,19 +361,19 @@ void RdmaScatterGatherEngine::poll_requests() {
   }
 }
 
-void RdmaScatterGatherEngine::poll_responses() {
+void RDMAEngine::poll_responses() {
   while (is_running()) {
     time_safe(poll(response_tport));
   }
 }
 
-void RdmaScatterGatherEngine::generate_requests() {
+void RDMAEngine::generate_requests() {
   while (is_running()) {
     check_for_new_block_requests();
   }
 }
 
-void RdmaScatterGatherEngine::check_for_new_block_requests() {
+void RDMAEngine::check_for_new_block_requests() {
   uint64_t trip_number  = tx_block_request_ctr / queue_size;
   uint64_t queue_idx    = tx_block_request_ctr % queue_size;
   uint32_t ready_flag   = MAKE_READY_FLAG(trip_number);
@@ -426,7 +399,7 @@ void RdmaScatterGatherEngine::check_for_new_block_requests() {
   }
 }
 
-void RdmaScatterGatherEngine::ack_response(PendingRdmaRequest &req) {
+void RDMAEngine::ack_response(PendingRdmaRequest &req) {
   uint64_t cleared_index = tx_element_request_acked_ctrs[req.pe];
 
   // We have to ack things in order
@@ -469,13 +442,13 @@ void Cache::RemoteCache::invalidate() {
                 2 * sizeof(unsigned int) * num_ranks * rank_num_entries);
 }
 
-void RdmaScatterGatherEngine::fence() {
+void RDMAEngine::fence() {
   cache.invalidate();
   MPI_Barrier(comm);
   epoch++;
 }
 
-RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
+RDMAEngine::~RDMAEngine() {
   // Make sure everyone is done with their work
   MPI_Barrier(comm);
 
@@ -500,13 +473,12 @@ RdmaScatterGatherEngine::~RdmaScatterGatherEngine() {
   free_device(ack_ctrs_d, num_ranks * sizeof(uint64_t));
   free_device(cache.flags, cache.cache_size);
 
-  debug("Shutting down RdmaScatterGatherEngine: %i", 0);
+  debug("Shutting down RDMAEngine: %i", 0);
 
   delete[] tx_element_request_acked_ctrs;
 }
 
-RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
-                                                 size_t elem_size)
+RDMAEngine::RDMAEngine(MPI_Comm c, void *buffer, size_t elem_size)
     : comm(c),
       tx_block_request_ctr(0),
       rx_block_request_ctr(0),
@@ -755,7 +727,7 @@ RdmaScatterGatherEngine::RdmaScatterGatherEngine(MPI_Comm c, void *buffer,
 
   run_on_core(0);
 
-  debug("Engine init finished on my_rank:%i", my_rank);
+  debug("HostEngine init finished on my_rank:%i", my_rank);
 }
 
 }  // namespace RACERlib

@@ -1196,12 +1196,10 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
       if constexpr (RemoteSpaces_MemoryTraits<
                         typename Traits::memory_traits>::is_cached) {
-        record->get_caching_and_aggregation_engine()->init(
-            (void *)record->data(), MPI_COMM_WORLD);
+        record->get_racerlib()->init((void *)record->data(), MPI_COMM_WORLD);
         m_handle =
             handle_type(reinterpret_cast<pointer_type>(record->data()),
-                        record->get_caching_and_aggregation_engine(),
-                        record->get_caching_and_aggregation_engine()->sgw);
+                        record->get_racerlib(), record->get_racerlib()->worker);
       }
 #else
       m_handle = handle_type(reinterpret_cast<pointer_type>(record->data()));
@@ -1231,19 +1229,19 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   }
 
   template <class ExecSpace>
-  void fence(ExecSpace &&e) const {
+  void fence(ExecSpace &&host_engine) const {
     // Flush cache
-    m_handle.e->fence();
+    m_handle.host_engine->fence();
   }
 
   template <class ExecSpace>
-  void clear_fence(ExecSpace &&e) const {
-    // Notify final pack_response_kernel to stop
-    #ifdef KOKKOS_IS_RACERlib2
-    // Do nothing for RACERlib2
-    #else
-    volatile_store(m_handle.e->sge->fence_done_flag, 1u);
-    #endif
+  void clear_fence(ExecSpace &&host_engine) const {
+// Notify final pack_response_kernel to stop
+#ifdef KOKKOS_IS_RACERlib2
+// Do nothing for RACERlib2
+#else
+    volatile_store(m_handle.host_engine->rdma_engine->fence_done_flag, 1u);
+#endif
   }
 };
 

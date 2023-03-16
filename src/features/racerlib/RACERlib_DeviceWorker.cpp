@@ -1,61 +1,35 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
-#include <RACERlib_DeviceOps.hpp>
+#include <RACERlib_DeviceWorker.hpp>
 
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
 // ETI this
-template class RdmaScatterGatherWorker<int>;
-template class RdmaScatterGatherWorker<double>;
-template class RdmaScatterGatherWorker<size_t>;
+template class DeviceWorker<int>;
+template class DeviceWorker<double>;
+template class DeviceWorker<size_t>;
 // etc.
 
 template <class T>
-KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
+KOKKOS_FUNCTION T DeviceWorker<T>::get(int pe, uint32_t offset) {
   uint64_t *tail_ctr = &tx_element_request_ctrs[pe];
   uint64_t idx = Kokkos::atomic_fetch_add((unsigned long long *)tail_ctr, 1);
   // printf("idx: %i\n", int(idx));
@@ -101,18 +75,18 @@ KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::get(int pe, uint32_t offset) {
   T *reply_buffer_T = (T *)rx_element_reply_queue;
   T ret             = atomic_load(&reply_buffer_T[global_buf_slot],
                       Kokkos::Impl::memory_order_seq_cst_t());
-  /*memory_fence();
+  memory_fence();
   // update the trip count to signal any waiting threads they can go
-  atomic_fetch_add((unsigned int
-  *)&tx_element_request_trip_counts[global_buf_slot],
-             1u); /*IS THIS NECCASSARY? FIXME*/
+  atomic_fetch_add(
+      (unsigned int *)&tx_element_request_trip_counts[global_buf_slot],
+      1u); /*IS THIS NECCASSARY? FIXME*/
   return ret;
 }
 
 #define KOKKOS_DISABLE_CACHE
 
 template <class T>
-KOKKOS_FUNCTION T RdmaScatterGatherWorker<T>::request(int pe, uint32_t offset) {
+KOKKOS_FUNCTION T DeviceWorker<T>::request(int pe, uint32_t offset) {
 #ifdef KOKKOS_DISABLE_CACHE
   return get(pe, offset);
 #else

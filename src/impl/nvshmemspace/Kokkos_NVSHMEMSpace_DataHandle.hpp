@@ -2,7 +2,7 @@
 // ************************************************************************
 //
 //                        Kokkos v. 4.0
-//       Copyright (2022) National Technology & Engineering
+//       Copyright (2022) National Technology & HostEngineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
@@ -20,7 +20,7 @@
 #define KOKKOS_REMOTESPACES_NVSHMEM_DATAHANDLE_HPP
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-#include <RACERlib_DeviceOps.hpp>
+#include <RACERlib_DeviceWorker.hpp>
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION
 
 namespace Kokkos {
@@ -62,27 +62,27 @@ struct NVSHMEMDataHandle<
     typename std::enable_if<(
         RemoteSpaces_MemoryTraits<typename Traits::memory_traits>::is_cached)>::
         type> {
-  using Worker = Kokkos::Experimental::RACERlib::RdmaScatterGatherWorker<T>;
-  using Engine = Kokkos::Experimental::RACERlib::Engine<T>;
+  using Worker     = Kokkos::Experimental::RACERlib::DeviceWorker<T>;
+  using HostEngine = Kokkos::Experimental::RACERlib::HostEngine<T>;
 
   T *ptr;
-  Engine *e;
-  Worker *sgw;
+  HostEngine *host_engine;
+  Worker *worker;
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle() : ptr(NULL), e(NULL), sgw(NULL) {}
+  NVSHMEMDataHandle() : ptr(NULL), host_engine(NULL), worker(NULL) {}
 
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMDataHandle(T *ptr_, Engine *e_, Worker *sgw_)
-      : ptr(ptr_), e(e_), sgw(sgw_) {}
+  NVSHMEMDataHandle(T *ptr_, HostEngine *e_, Worker *w_)
+      : ptr(ptr_), host_engine(e_), worker(w_) {}
 
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg)
-      : ptr(arg.ptr), e(arg.e), sgw(arg.sgw) {}
+      : ptr(arg.ptr), host_engine(arg.host_engine), worker(arg.worker) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {
-    NVSHMEMDataElement<T, Traits> element(ptr, sgw, pe, i);
+    NVSHMEMDataElement<T, Traits> element(ptr, worker, pe, i);
     return element;
   }
 
@@ -121,9 +121,7 @@ struct ViewDataHandle<
           0) {
     auto *record =
         arg_tracker.template get_record<Kokkos::Experimental::NVSHMEMSpace>();
-    return handle_type(
-        arg_data_ptr,
-        record->get_caching_and_aggregation_engine()->get_worker());
+    return handle_type(arg_data_ptr, record->get_racerlib());
   }
 
 #endif  // KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION

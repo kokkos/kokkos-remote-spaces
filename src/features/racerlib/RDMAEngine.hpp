@@ -1,46 +1,20 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
 #ifndef RACERLIB_RDMA_ENGINE
 #define RACERLIB_RDMA_ENGINE
@@ -52,7 +26,6 @@
 #include <AccessCache.hpp>
 #include <Helpers.hpp>
 #include <RDMATransport.hpp>
-#include <RACERlib_DeviceOps.hpp>
 
 #include <infiniband/verbs.h>
 #include <iostream>
@@ -198,7 +171,7 @@ struct RdmaWorkRequest {
   void *buf;
 };
 
-struct RdmaScatterGatherEngine;
+struct RDMAEngine;
 
 struct RdmaScatterGatherBuffer {
 #ifdef KOKKOS_ENABLE_CUDA
@@ -214,10 +187,10 @@ struct PendingRdmaRequest {
   uint32_t num_entries;
   int pe;
   uint32_t token;
-  RdmaScatterGatherEngine *sge;
+  RDMAEngine *sge;
 };
 
-struct RdmaScatterGatherEngine {
+struct RDMAEngine {
   // For optimization purposes, we have a statically sized queue
   constexpr static uint32_t queue_size = QUEUE_SIZE;
 
@@ -230,9 +203,9 @@ struct RdmaScatterGatherEngine {
 
   void ack_completed(int pe, uint64_t num_completed);
 
-  RdmaScatterGatherEngine(MPI_Comm comm, void *buffer, size_t elem_size);
+  RDMAEngine(MPI_Comm comm, void *buffer, size_t elem_size);
 
-  ~RdmaScatterGatherEngine();
+  ~RDMAEngine();
 
   bool is_running() {
     return Kokkos::atomic_fetch_add(&terminate_signal, 0) == 0;
@@ -338,7 +311,7 @@ struct RdmaScatterGatherEngine {
   void ack_response(PendingRdmaRequest &req);
 };
 
-void free_rdma_scatter_gather_engine(RdmaScatterGatherEngine *sge);
+void free_rdma_scatter_gather_engine(RDMAEngine *sge);
 
 #define heisenbug                        \
   printf("%s:%d\n", __FILE__, __LINE__); \

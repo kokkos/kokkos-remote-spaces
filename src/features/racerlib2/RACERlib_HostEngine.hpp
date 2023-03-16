@@ -16,47 +16,47 @@
 //
 //@HEADER
 
-#ifndef RACERLIB_RDMA_TRANSPORT
-#define RACERLIB_RDMA_TRANSPORT
+#ifndef RACERLIB2_INTERFACE
+#define RACERLIB2_INTERFACE
 
 #include <Kokkos_Core.hpp>
 #include <Helpers.hpp>
-
-#include <infiniband/verbs.h>
+#include <RACERlib_DeviceInterface.hpp>
 #include <mpi.h>
-
-#include <iostream>
-#include <vector>
 
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
-void rdma_ibv_init();
-void rdma_ibv_finalize();
+#define RACERLIB_SUCCESS 1
 
-struct Transport {
-  struct BootstrapPort {
-    uint16_t lid;
-    uint8_t port;
-    uint32_t qp_num;
-  };
+template <typename T>
+struct HostEngine;
 
+// Todo: template this on Feature for generic feature support
+template <typename T>
+struct HostEngine {
+  DeviceWorker<T> *worker;
+  MPI_Comm comm;
   int num_ranks;
   int my_rank;
-  ibv_context *ctx;
-  ibv_cq *cq;
-  ibv_qp **qps;
-  ibv_device *dev;
-  ibv_pd *pd;
-  ibv_srq *srq;
-
-  Transport(MPI_Comm comm);
-  ~Transport();
+  // Call this on Kokkos initialize.
+  int init(
+      void *target,
+      MPI_Comm comm);  // set communicator reference, return RACERLIB_STATUS
+  // Call this on kokkos finalize
+  int finalize();  // finalize communicator instance, return RECERLIB_STATUS
+  HostEngine();
+  HostEngine(void *target);
+  void allocate_device_component(void *data, MPI_Comm comm);
+  void deallocate_device_component(void *data);
+  DeviceWorker<T> *get_worker() const;
+  ~HostEngine();
+  void fence();
 };
 
 }  // namespace RACERlib
 }  // namespace Experimental
 }  // namespace Kokkos
 
-#endif  // RACERLIB_RDMA_TRANSPORT
+#endif  // RACERLIB2_INTERFACE

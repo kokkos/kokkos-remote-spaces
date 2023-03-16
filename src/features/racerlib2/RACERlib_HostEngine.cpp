@@ -1,74 +1,48 @@
-/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 3.0
-//       Copyright (2020) National Technology & Engineering
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
+// Contact: Jan Ciesko (jciesko@sandia.gov)
 //
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Jan Ciesko (jciesko@sandia.gov)
-//
-// ************************************************************************
 //@HEADER
-*/
 
-#include <RACERlib_HostInterface.hpp>
+#include <RACERlib_HostEngine.hpp>
 
 namespace Kokkos {
 namespace Experimental {
 namespace RACERlib {
 
 // ETI this
-template class Engine<int>;
-template class Engine<double>;
-template class Engine<size_t>;
+template class HostEngine<int>;
+template class HostEngine<double>;
+template class HostEngine<size_t>;
 // etc.
 
 template <typename T>
-Engine<T>::Engine(void *target) {}
+HostEngine<T>::HostEngine(void *target) {}
 
 template <typename T>
-Engine<T>::Engine() {}
+HostEngine<T>::HostEngine() {}
 
 template <typename T>
-void Engine<T>::deallocate_device_component(void *data) {
+void HostEngine<T>::deallocate_device_component(void *data) {
   cuda_safe(cuMemFree((CUdeviceptr)data));
 }
 
 template <typename T>
-void Engine<T>::allocate_device_component(void *data, MPI_Comm comm) {
+void HostEngine<T>::allocate_device_component(void *data, MPI_Comm comm) {
   // Create the device worker object and copy to device
-  RdmaScatterGatherWorker<T> dev_worker;
+  DeviceWorker<T> dev_worker;
 
   MPI_Comm_size(comm, &num_ranks);
   MPI_Comm_rank(comm, &my_rank);
@@ -111,24 +85,24 @@ dev_worker.response_done_flag         = sge->response_done_flag;*/
   // Set host-pinned memory pointers
 
   // Device malloc of worker and copy
-  cudaMalloc(&sgw, sizeof(RdmaScatterGatherWorker<T>));
-  cudaMemcpyAsync(sgw, &dev_worker, sizeof(RdmaScatterGatherWorker<T>),
+  cudaMalloc(&worker, sizeof(DeviceWorker<T>));
+  cudaMemcpyAsync(worker, &dev_worker, sizeof(DeviceWorker<T>),
                   cudaMemcpyHostToDevice);
   debug("RACERlib2 device queues allocated. %i\n", 0);
 }
 
 template <typename T>
-int Engine<T>::init(void *device_data, MPI_Comm comm) {
+int HostEngine<T>::init(void *device_data, MPI_Comm comm) {
   // Init components
   allocate_device_component(device_data, comm);
   return RACERLIB_SUCCESS;
 }
 template <typename T>
-int Engine<T>::finalize()  // finalize instance, return
+int HostEngine<T>::finalize()  // finalize instance, return
                            // RECERLIB_STATUS
 {
   fence();
-  deallocate_device_component((void *)sgw);
+  deallocate_device_component((void *)worker);
 
   /*
     MPI_Barrier(comm);
@@ -163,17 +137,17 @@ int Engine<T>::finalize()  // finalize instance, return
 }
 
 template <typename T>
-RdmaScatterGatherWorker<T> *Engine<T>::get_worker() const {
-  return sgw;
+DeviceWorker<T> *HostEngine<T>::get_worker() const {
+  return worker;
 }
 
 template <typename T>
-Engine<T>::~Engine() {
+HostEngine<T>::~HostEngine() {
   /*TBD*/
 }
 
 template <typename T>
-void Engine<T>::fence() {
+void HostEngine<T>::fence() {
   /*TBD*/
 }
 

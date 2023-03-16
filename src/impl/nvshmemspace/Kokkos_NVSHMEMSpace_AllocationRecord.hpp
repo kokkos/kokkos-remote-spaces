@@ -33,7 +33,7 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
   typedef SharedAllocationRecord<void, void> RecordBase;
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-  Kokkos::Experimental::RACERlib::Engine<double> e;
+  Kokkos::Experimental::RACERlib::HostEngine<double> e;
 #endif
 
   SharedAllocationRecord(const SharedAllocationRecord &) = delete;
@@ -100,8 +100,7 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
                             bool detail = false);
 
 #if defined(KOKKOS_ENABLE_ACCESS_CACHING_AND_AGGREGATION)
-  Kokkos::Experimental::RACERlib::Engine<double>
-      *get_caching_and_aggregation_engine();
+  Kokkos::Experimental::RACERlib::HostEngine<double> *get_racerlib();
 #endif
 };
 
