@@ -27,8 +27,9 @@ namespace RACERlib {
 // ETI this
 template __device__ void
 pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
-    double *local_values, DeviceWorker<double> *worker, unsigned *completion_flag,
-    Kokkos::Impl::CudaTeamMember const &team, bool final);
+    double *local_values, DeviceWorker<double> *worker,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
 
 template __device__ void
 aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
@@ -65,8 +66,10 @@ __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
       uint32_t window       = GET_BLOCK_WINDOW(request);
       uint32_t reply_offset =
           pe * queue_size + worker->tx_element_reply_ctrs[pe] % queue_size;
-      uint32_t *offsets = worker->rx_element_request_queue + window * queue_size;
-      T *reply_tx_buffer_T = ((T *)worker->tx_element_reply_queue) + reply_offset;
+      uint32_t *offsets =
+          worker->rx_element_request_queue + window * queue_size;
+      T *reply_tx_buffer_T =
+          ((T *)worker->tx_element_reply_queue) + reply_offset;
 
       uint32_t num_packed = 0;
 
@@ -189,8 +192,8 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
             // This looks stupid, but is necessary to make visible to peer
             // devices
             // worker->tx_element_request_queue[req_slot] = next_request;
-            atomic_store(&worker->tx_element_request_queue[req_slot], next_request,
-                         Kokkos::Impl::memory_order_seq_cst_t());
+            atomic_store(&worker->tx_element_request_queue[req_slot],
+                         next_request, Kokkos::Impl::memory_order_seq_cst_t());
             memory_fence();
           }
           requests_done += total_threads;
@@ -239,8 +242,9 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
 // ETI this
 template KOKKOS_FUNCTION void
 pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
-    double *local_values, DeviceWorker<double> *worker, unsigned *completion_flag,
-    Kokkos::Impl::CudaTeamMember const &team, bool final);
+    double *local_values, DeviceWorker<double> *worker,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
 
 template KOKKOS_FUNCTION void
 aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
@@ -248,7 +252,8 @@ aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
     unsigned num_worker_teams);
 
 template <class T, class Team>
-KOKKOS_FUNCTION void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
+KOKKOS_FUNCTION void aggregate_requests_kernel(DeviceWorker<T> *worker,
+                                               Team &&team,
                                                unsigned num_worker_teams) {
   uint32_t queue_size           = RDMAEngine::queue_size;
   static constexpr uint32_t mtu = 16384;  // try to at least send 16K elements
@@ -310,9 +315,9 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&t
                         atomic_load(&worker->tx_element_request_queue[req_slot],
                                     Kokkos::Impl::memory_order_seq_cst_t());
                     while (GET_BLOCK_FLAG(next_request) != ready_flag) {
-                      next_request =
-                          atomic_load(&worker->tx_element_request_queue[req_slot],
-                                      Kokkos::Impl::memory_order_seq_cst_t());
+                      next_request = atomic_load(
+                          &worker->tx_element_request_queue[req_slot],
+                          Kokkos::Impl::memory_order_seq_cst_t());
                     }
                     // This looks stupid, but is necessary to make visible to
                     // peer devices
@@ -353,7 +358,8 @@ KOKKOS_FUNCTION void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&t
 }
 
 template <typename T, class Team>
-KOKKOS_FUNCTION void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
+KOKKOS_FUNCTION void pack_response_kernel(T *local_values,
+                                          DeviceWorker<T> *worker,
                                           unsigned *completion_flag,
                                           Team &&team, bool final) {
   KOKKOS_REMOTE_SHARED unsigned completion;
@@ -376,8 +382,10 @@ KOKKOS_FUNCTION void pack_response_kernel(T *local_values, DeviceWorker<T> *work
       uint32_t window       = GET_BLOCK_WINDOW(request);
       uint32_t reply_offset =
           pe * queue_size + worker->tx_element_reply_ctrs[pe] % queue_size;
-      uint32_t *offsets = worker->rx_element_request_queue + window * queue_size;
-      T *reply_tx_buffer_T = ((T *)worker->tx_element_reply_queue) + reply_offset;
+      uint32_t *offsets =
+          worker->rx_element_request_queue + window * queue_size;
+      T *reply_tx_buffer_T =
+          ((T *)worker->tx_element_reply_queue) + reply_offset;
 
       auto vec_length     = team.vector_length();
       uint64_t num_passes = num_requests / vec_length;

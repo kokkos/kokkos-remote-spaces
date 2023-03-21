@@ -77,10 +77,6 @@ struct DeviceWorker {
   // is received here
   void *rx_element_reply_queue;
 
-  // Array of size num_ranks, a pointer that can be directly read
-  // to access peer data, nullptr if no peer pointer exists
-  void **direct_ptrs;
-
   // A running count of the number of block requests sent to all PEs
   uint64_t tx_block_request_ctr;
 

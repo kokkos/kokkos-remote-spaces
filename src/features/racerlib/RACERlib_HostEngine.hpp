@@ -55,7 +55,7 @@ struct HostEngine {
   int finalize();  // finalize communicator instance, return RECERLIB_STATUS
 
   RDMAEngine *rdma_engine;
-  DeviceWorker<T> * worker;
+  DeviceWorker<T> *worker;
 
   std::set<RDMAEngine *> rdma_engines;
 

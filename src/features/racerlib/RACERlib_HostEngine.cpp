@@ -138,7 +138,7 @@ void HostEngine<T>::allocate_host_device_component(void *data, MPI_Comm comm) {
   // Set host-pinned memory pointers
   cuda_safe(cuMemHostGetDevicePointer((CUdeviceptr *)&dev_worker.ack_ctrs_h,
                                       rdma_engine->ack_ctrs_h, 0));
-  cuda_safe( 
+  cuda_safe(
       cuMemHostGetDevicePointer((CUdeviceptr *)&dev_worker.fence_done_flag,
                                 rdma_engine->fence_done_flag, 0));
   // Device malloc of worker and copy

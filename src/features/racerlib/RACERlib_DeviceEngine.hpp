@@ -40,7 +40,8 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
 #else
 
 template <typename T, class Team>
-KOKKOS_FUNCTION void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
+KOKKOS_FUNCTION void pack_response_kernel(T *local_values,
+                                          DeviceWorker<T> *worker,
                                           unsigned *completion_flag,
                                           Team &&team, bool final);
 
@@ -60,8 +61,8 @@ struct Worker {
       aggregate_requests_kernel(worker, team, team.league_size() - 2);
     } else if (team.league_rank() == 1) {
       debug_2("Starting kernel 1 (pack_response_kernel)\n");
-      pack_response_kernel(m_view(0).ptr, worker, worker->response_done_flag, team,
-                           false);
+      pack_response_kernel(m_view(0).ptr, worker, worker->response_done_flag,
+                           team, false);
     } else {
       debug_2("Starting kernel 2 (user)\n");
       auto new_team = team.shrink_league(2);
@@ -92,7 +93,8 @@ struct Respond_worker {
       const typename Policy::member_type &team) const {
     DeviceWorker<double> *worker = m_view(0).worker;
     debug_2("Starting FINAL kernel (pack_response_kernel)\n");
-    pack_response_kernel(m_view(0).ptr, worker, worker->fence_done_flag, team, true);
+    pack_response_kernel(m_view(0).ptr, worker, worker->fence_done_flag, team,
+                         true);
   }
 
  private:

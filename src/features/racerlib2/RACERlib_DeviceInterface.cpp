@@ -27,8 +27,9 @@ namespace RACERlib {
 // ETI this
 template __device__ void
 pack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
-    double *local_values, DeviceWorker<double> *worker, unsigned *completion_flag,
-    Kokkos::Impl::CudaTeamMember const &team, bool final);
+    double *local_values, DeviceWorker<double> *worker,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
 
 template __device__ void
 aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
@@ -66,8 +67,10 @@ __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
       uint32_t window       = GET_BLOCK_WINDOW(request);
       uint32_t reply_offset =
           pe * queue_size + worker->tx_element_reply_ctrs[pe] % queue_size;
-      uint32_t *offsets = worker->rx_element_request_queue + window * queue_size;
-      T *reply_tx_buffer_T = ((T *)worker->tx_element_reply_queue) + reply_offset;
+      uint32_t *offsets =
+          worker->rx_element_request_queue + window * queue_size;
+      T *reply_tx_buffer_T =
+          ((T *)worker->tx_element_reply_queue) + reply_offset;
 
       uint32_t num_packed = 0;
 
@@ -165,8 +168,8 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
                   atomic_load(&worker->tx_element_request_queue[req_slot],
                               Kokkos::Impl::memory_order_seq_cst_t());
             }
-            atomic_store(&worker->tx_element_request_queue[req_slot], next_request,
-                         Kokkos::Impl::memory_order_seq_cst_t());
+            atomic_store(&worker->tx_element_request_queue[req_slot],
+                         next_request, Kokkos::Impl::memory_order_seq_cst_t());
             memory_fence();
           }
           requests_done += total_threads;
@@ -186,6 +189,7 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
           // FOR NOW COMMENTED OUT
           /*    atomic_store(&worker->tx_block_request_cmd_queue[queue_idx],
              request, Kokkos::Impl::memory_order_seq_cst_t());*/
+          // nvshmem_put()
           memory_fence();
         }
       }
