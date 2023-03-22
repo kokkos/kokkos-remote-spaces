@@ -79,7 +79,7 @@ KOKKOS_FUNCTION T DeviceWorker<T>::get(int pe, uint32_t offset) {
   // update the trip count to signal any waiting threads they can go
   atomic_fetch_add(
       (unsigned int *)&tx_element_request_trip_counts[global_buf_slot],
-      1u); /*IS THIS NECCASSARY? FIXME*/
+      1u); 
   return ret;
 }
 

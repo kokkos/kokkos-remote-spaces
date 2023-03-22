@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef RACERLIB2_INTERFACE
-#define RACERLIB2_INTERFACE
+#ifndef RACERLIB_HOSTENGINE
+#define RACERLIB_HOSTENGINE
 
 #include <Kokkos_Core.hpp>
 #include <Helpers.hpp>
@@ -59,4 +59,4 @@ struct HostEngine {
 }  // namespace Experimental
 }  // namespace Kokkos
 
-#endif  // RACERLIB2_INTERFACE
+#endif  // RACERLIB_HOSTENGINE

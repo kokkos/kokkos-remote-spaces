@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef RACERLIB_DEVICE_OPS
-#define RACERLIB_DEVICE_OPS
+#ifndef RACERLIB_DEVICE_WORKER
+#define RACERLIB_DEVICE_WORKER
 
 #include <AccessCache.hpp>
 #include <Helpers.hpp>
@@ -77,6 +77,29 @@ struct DeviceWorker {
   // is received here
   void *rx_element_reply_queue;
 
+  // Array of size queue_length
+  // Request threads on device write commands into this queue
+  // Progress threads on the CPU read command from this queue
+  // Indicates host should send a block of element requests to remote PE
+  // Combined queue for all PEs
+  uint64_t *tx_block_request_cmd_queue;
+
+  // Array of size queue_length
+  // Response threads on device read command from this queue
+  // Progress threads on the CPU write commands into this queue after receiving
+  // request
+  // Indicates GPU should gather data from scattered offsets into a
+  // contiguous block Combined queue for all PEs
+  uint64_t *rx_block_request_cmd_queue;
+
+  // Array of size queue_length
+  // Response threads on device write commands into this queue
+  // Progress threads on the CPU read command from this queue
+  // Indicates host a block of element replies is ready to send back to
+  // requesting PE
+  // Combined queue for all PEs
+  uint64_t *tx_block_reply_cmd_queue;
+
   // A running count of the number of block requests sent to all PEs
   uint64_t tx_block_request_ctr;
 
@@ -92,4 +115,4 @@ struct DeviceWorker {
 }  // namespace Experimental
 }  // namespace Kokkos
 
-#endif  // RACERLIB_DEVICE_OPS
+#endif  // RACERLIB_DEVICE_WORKER

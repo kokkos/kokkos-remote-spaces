@@ -16,7 +16,8 @@
 //
 //@HEADER
 
-#include <RACERlib_DeviceInterface.hpp>
+#include <RACERlib_DeviceEngine.hpp>
+#include <nvshmem.h>
 
 namespace Kokkos {
 namespace Experimental {
@@ -36,6 +37,19 @@ aggregate_requests_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
     DeviceWorker<double> *worker, Kokkos::Impl::CudaTeamMember const &team,
     unsigned num_worker_teams);
 
+template __device__ void
+unpack_response_kernel<double, Kokkos::Impl::CudaTeamMember const &>(
+    double *local_values, DeviceWorker<double> *worker,
+    unsigned *completion_flag, Kokkos::Impl::CudaTeamMember const &team,
+    bool final);
+
+
+template <typename T, class Team>
+__device__ void unpack_response_kernel(T *local_values, DeviceWorker<T> *worker,
+                                     unsigned *completion_flag, Team &&team,
+                                     bool final)
+{}
+
 template <typename T, class Team>
 __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
                                      unsigned *completion_flag, Team &&team,
@@ -50,14 +64,17 @@ __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
   request    = 0;
 
   while (completion < 1) {
+
+    //for (/*ranks in  num_ranks*/)
+    //if(rank == my_rank) continue;
+
     uint64_t idx         = worker->rx_block_request_ctr % queue_size;
     uint64_t trip_number = worker->rx_block_request_ctr / queue_size;
 
-    // FOR NOW COMMENTED OUT
-    /*if (my_thread == 0) {
+    if (my_thread == 0) {
       request = atomic_load(&worker->rx_block_request_cmd_queue[idx],
                             Kokkos::Impl::memory_order_seq_cst_t());
-    }*/
+    }
 
     __syncthreads();
 
@@ -85,6 +102,9 @@ __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
         }
         num_packed += total_threads;
       }
+
+      __syncthreads();
+
       if (my_thread == 0) {
         //++worker->rx_block_request_ctr;
         atomic_fetch_inc(&worker->rx_block_request_ctr);
@@ -92,16 +112,18 @@ __device__ void pack_response_kernel(T *local_values, DeviceWorker<T> *worker,
         atomic_fetch_add(&worker->tx_element_reply_ctrs[pe], num_requests);
         // worker->tx_element_reply_ctrs[pe] += num_requests;
         memory_fence();
+        //nvshmem_put(STUFF HERE)
       }
 
       // Force visibility
       __threadfence_system();
 
-      // FOR NOW COMMENTED OUT
-      /* if (my_thread == 0) {
-         atomic_store(&worker->tx_block_reply_cmd_queue[idx], request,
-       Kokkos::Impl::memory_order_seq_cst_t()); memory_fence();
-       }*/
+    //  if (my_thread == 0) {
+    //     atomic_store(&worker->tx_block_reply_cmd_queue[idx], request,
+    //   Kokkos::Impl::memory_order_seq_cst_t()); 
+   //    
+   //    memory_fence();
+       //}
     }
 
     if (my_thread == 0) {
@@ -180,16 +202,15 @@ __device__ void aggregate_requests_kernel(DeviceWorker<T> *worker, Team &&team,
         __syncthreads();
 
         if (my_thread == 0) {
+
           uint64_t tail_idx = worker->tx_block_request_ctr++;
           worker->tx_element_aggregate_ctrs[pe] += total_requests;
           uint64_t queue_idx   = tail_idx % queue_size;
           uint64_t trip_number = tail_idx / queue_size;
           uint64_t request =
               MAKE_BLOCK_GET_REQUEST(total_requests, pe, trip_number);
-          // FOR NOW COMMENTED OUT
-          /*    atomic_store(&worker->tx_block_request_cmd_queue[queue_idx],
-             request, Kokkos::Impl::memory_order_seq_cst_t());*/
-          // nvshmem_put()
+          atomic_store(&worker->tx_block_request_cmd_queue[queue_idx], request,
+                       Kokkos::Impl::memory_order_seq_cst_t());
           memory_fence();
         }
       }
