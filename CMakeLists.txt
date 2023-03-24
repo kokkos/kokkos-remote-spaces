@@ -12,6 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
 find_package(Kokkos REQUIRED)
 
 option(KRS_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
+option(KRS_ENABLE_ROCSHMEMSPACE "Whether to build with ROCSHMEM space" OFF)
 option(KRS_ENABLE_SHMEMSPACE "Whether to build with SHMEMS space" OFF)
 option(KRS_ENABLE_MPISPACE "Whether to build with MPI space" OFF)
 option(KRS_ENABLE_EXAMPLES "Whether to enable tests" OFF)
@@ -28,6 +29,7 @@ list(APPEND SOURCE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/core)
 
 set(PREFIX_BACKEND_SRC_PATH "src/impl")
 set(NVSHMEMSPACE_PATH "${PREFIX_BACKEND_SRC_PATH}/nvshmemspace")
+set(ROCSHMEMSPACE_PATH "${PREFIX_BACKEND_SRC_PATH}/rocshmemspace")
 set(SHMEMSPACE_PATH "${PREFIX_BACKEND_SRC_PATH}/shmemspace")
 set(MPISPACE_PATH "${PREFIX_BACKEND_SRC_PATH}/mpispace")
 
@@ -43,13 +45,24 @@ set_target_properties(MPI PROPERTIES
 list(APPEND PUBLIC_DEPS MPI)
 
 if (KRS_ENABLE_NVSHMEMSPACE)
-# Make sure kokkos has RDC and lambda support
+# Requiere Kokkos with RDC and Lambda support
   kokkos_check(
     OPTIONS CUDA_LAMBDA CUDA_RELOCATABLE_DEVICE_CODE
     DEVICES CUDA)
   find_package(NVSHMEM REQUIRED)
   set(BACKEND_NAME NVSHMEMSPACE)
   list(APPEND SOURCE_DIRS ${NVSHMEMSPACE_PATH})
+  list(APPEND PUBLIC_DEPS ${BACKEND_NAME})
+  list(APPEND BACKENDS ${BACKEND_NAME})
+endif()
+if (KRS_ENABLE_ROCSHMEMSPACE)
+# Requiere Kokkos with RDC
+  kokkos_check(
+    OPTIONS HIP_RELOCATABLE_DEVICE_CODE
+    DEVICES HIP)
+  find_package(ROCSHMEM REQUIRED)
+  set(BACKEND_NAME ROCSHMEMSPACE)
+  list(APPEND SOURCE_DIRS ${ROCSHMEMSPACE_PATH})
   list(APPEND PUBLIC_DEPS ${BACKEND_NAME})
   list(APPEND BACKENDS ${BACKEND_NAME})
 endif()

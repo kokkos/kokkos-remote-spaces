@@ -44,6 +44,15 @@ class NVSHMEMSpace;
 #include <Kokkos_NVSHMEMSpace.hpp>
 #endif
 
+#ifdef KRS_ENABLE_ROCSHMEMSPACE
+namespace Kokkos {
+namespace Experimental {
+class ROCSHMEMSpace;
+}
+}  // namespace Kokkos
+#include <Kokkos_ROCSHMEMSpace.hpp>
+#endif
+
 #ifdef KRS_ENABLE_MPISPACE
 namespace Kokkos {
 namespace Experimental {
@@ -59,6 +68,9 @@ namespace Experimental {
 #ifdef KRS_ENABLE_NVSHMEMSPACE
 typedef NVSHMEMSpace DefaultRemoteMemorySpace;
 #else
+#ifdef KRS_ENABLE_ROCSHMEMSPACE
+typedef ROCSHMEMSpace DefaultRemoteMemorySpace;
+#else
 #ifdef KRS_ENABLE_SHMEMSPACE
 typedef SHMEMSpace DefaultRemoteMemorySpace;
 #else
@@ -69,8 +81,8 @@ error "At least one remote space must be selected."
 #endif
 #endif
 #endif
+#endif
 }  // namespace Experimental
-
 }  // namespace Kokkos
 
 #endif  // KOKKOS_RESMOTESPACES_HPP

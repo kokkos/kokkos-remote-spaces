@@ -48,6 +48,11 @@ int main(int argc, char *argv[]) {
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
 
+#ifdef KRS_ENABLE_ROCSHMEMSPACE
+  roc_shmem_init_thread(mpi_thread_level_required,mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+#endif
+
   Kokkos::initialize(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();
@@ -55,6 +60,9 @@ int main(int argc, char *argv[]) {
   Kokkos::finalize();
 #ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
+#endif
+#ifdef KRS_ENABLE_ROCSHMEMSPACE
+  roc_shmem_finalize();
 #endif
 #ifdef KRS_ENABLE_SHMEMSPACE
   shmem_finalize();

@@ -389,16 +389,18 @@ void view_copy_(const DstType& dst, const SrcType& src) {
 
 }  // namespace  Impl
 
-// namespace Experimental {
-
 #ifdef KRS_ENABLE_NVSHMEMSPACE
 typedef Kokkos::Experimental::NVSHMEMSpace DefaultRemoteMemorySpace;
+#else
+#ifdef KRS_ENABLE_ROCSHMEMSPACE
+typedef Kokkos::Experimental::ROCSHMEMSpace DefaultRemoteMemorySpace;
 #else
 #ifdef KRS_ENABLE_SHMEMSPACE
 typedef Kokkos::Experimental::SHMEMSpace DefaultRemoteMemorySpace;
 #else
 #ifdef KRS_ENABLE_MPISPACE
 typedef Kokkos::Experimental::MPISpace DefaultRemoteMemorySpace;
+#endif
 #endif
 #endif
 #endif
