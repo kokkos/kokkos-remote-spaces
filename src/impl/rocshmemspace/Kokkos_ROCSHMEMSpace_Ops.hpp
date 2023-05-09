@@ -22,6 +22,8 @@
 #include <roc_shmem.hpp>
 #include <type_traits>
 
+using namespace rocshmem;
+
 namespace Kokkos {
 namespace Impl {
 
@@ -39,7 +41,7 @@ KOKKOS_REMOTESPACES_P(int, roc_shmem_int_p)
 KOKKOS_REMOTESPACES_P(unsigned int, roc_shmem_uint_p)
 KOKKOS_REMOTESPACES_P(long, roc_shmem_long_p)
 KOKKOS_REMOTESPACES_P(unsigned long, roc_shmem_ulong_p)
-KOKKOS_REMOTESPACES_P(long long, roc_shmem_longlong_p)/
+KOKKOS_REMOTESPACES_P(long long, roc_shmem_longlong_p)
 KOKKOS_REMOTESPACES_P(unsigned long long, roc_shmem_ulonglong_p)
 KOKKOS_REMOTESPACES_P(float, roc_shmem_float_p)
 KOKKOS_REMOTESPACES_P(double, roc_shmem_double_p)

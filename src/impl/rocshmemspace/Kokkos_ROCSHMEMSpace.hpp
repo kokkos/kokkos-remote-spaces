@@ -42,7 +42,7 @@ class ROCSHMEMSpace {
   using execution_space = Kokkos::HIP;
 #else
 #error \
-    "At least the following device execution space must be defined: Kokkos::Cuda."
+    "At least the following device execution space must be defined: Kokkos::Experimental::ROCSHMEMSpace."
 #endif
   using memory_space = ROCSHMEMSpace;
   using device_type  = Kokkos::Device<execution_space, memory_space>;

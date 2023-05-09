@@ -62,7 +62,7 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
  public:
   inline std::string get_label() const {
     SharedAllocationHeader header;
-    Kokkos::Impl::DeepCopy<Kokkos::HostSpace, Kokkos::CudaSpace>(
+    Kokkos::Impl::DeepCopy<Kokkos::HostSpace, Kokkos::Experimental::ROCSHMEMSpace>(
         &header, RecordBase::head(), sizeof(SharedAllocationHeader));
     return std::string(header.m_label);
   }

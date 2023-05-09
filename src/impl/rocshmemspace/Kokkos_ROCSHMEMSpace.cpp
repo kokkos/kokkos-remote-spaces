@@ -104,13 +104,13 @@ namespace Impl {
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::ROCSHMEMSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
-  himMemcpy(dst, src, n, cudaMemcpyDefault);
+  hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace, HostSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
-  himMemcpy(dst, src, n, cudaMemcpyDefault);
+  hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 template <typename ExecutionSpace>
@@ -119,7 +119,7 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
-  himMemcpy(dst, src, n, cudaMemcpyDefault);
+  hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 template <typename ExecutionSpace>
@@ -129,7 +129,7 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                                                  void *dst, const void *src,
                                                  size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
-  himMemcpy(dst, src, n, cudaMemcpyDefault);
+  hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 // Currently not invoked. We need a better local_deep_copy overload that
