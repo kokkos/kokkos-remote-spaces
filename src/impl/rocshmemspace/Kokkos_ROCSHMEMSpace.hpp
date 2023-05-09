@@ -28,7 +28,6 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
-// #include <roc_shmem.hpp>
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
