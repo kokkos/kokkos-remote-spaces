@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef KRS_ENABLE_ROCSHMEMSPACE
   const int number_network_contexts = 32;
-  roc_shmem_init_thread(mpi_thread_level_required,&mpi_thread_level_available,
-		        number_network_contexts);
+  roc_shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available,
+                        number_network_contexts);
   assert(mpi_thread_level_available >= mpi_thread_level_required);
 #endif
 

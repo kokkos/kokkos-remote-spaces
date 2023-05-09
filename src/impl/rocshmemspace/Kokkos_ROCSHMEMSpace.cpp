@@ -101,14 +101,17 @@ std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
 
 namespace Impl {
 
-Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::ROCSHMEMSpace>::DeepCopy(
-    void *dst, const void *src, size_t n) {
+Kokkos::Impl::DeepCopy<
+    HostSpace, Kokkos::Experimental::ROCSHMEMSpace>::DeepCopy(void *dst,
+                                                              const void *src,
+                                                              size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
-Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace, HostSpace>::DeepCopy(
-    void *dst, const void *src, size_t n) {
+Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
+                       HostSpace>::DeepCopy(void *dst, const void *src,
+                                            size_t n) {
   Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }

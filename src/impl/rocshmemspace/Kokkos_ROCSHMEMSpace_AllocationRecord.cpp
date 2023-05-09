@@ -61,7 +61,7 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
 
   // Copy to device memory
   Kokkos::Impl::DeepCopy<HIPSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
-                                               sizeof(SharedAllocationHeader));
+                                              sizeof(SharedAllocationHeader));
 }
 
 SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
@@ -100,7 +100,7 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
 
   // Copy to device memory
   Kokkos::Impl::DeepCopy<HIPSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
-                                               sizeof(SharedAllocationHeader));
+                                              sizeof(SharedAllocationHeader));
 }
 
 SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace,
@@ -180,8 +180,8 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::get_record(
       alloc_ptr ? Header::get_header(alloc_ptr) : (Header *)0;
 
   if (alloc_ptr) {
-    Kokkos::Impl::DeepCopy<HostSpace, HIPSpace>(
-        &head, head_hip, sizeof(SharedAllocationHeader));
+    Kokkos::Impl::DeepCopy<HostSpace, HIPSpace>(&head, head_hip,
+                                                sizeof(SharedAllocationHeader));
   }
 
   RecordROCSHMEM *const record =

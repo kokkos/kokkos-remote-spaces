@@ -79,7 +79,8 @@ KOKKOS_REMOTESPACES_ATOMIC_SET(unsigned int, roc_shmem_uint_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(long, roc_shmem_long_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(unsigned long, roc_shmem_ulong_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(long long, roc_shmem_longlong_atomic_set)
-KOKKOS_REMOTESPACES_ATOMIC_SET(unsigned long long, roc_shmem_ulonglong_atomic_set)
+KOKKOS_REMOTESPACES_ATOMIC_SET(unsigned long long,
+                               roc_shmem_ulonglong_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(float, roc_shmem_float_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(double, roc_shmem_double_atomic_set)
 
@@ -114,7 +115,8 @@ KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned int, roc_shmem_uint_atomic_add)
 KOKKOS_REMOTESPACES_ATOMIC_ADD(long, roc_shmem_long_atomic_add)
 KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long, roc_shmem_ulong_atomic_add)
 KOKKOS_REMOTESPACES_ATOMIC_ADD(long long, roc_shmem_longlong_atomic_add)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long long, roc_shmem_ulonglong_atomic_add)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long long,
+                               roc_shmem_ulonglong_atomic_add)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_ADD
 
@@ -145,7 +147,8 @@ KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(unsigned long long,
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(int, roc_shmem_int_atomic_compare_swap)
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(unsigned int,
                                         roc_shmem_uint_atomic_compare_swap)
-KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(long, roc_shmem_long_atomic_compare_swap)
+KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(long,
+                                        roc_shmem_long_atomic_compare_swap)
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(unsigned long,
                                         roc_shmem_ulong_atomic_compare_swap)
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(long long,
