@@ -176,19 +176,19 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::get_record(
 
   // Copy the header from the allocation
   Header head;
-  Header const *const head_rocshmem =
+  Header const *const head_hip =
       alloc_ptr ? Header::get_header(alloc_ptr) : (Header *)0;
 
   if (alloc_ptr) {
     Kokkos::Impl::DeepCopy<HostSpace, HIPSpace>(
-        &head, head_rocshmem, sizeof(SharedAllocationHeader));
+        &head, head_hip, sizeof(SharedAllocationHeader));
   }
 
   RecordROCSHMEM *const record =
       alloc_ptr ? static_cast<RecordROCSHMEM *>(head.m_record)
                 : (RecordROCSHMEM *)0;
 
-  if (!alloc_ptr || record->m_alloc_ptr != head_rocshmem) {
+  if (!alloc_ptr || record->m_alloc_ptr != head_hip) {
     Kokkos::Impl::throw_runtime_exception(std::string(
         "Kokkos::Impl::SharedAllocationRecord< "
         "Kokkos::Experimental::ROCSHMEMSpace , void >::get_record ERROR"));
