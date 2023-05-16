@@ -44,7 +44,7 @@ In this chart, GI (global indexing) and LI (local indexing) mark two implementat
 
 Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or later. Is a stand-alone project with dependencies on *Kokkos* and a selected *PGAS backend library*. The following steps document the build process. Note that building in the root directory in not allowed.
 
-#### CMake paths (set as environment variables)
+#### CMake paths
 
 | Path         | Description                                             |
 | ------------ | ------------------------------------------------------- |
@@ -69,8 +69,8 @@ Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or l
 Building with `SHMEM`
 ```bash
    $: cmake . -DKRS_ENABLE_SHMEMSPACE=ON
-           -DKokkos_DIR=${Kokkos_ROOT}
-           -DSHMEM_ROOT=${SHMEM_ROOT}
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
+           -DSHMEM_ROOT=${PATH_TO_SHMEM}
            -DCMAKE_CXX_COMPILER=oshc++
    $: make
 ```
@@ -78,8 +78,8 @@ Building with `SHMEM`
 Building with `NVSHMEM`
 ```bash
    $: cmake . -DKRS_ENABLE_NVSHMEMSPACE=ON
-           -DKokkos_DIR=${Kokkos_ROOT}
-           -DNVSHMEM_ROOT=${NVSHMEM_ROOT}
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
+           -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM}
            -DCMAKE_CXX_COMPILER=nvcc_wrapper
    $: make
 ```
@@ -87,7 +87,7 @@ Building with `NVSHMEM`
 Building with `MPI`
 ```bash
    $: cmake . -DKRS_ENABLE_MPISPACE=ON
-           -DKokkos_DIR=${Kokkos_ROOT}
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
            -DCMAKE_CXX_COMPILER=mpicxx
    $: make
 ```
