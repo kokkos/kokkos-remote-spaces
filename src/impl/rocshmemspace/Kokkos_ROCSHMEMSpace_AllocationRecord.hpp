@@ -32,7 +32,7 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
 
   typedef SharedAllocationRecord<void, void> RecordBase;
 
-  SharedAllocationRecord(const SharedAllocationRecord &)            = delete;
+  SharedAllocationRecord(const SharedAllocationRecord &) = delete;
   SharedAllocationRecord &operator=(const SharedAllocationRecord &) = delete;
 
   static void deallocate(RecordBase *);

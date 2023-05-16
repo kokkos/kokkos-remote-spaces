@@ -48,9 +48,9 @@ class ROCSHMEMSpace {
   using size_type    = size_t;
 
   ROCSHMEMSpace();
-  ROCSHMEMSpace(ROCSHMEMSpace &&rhs)              = default;
-  ROCSHMEMSpace(const ROCSHMEMSpace &rhs)         = default;
-  ROCSHMEMSpace &operator=(ROCSHMEMSpace &&)      = default;
+  ROCSHMEMSpace(ROCSHMEMSpace &&rhs)      = default;
+  ROCSHMEMSpace(const ROCSHMEMSpace &rhs) = default;
+  ROCSHMEMSpace &operator=(ROCSHMEMSpace &&) = default;
   ROCSHMEMSpace &operator=(const ROCSHMEMSpace &) = default;
   ~ROCSHMEMSpace()                                = default;
 

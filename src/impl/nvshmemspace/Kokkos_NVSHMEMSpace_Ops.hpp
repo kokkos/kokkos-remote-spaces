@@ -186,7 +186,7 @@ struct NVSHMEMDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator=(const_value_type &val) const {
-  //  shmem_type_atomic_set(ptr, val, pe);
+    //  shmem_type_atomic_set(ptr, val, pe);
     return val;
   }
 
