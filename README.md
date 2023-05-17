@@ -69,16 +69,16 @@ Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or l
 Building with `SHMEM`
 ```bash
    $: cmake . -DKRS_ENABLE_SHMEMSPACE=ON
-           -DKokkos_DIR=${KOKKOS_BUILD_DIR}
-           -DSHMEM_ROOT=${PATH_TO_MPI}
-           -DCMAKE_CXX_COMPILER=mpicxx
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
+           -DSHMEM_ROOT=${PATH_TO_SHMEM}
+           -DCMAKE_CXX_COMPILER=oshc++
    $: make
 ```
 
 Building with `NVSHMEM`
 ```bash
    $: cmake . -DKRS_ENABLE_NVSHMEMSPACE=ON
-           -DKokkos_DIR=${KOKKOS_BUILD_DIR}
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
            -DNVSHMEM_ROOT=${PATH_TO_NVSHMEM}
            -DCMAKE_CXX_COMPILER=nvcc_wrapper
    $: make
@@ -87,7 +87,7 @@ Building with `NVSHMEM`
 Building with `MPI`
 ```bash
    $: cmake . -DKRS_ENABLE_MPISPACE=ON
-           -DKokkos_DIR=${KOKKOS_BUILD_DIR}
+           -DKokkos_ROOT=${KOKKOS_INSTALL_DIR}
            -DCMAKE_CXX_COMPILER=mpicxx
    $: make
 ```
