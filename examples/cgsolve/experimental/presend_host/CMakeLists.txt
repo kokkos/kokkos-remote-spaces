@@ -1,0 +1,4 @@
+add_executable(cgsolve_presend_host cgsolve.cpp)
+target_link_libraries(cgsolve_presend_host PRIVATE Kokkos::kokkosremote)
+target_include_directories(cgsolve_presend_host PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(cgsolve_presend_host PRIVATE KOKKOS_ENABLE_NVSHMEM_PTR)
