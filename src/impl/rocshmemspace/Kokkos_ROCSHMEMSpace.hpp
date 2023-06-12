@@ -28,7 +28,6 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
-//#include <roc_shmem.hpp>
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
@@ -42,7 +41,7 @@ class ROCSHMEMSpace {
   using execution_space = Kokkos::HIP;
 #else
 #error \
-    "At least the following device execution space must be defined: Kokkos::Cuda."
+    "At least the following device execution space must be defined: Kokkos::HIP."
 #endif
   using memory_space = ROCSHMEMSpace;
   using device_type  = Kokkos::Device<execution_space, memory_space>;
@@ -53,7 +52,7 @@ class ROCSHMEMSpace {
   ROCSHMEMSpace(const ROCSHMEMSpace &rhs) = default;
   ROCSHMEMSpace &operator=(ROCSHMEMSpace &&) = default;
   ROCSHMEMSpace &operator=(const ROCSHMEMSpace &) = default;
-  ~ROCSHMEMSpace()                               = default;
+  ~ROCSHMEMSpace()                                = default;
 
   explicit ROCSHMEMSpace(const MPI_Comm &);
 

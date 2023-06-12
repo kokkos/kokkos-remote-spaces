@@ -37,7 +37,8 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
 
   static void deallocate(RecordBase *);
 
-  /**\brief  Root record for tracked allocations from this ROCSHMEMSpace instance
+  /**\brief  Root record for tracked allocations from this ROCSHMEMSpace
+   * instance
    */
   static RecordBase s_root_record;
 
@@ -62,7 +63,8 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
  public:
   inline std::string get_label() const {
     SharedAllocationHeader header;
-    Kokkos::Impl::DeepCopy<Kokkos::HostSpace, Kokkos::CudaSpace>(
+    Kokkos::Impl::DeepCopy<Kokkos::HostSpace,
+                           Kokkos::Experimental::ROCSHMEMSpace>(
         &header, RecordBase::head(), sizeof(SharedAllocationHeader));
     return std::string(header.m_label);
   }

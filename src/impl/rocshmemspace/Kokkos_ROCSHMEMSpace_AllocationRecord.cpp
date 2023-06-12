@@ -60,8 +60,8 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
   header.m_label[SharedAllocationHeader::maximum_label_length - 1] = (char)0;
 
   // Copy to device memory
-  Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
-                                               sizeof(SharedAllocationHeader));
+  Kokkos::Impl::DeepCopy<HIPSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
+                                              sizeof(SharedAllocationHeader));
 }
 
 SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
@@ -99,8 +99,8 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
   header.m_label[SharedAllocationHeader::maximum_label_length - 1] = (char)0;
 
   // Copy to device memory
-  Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
-                                               sizeof(SharedAllocationHeader));
+  Kokkos::Impl::DeepCopy<HIPSpace, HostSpace>(RecordBase::m_alloc_ptr, &header,
+                                              sizeof(SharedAllocationHeader));
 }
 
 SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace,
@@ -108,7 +108,7 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace,
 #if defined(KOKKOS_ENABLE_PROFILING)
   if (Kokkos::Profiling::profileLibraryLoaded()) {
     SharedAllocationHeader header;
-    Kokkos::Impl::DeepCopy<CudaSpace, HostSpace>(
+    Kokkos::Impl::DeepCopy<HIPSpace, HostSpace>(
         &header, RecordBase::m_alloc_ptr, sizeof(SharedAllocationHeader));
 
     Kokkos::Profiling::deallocateData(
@@ -158,7 +158,7 @@ void *SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::
   SharedAllocationRecord *const r_new =
       allocate(r_old->m_space, r_old->get_label(), arg_alloc_size);
 
-  Kokkos::Impl::DeepCopy<CudaSpace, CudaSpace>(
+  Kokkos::Impl::DeepCopy<HIPSpace, HIPSpace>(
       r_new->data(), r_old->data(), std::min(r_old->size(), r_new->size()));
 
   RecordBase::increment(r_new);
@@ -176,19 +176,19 @@ SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>::get_record(
 
   // Copy the header from the allocation
   Header head;
-  Header const *const head_cuda =
+  Header const *const head_hip =
       alloc_ptr ? Header::get_header(alloc_ptr) : (Header *)0;
 
   if (alloc_ptr) {
-    Kokkos::Impl::DeepCopy<HostSpace, CudaSpace>(
-        &head, head_cuda, sizeof(SharedAllocationHeader));
+    Kokkos::Impl::DeepCopy<HostSpace, HIPSpace>(&head, head_hip,
+                                                sizeof(SharedAllocationHeader));
   }
 
   RecordROCSHMEM *const record =
       alloc_ptr ? static_cast<RecordROCSHMEM *>(head.m_record)
                 : (RecordROCSHMEM *)0;
 
-  if (!alloc_ptr || record->m_alloc_ptr != head_cuda) {
+  if (!alloc_ptr || record->m_alloc_ptr != head_hip) {
     Kokkos::Impl::throw_runtime_exception(std::string(
         "Kokkos::Impl::SharedAllocationRecord< "
         "Kokkos::Experimental::ROCSHMEMSpace , void >::get_record ERROR"));
