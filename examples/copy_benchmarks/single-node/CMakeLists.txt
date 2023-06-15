@@ -1,0 +1,13 @@
+add_executable(rma_cpybench rma_cpybench.cpp)
+target_link_libraries(rma_cpybench PRIVATE Kokkos::kokkosremote)
+target_include_directories(rma_cpybench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(rma_cpybench PRIVATE KRS_ENABLE_NVSHMEM_PTR)
+
+add_executable(partitioned_rma_cpybench partitioned_rma_cpybench.cpp)
+target_link_libraries(partitioned_rma_cpybench PRIVATE Kokkos::kokkosremote)
+target_include_directories(partitioned_rma_cpybench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(partitioned_rma_cpybench PRIVATE KRS_ENABLE_NVSHMEM_PTR)
+
+add_executable(view_cpybench view_cpybench.cpp)
+target_link_libraries(view_cpybench PRIVATE Kokkos::kokkosremote)
+target_include_directories(view_cpybench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
