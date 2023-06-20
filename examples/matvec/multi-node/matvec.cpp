@@ -31,8 +31,8 @@ using VALUE_T         = double;
 #define VEC_LEN 1
 
 using RemoteSpace_t  = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteVector_t = Kokkos::View<VALUE_T **, RemoteSpace_t>;
-using VectorHost_r_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
+using RemoteVector_t = Kokkos::View<VALUE_T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
+using VectorHost_r_t = Kokkos::View<VALUE_T **, Kokkos::PartitionedLayoutLeft, Kokkos::HostSpace>;
 
 using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
@@ -64,6 +64,10 @@ int main(int argc, char *argv[]) {
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
 
+  int myRank, numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+
   // Vars
   float time = 0;
   ORDINAL_T nx;
@@ -93,7 +97,7 @@ int main(int argc, char *argv[]) {
     auto b = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), b_h);
 
     // Copy host device data into global vector
-    Kokkos::Experimental::deep_copy(x, x_h);
+    Kokkos::deep_copy(x, x_h);
 
     Kokkos::Timer timer;
 

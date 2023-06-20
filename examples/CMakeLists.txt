@@ -1,2 +1,4 @@
 add_subdirectory(cgsolve)
 add_subdirectory(benchmarks)
+add_subdirectory(matvec)
+add_subdirectory(vectorshift)
