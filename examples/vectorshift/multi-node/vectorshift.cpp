@@ -106,11 +106,11 @@ int main(int argc, char *argv[]) {
       swap(a, b, RemoteView_t);
     }
     // Copy back to Host memory space
-    Kokkos::deep_copy(a_h, b);
+    Kokkos::deep_copy(a_h, a);
 
     // Correctness check on corresponding PE
     if (myPE == NUM_SHIFTS * OFFSET / myN) {
-      assert(a_h(0, (NUM_SHIFTS * OFFSET % myN) - 1) == 1);
+      assert(a_h(0, (NUM_SHIFTS * OFFSET % myN)) == 1);
     }
   }
 

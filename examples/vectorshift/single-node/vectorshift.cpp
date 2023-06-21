@@ -98,10 +98,10 @@ int main(int argc, char *argv[]) {
       swap(a, b, View_t);
     }
 
-    Kokkos::deep_copy(a_h, b);
+    Kokkos::deep_copy(a_h, a);
     // Excersize: Update error check to check if value "1" has been shifter
     // Note: it resides porentially on a different PE
-    assert(a_h((NUM_SHIFTS * OFFSET % n) - 1) == 1);
+    assert(a_h((NUM_SHIFTS * OFFSET % n)) == 1);
   }
   Kokkos::finalize();
 
