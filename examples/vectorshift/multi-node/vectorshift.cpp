@@ -27,12 +27,10 @@
 #define SIZE 1024
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<T **,
-                                   Kokkos::PartitionedLayoutLeft,
-                                   RemoteSpace_t>;
-using HostView_t    = Kokkos::View<T **,
-                                   Kokkos::PartitionedLayoutLeft,
-                                   Kokkos::HostSpace>;
+using RemoteView_t  =
+    Kokkos::View<T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
+using HostView_t    =
+    Kokkos::View<T **, Kokkos::PartitionedLayoutLeft, Kokkos::HostSpace>;
 
 #define swap(a, b, T) \
   T tmp = a;          \
