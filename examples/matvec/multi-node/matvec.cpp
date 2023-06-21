@@ -31,8 +31,12 @@ using VALUE_T         = double;
 #define VEC_LEN 1
 
 using RemoteSpace_t  = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteVector_t = Kokkos::View<VALUE_T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
-using VectorHost_r_t = Kokkos::View<VALUE_T **, Kokkos::PartitionedLayoutLeft, Kokkos::HostSpace>;
+using RemoteVector_t = Kokkos::View<VALUE_T **,
+                                    Kokkos::PartitionedLayoutLeft,
+                                    RemoteSpace_t>;
+using VectorHost_r_t = Kokkos::View<VALUE_T **,
+                                    Kokkos::PartitionedLayoutLeft,
+                                    Kokkos::HostSpace>;
 
 using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
