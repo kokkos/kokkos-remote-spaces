@@ -30,7 +30,7 @@ using VALUE_T         = double;
 #define TEAM_SIZE 256
 #define VEC_LEN 1
 
-using RemoteSpace_t  = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteVector_t =
     Kokkos::View<VALUE_T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
 using VectorHost_r_t =
