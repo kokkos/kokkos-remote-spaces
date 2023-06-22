@@ -27,8 +27,10 @@
 #define SIZE 1024
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<T **, RemoteSpace_t>;
-using HostView_t    = Kokkos::View<T **, Kokkos::HostSpace>;
+using RemoteView_t =
+    Kokkos::View<T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
+using HostView_t =
+    Kokkos::View<T **, Kokkos::PartitionedLayoutLeft, Kokkos::HostSpace>;
 
 #define swap(a, b, T) \
   T tmp = a;          \
@@ -87,7 +89,7 @@ int main(int argc, char *argv[]) {
     a_h(0, 0) = 1;
 
     // Copy to Remote Memory Space
-    Kokkos::Experimental::deep_copy(a, a_h);
+    Kokkos::deep_copy(a, a_h);
 
     for (int shift = 0; shift < NUM_SHIFTS; ++shift) {
       // Iteration space over global array
@@ -106,11 +108,11 @@ int main(int argc, char *argv[]) {
       swap(a, b, RemoteView_t);
     }
     // Copy back to Host memory space
-    Kokkos::Experimental::deep_copy(a_h, b);
+    Kokkos::deep_copy(a_h, a);
 
     // Correctness check on corresponding PE
     if (myPE == NUM_SHIFTS * OFFSET / myN) {
-      assert(a_h(0, (NUM_SHIFTS * OFFSET % myN) - 1) == 1);
+      assert(a_h(0, (NUM_SHIFTS * OFFSET % myN)) == 1);
     }
   }
 
