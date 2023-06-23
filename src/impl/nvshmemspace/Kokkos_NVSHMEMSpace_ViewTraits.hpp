@@ -51,6 +51,33 @@ struct ViewTraits<void, Kokkos::Experimental::NVSHMEMSpace, Properties...> {
   using hooks_policy  = typename ViewTraits<void, Properties...>::hooks_policy;
 };
 
+template <class... Properties>
+struct ViewTraits<
+    void, Kokkos::Device<Kokkos::Cuda, Kokkos::Experimental::NVSHMEMSpace>,
+    Properties...> {
+  static_assert(
+      std::is_same<typename ViewTraits<void, Properties...>::execution_space,
+                   void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::memory_space,
+                       void>::value &&
+          std::is_same<
+              typename ViewTraits<void, Properties...>::HostMirrorSpace,
+              void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::array_layout,
+                       void>::value,
+      "Only one View Execution or Memory Space template argument");
+
+  // Specify layout, keep subsequent space and memory traits arguments
+  using execution_space = Kokkos::Cuda;
+  using memory_space    = Kokkos::Experimental::NVSHMEMSpace;
+  using HostMirrorSpace = typename Kokkos::Impl::HostMirror<
+      Kokkos::Experimental::NVSHMEMSpace>::Space;
+  using array_layout  = typename execution_space::array_layout;
+  using specialize    = Kokkos::Experimental::RemoteSpaceSpecializeTag;
+  using memory_traits = typename ViewTraits<void, Properties...>::memory_traits;
+  using hooks_policy  = typename ViewTraits<void, Properties...>::hooks_policy;
+};
+
 }  // namespace Kokkos
 
 #endif  // KOKKOS_REMOTESPACES_NVSHMEM_VIEWTRAITS_HPP

@@ -25,12 +25,18 @@ namespace Impl {
 template <class T, class Traits>
 struct SHMEMDataHandle {
   T *ptr;
+
   KOKKOS_INLINE_FUNCTION
   SHMEMDataHandle() : ptr(NULL) {}
+
   KOKKOS_INLINE_FUNCTION
   SHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
+
   KOKKOS_INLINE_FUNCTION
   SHMEMDataHandle(SHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
+
+  template <typename SrcTraits>
+  KOKKOS_INLINE_FUNCTION SHMEMDataHandle(SrcTraits const &arg) : ptr(arg.ptr) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION SHMEMDataElement<T, Traits> operator()(
@@ -52,6 +58,12 @@ struct ViewDataHandle<
   using handle_type = SHMEMDataHandle<value_type, Traits>;
   using return_type = SHMEMDataElement<value_type, Traits>;
   using track_type  = Kokkos::Impl::SharedAllocationTracker;
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const &arg_data_ptr, track_type const & /*arg_tracker*/) {
+    return handle_type(arg_data_ptr);
+  }
 
   KOKKOS_INLINE_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,

@@ -25,12 +25,19 @@ namespace Impl {
 template <class T, class Traits>
 struct NVSHMEMDataHandle {
   T *ptr;
+
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle() : ptr(NULL) {}
+
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
+
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
+
+  template <typename SrcTraits>
+  KOKKOS_INLINE_FUNCTION NVSHMEMDataHandle(SrcTraits const &arg)
+      : ptr(arg.ptr) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
@@ -45,13 +52,19 @@ struct NVSHMEMDataHandle {
 
 template <class Traits>
 struct ViewDataHandle<
-    Traits, typename std::enable_if<std::is_same<
+    Traits, typename std::enable_if_t<std::is_same<
                 typename Traits::specialize,
-                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>::type> {
+                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value>> {
   using value_type  = typename Traits::value_type;
   using handle_type = NVSHMEMDataHandle<value_type, Traits>;
   using return_type = NVSHMEMDataElement<value_type, Traits>;
   using track_type  = Kokkos::Impl::SharedAllocationTracker;
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const &arg_data_ptr, track_type const & /*arg_tracker*/) {
+    return handle_type(arg_data_ptr);
+  }
 
   KOKKOS_INLINE_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,

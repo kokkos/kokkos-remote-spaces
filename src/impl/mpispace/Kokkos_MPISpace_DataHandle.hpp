@@ -27,14 +27,21 @@ struct MPIDataHandle {
   T *ptr;
   mutable MPI_Win win;
   size_t win_offset;
+
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle() : ptr(NULL), win(MPI_WIN_NULL), win_offset(0) {}
+
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle(T *ptr_, MPI_Win &win_, size_t offset_ = 0)
       : ptr(ptr_), win(win_), win_offset(offset_) {}
+
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle(MPIDataHandle<T, Traits> const &arg)
       : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
+
+  template <typename SrcTraits>
+  KOKKOS_INLINE_FUNCTION MPIDataHandle(SrcTraits const &arg)
+      : : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits> operator()(
@@ -58,19 +65,33 @@ struct ViewDataHandle<
   using return_type = MPIDataElement<value_type, Traits>;
   using track_type  = Kokkos::Impl::SharedAllocationTracker;
 
-  // Fixme: Currently unused
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const &arg_data_ptr, track_type const & /*arg_tracker*/) {
+    return handle_type(arg_data_ptr);
+  }
+
   KOKKOS_INLINE_FUNCTION
   static handle_type assign(value_type *arg_data_ptr,
-                            track_type const &arg_tracker) {
-    return handle_type(
-        arg_data_ptr,
-        arg_tracker.template get_record<Kokkos::Experimental::MPISpace>()->win);
+                            track_type const & /*arg_tracker*/) {
+    return handle_type(arg_data_ptr);
   }
 
   template <class SrcHandleType>
   KOKKOS_INLINE_FUNCTION static handle_type assign(
-      SrcHandleType const arg_data_ptr, size_t offset, MPI_Win &win) {
-    return handle_type(arg_data_ptr + offset, win, offset);
+      SrcHandleType const arg_data_ptr, size_t offset) {
+    return handle_type(arg_data_ptr + offset);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const arg_data_ptr) {
+    return handle_type(arg_data_ptr);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION handle_type operator=(SrcHandleType const &rhs) {
+    return handle_type(rhs);
   }
 };
 

@@ -1222,7 +1222,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 template <class DstTraits, class SrcTraits>
 class ViewMapping<DstTraits, SrcTraits,
                   Kokkos::Experimental::RemoteSpaceSpecializeTag> {
- public:
+ private:
   enum {
     is_assignable_space = Kokkos::Impl::MemorySpaceAccess<
         typename DstTraits::memory_space,
@@ -1243,17 +1243,6 @@ class ViewMapping<DstTraits, SrcTraits,
                                 typename SrcTraits::dimension>::value
   };
 
-  enum {
-    is_assignable_layout =
-        std::is_same<typename DstTraits::array_layout,
-                     typename SrcTraits::array_layout>::value ||
-        std::is_same<typename DstTraits::array_layout,
-                     Kokkos::LayoutStride>::value ||
-        (DstTraits::dimension::rank == 0) ||
-        (DstTraits::dimension::rank == 1 &&
-         DstTraits::dimension::rank_dynamic == 1)
-  };
-
  public:
   enum {
     is_assignable_data_type =
@@ -1261,8 +1250,109 @@ class ViewMapping<DstTraits, SrcTraits,
   };
   enum {
     is_assignable = is_assignable_space && is_assignable_value_type &&
-                    is_assignable_layout && is_assignable_dimension
+                    is_assignable_dimension
   };
+
+  using TrackType = Kokkos::Impl::SharedAllocationTracker;
+  using DstType =
+      ViewMapping<DstTraits, Kokkos::Experimental::RemoteSpaceSpecializeTag>;
+  using SrcType =
+      ViewMapping<SrcTraits, Kokkos::Experimental::RemoteSpaceSpecializeTag>;
+
+  KOKKOS_INLINE_FUNCTION
+  static bool assignable_layout_check(DstType &,
+                                      const SrcType &src)  // Runtime check
+  {
+    size_t strides[9];
+    bool assignable = true;
+    src.stride(strides);
+    size_t exp_stride = 1;
+    if (std::is_same<typename DstTraits::array_layout,
+                     Kokkos::LayoutLeft>::value) {
+      for (int i = 0; i < src.Rank; i++) {
+        if (i > 0) exp_stride *= src.extent(i - 1);
+        if (strides[i] != exp_stride) {
+          assignable = false;
+          break;
+        }
+      }
+    } else if (std::is_same<typename DstTraits::array_layout,
+                            Kokkos::LayoutRight>::value) {
+      for (int i = src.Rank - 1; i >= 0; i--) {
+        if (i < src.Rank - 1) exp_stride *= src.extent(i + 1);
+        if (strides[i] != exp_stride) {
+          assignable = false;
+          break;
+        }
+      }
+    }
+    return assignable;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  static void assign(DstType &dst, const SrcType &src,
+                     const TrackType &src_track) {
+    static_assert(is_assignable_space,
+                  "View assignment must have compatible spaces");
+
+    static_assert(
+        is_assignable_value_type,
+        "View assignment must have same value type or const = non-const");
+
+    static_assert(is_assignable_dimension,
+                  "View assignment must have compatible dimensions");
+
+    bool assignable_layout = assignable_layout_check(dst, src);  // Runtime
+                                                                 // check
+    if (!assignable_layout)
+      Kokkos::abort("View assignment must have compatible layouts\n");
+
+    using dst_offset_type = typename DstType::offset_type;
+
+    if (size_t(DstTraits::dimension::rank_dynamic) <
+        size_t(SrcTraits::dimension::rank_dynamic)) {
+      using dst_dim   = typename DstTraits::dimension;
+      bool assignable = ((1 > DstTraits::dimension::rank_dynamic &&
+                          1 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN0 == src.dimension_0()
+                             : true) &&
+                        ((2 > DstTraits::dimension::rank_dynamic &&
+                          2 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN1 == src.dimension_1()
+                             : true) &&
+                        ((3 > DstTraits::dimension::rank_dynamic &&
+                          3 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN2 == src.dimension_2()
+                             : true) &&
+                        ((4 > DstTraits::dimension::rank_dynamic &&
+                          4 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN3 == src.dimension_3()
+                             : true) &&
+                        ((5 > DstTraits::dimension::rank_dynamic &&
+                          5 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN4 == src.dimension_4()
+                             : true) &&
+                        ((6 > DstTraits::dimension::rank_dynamic &&
+                          6 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN5 == src.dimension_5()
+                             : true) &&
+                        ((7 > DstTraits::dimension::rank_dynamic &&
+                          7 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN6 == src.dimension_6()
+                             : true) &&
+                        ((8 > DstTraits::dimension::rank_dynamic &&
+                          8 <= SrcTraits::dimension::rank_dynamic)
+                             ? dst_dim::ArgN7 == src.dimension_7()
+                             : true);
+      if (!assignable)
+        Kokkos::abort(
+            "View Assignment: trying to assign runtime dimension to non "
+            "matching compile time dimension.");
+    }
+    dst.m_offset = dst_offset_type(src.m_offset);
+    dst.m_handle = Kokkos::Impl::ViewDataHandle<DstTraits>::assign(src.m_handle,
+                                                                   src_track);
+  }
 };
 
 }  // namespace Impl
