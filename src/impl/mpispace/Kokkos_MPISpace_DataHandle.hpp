@@ -41,7 +41,7 @@ struct MPIDataHandle {
 
   template <typename SrcTraits>
   KOKKOS_INLINE_FUNCTION MPIDataHandle(SrcTraits const &arg)
-      : : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
+      : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits> operator()(
