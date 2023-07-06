@@ -38,8 +38,13 @@ struct SpaceInstance<Kokkos::Cuda> {
 #endif /* KOKKOS_ENABLE_DEBUG */
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double***>;
-using HostView_t    = typename PlainView_t::HostMirror;
+// using UnmanagedView_t = Kokkos::View<double***, RemoteSpace_t,
+// Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+using UnmanagedView_t =
+    Kokkos::View<double***, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+using HostView_t = typename RemoteView_t::HostMirror;
 
 struct System {
   // size of system
@@ -49,8 +54,10 @@ struct System {
   int N; /* number of timesteps */
 
   // Temperature and delta Temperature
-  PlainView_t T1, dT;
+  RemoteView_t dT;
+  PlainView_t T1;
   HostView_t T_h;
+  UnmanagedView_t dT_u;
 
   System(int a) : X(a) {
     // populate with defaults, set the rest in setup_subdomain.
@@ -58,7 +65,7 @@ struct System {
     my_lo_x = my_hi_x = -1;
     T_h               = HostView_t();
     T1                = PlainView_t();
-    dT                = PlainView_t();
+    dT                = RemoteView_t();
     N                 = 10000;
   }
 
@@ -73,13 +80,20 @@ struct System {
 
     T1  = PlainView_t("System::T1", X, Y, Z);
     T_h = HostView_t("Host::T", T1.extent(0), Y, Z);
-    dT  = PlainView_t("System::dT", X, Y, Z);
-    printf("My Domain: (%i %i %i) (%i %i %i)\n", 0, 0, 0, X, Y, Z);
+    dT  = RemoteView_t("System::dT", X, Y, Z);
 
     Kokkos::deep_copy(T_h, 0);
     Kokkos::deep_copy(T1, T_h);
     Kokkos::deep_copy(T_h, 1);
     Kokkos::deep_copy(dT, T_h);
+    dT_u = UnmanagedView_t(dT.data(), X, Y, Z);
+
+    printf("My Domain: (%i %i %i) (%i %i %i)\n", 0, 0, 0, X, Y, Z);
+    // printf("dimensions: %i %i
+    // %i\n",dT_u.extent(0),dT_u.extent(1),dT_u.extent(2));
+    // Kokkos::deep_copy(T_h, 0);
+    // Kokkos::deep_copy(T_h, dT_u);
+    // printf("T_h(0,0,0)? %lf\n", T_h(0,0,0));
   }
 
   void print_help() {
@@ -110,7 +124,7 @@ struct System {
   struct copy_TplusdT_benchmark {};
   KOKKOS_FUNCTION
   void operator()(copy_TplusdT_benchmark, int x, int y, int z) const {
-    T1(x, y, z) += dT(x, y, z);
+    T1(x, y, z) += dT_u(x, y, z);
   }
   void Copy_TplusdT_Benchmark() {
     using policy_t =
@@ -126,16 +140,15 @@ struct System {
     time_a = time_b     = 0;
     double time_TplusdT = 0;
     double old_time     = 0.0;
-    printf("begin\n");
     for (int t = 0; t <= N; t++) {
       time_a = timer.seconds();
       Copy_TplusdT_Benchmark();
-      // RemoteSpace_t().fence();
-      Kokkos::fence();
+      RemoteSpace_t().fence();
       time_b = timer.seconds();
       time_TplusdT += time_b - time_a;
       if ((t % 400 == 0 || t == N)) {
         double time = timer.seconds();
+        Kokkos::deep_copy(T_h, T1);
         printf("%d T_h(0)=%lf Time (%lf %lf)\n", t, T_h(0, 0, 0), time,
                time - old_time);
         printf("    TplusdT: %lf\n", time_TplusdT);
@@ -146,6 +159,30 @@ struct System {
 };
 
 int main(int argc, char* argv[]) {
+  int mpi_thread_level_available;
+  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
+
+#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
+  mpi_thread_level_required = MPI_THREAD_SINGLE;
+#endif
+
+  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
+                  &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+
+#ifdef KRS_ENABLE_SHMEMSPACE
+  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
+  assert(mpi_thread_level_available >= mpi_thread_level_required);
+#endif
+
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
+  nvshmemx_init_attr_t attr;
+  mpi_comm      = MPI_COMM_WORLD;
+  attr.mpi_comm = &mpi_comm;
+  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+#endif
+
   Kokkos::initialize(argc, argv);
   {
     System sys(0);
@@ -153,5 +190,12 @@ int main(int argc, char* argv[]) {
     if (sys.check_args(argc, argv)) sys.timestep();
   }
   Kokkos::finalize();
+#ifdef KRS_ENABLE_SHMEMSPACE
+  shmem_finalize();
+#endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+  nvshmem_finalize();
+#endif
+  MPI_Finalize();
   return 0;
 }

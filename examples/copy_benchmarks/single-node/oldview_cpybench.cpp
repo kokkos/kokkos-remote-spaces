@@ -1,7 +1,6 @@
 /* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 #include <assert.h>
 
@@ -37,9 +36,8 @@ struct SpaceInstance<Kokkos::Cuda> {
 #endif /* KOKKOS_ENABLE_CUDA */
 #endif /* KOKKOS_ENABLE_DEBUG */
 
-using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using PlainView_t   = Kokkos::View<double***>;
-using HostView_t    = typename PlainView_t::HostMirror;
+using PlainView_t = Kokkos::View<double***>;
+using HostView_t  = typename PlainView_t::HostMirror;
 
 struct System {
   // size of system
@@ -52,6 +50,8 @@ struct System {
   PlainView_t T1, dT;
   HostView_t T_h;
 
+  Kokkos::DefaultExecutionSpace E_bulk;
+
   System(int a) : X(a) {
     // populate with defaults, set the rest in setup_subdomain.
     X = Y = Z = 200;
@@ -59,17 +59,19 @@ struct System {
     T_h               = HostView_t();
     T1                = PlainView_t();
     dT                = PlainView_t();
+    E_bulk            = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
     N                 = 10000;
+    // E_bulk  =
+    // SpaceInstance<Kokkos::DefaultExecutionSpace::memory_space>::create();
+  }
+  void destroy_exec_spaces() {
+    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_bulk);
   }
 
   void setup_subdomain() {
     dX = X;
     dY = Y;
     dZ = Z;
-
-    auto local_range = Kokkos::Experimental::get_local_range(dX);
-    my_lo_x          = local_range.first;
-    my_hi_x          = local_range.second + 1;
 
     T1  = PlainView_t("System::T1", X, Y, Z);
     T_h = HostView_t("Host::T", T1.extent(0), Y, Z);
@@ -115,8 +117,8 @@ struct System {
   void Copy_TplusdT_Benchmark() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, copy_TplusdT_benchmark, int>;
-    Kokkos::parallel_for("TplusdT", policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}),
-                         *this);
+    Kokkos::parallel_for(
+        "TplusdT", policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}), *this);
   }
 
   // run time loops
@@ -126,15 +128,14 @@ struct System {
     time_a = time_b     = 0;
     double time_TplusdT = 0;
     double old_time     = 0.0;
-    printf("begin\n");
     for (int t = 0; t <= N; t++) {
       time_a = timer.seconds();
       Copy_TplusdT_Benchmark();
-      // RemoteSpace_t().fence();
       Kokkos::fence();
+      E_bulk.fence();  // this fence is not working at the moment.
       time_b = timer.seconds();
       time_TplusdT += time_b - time_a;
-      if ((t % 400 == 0 || t == N)) {
+      if (t % 100 == 0 || t == N) {
         double time = timer.seconds();
         printf("%d T_h(0)=%lf Time (%lf %lf)\n", t, T_h(0, 0, 0), time,
                time - old_time);
@@ -151,6 +152,7 @@ int main(int argc, char* argv[]) {
     System sys(0);
 
     if (sys.check_args(argc, argv)) sys.timestep();
+    sys.destroy_exec_spaces();
   }
   Kokkos::finalize();
   return 0;

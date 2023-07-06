@@ -39,19 +39,8 @@ struct SpaceInstance<Kokkos::Cuda> {
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
+using PlainView_t   = Kokkos::View<double***>;
 using HostView_t    = typename RemoteView_t::HostMirror;
-
-struct CommHelper {
-  MPI_Comm comm;
-  int me;
-  int nranks;
-
-  CommHelper(MPI_Comm comm_) {
-    comm = comm_;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &me);
-  }
-};
 
 struct System {
   // size of system
@@ -59,29 +48,20 @@ struct System {
   int dX, dY, dZ;
   int my_lo_x, my_hi_x;
   int N; /* number of timesteps */
-  CommHelper comm;
 
   // Temperature and delta Temperature
-  RemoteView_t T1, T2, dT;
+  RemoteView_t dT;
+  PlainView_t T1;
   HostView_t T_h;
 
-  Kokkos::DefaultExecutionSpace E_bulk;
-
-  System(MPI_Comm comm_) : comm(comm_) {
+  System(int a) : X(a) {
     // populate with defaults, set the rest in setup_subdomain.
     X = Y = Z = 200;
     my_lo_x = my_hi_x = -1;
     T_h               = HostView_t();
-    T1                = RemoteView_t();
-    T2                = RemoteView_t();
+    T1                = PlainView_t();
     dT                = RemoteView_t();
-    E_bulk            = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
     N                 = 10000;
-    // E_bulk  =
-    // SpaceInstance<Kokkos::DefaultExecutionSpace::memory_space>::create();
-  }
-  void destroy_exec_spaces() {
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_bulk);
   }
 
   void setup_subdomain() {
@@ -93,12 +73,10 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
-    T1  = RemoteView_t("System::T1", X, Y, Z);
-    T2  = RemoteView_t("System::T2", X, Y, Z);
+    T1  = PlainView_t("System::T1", X, Y, Z);
     T_h = HostView_t("Host::T", T1.extent(0), Y, Z);
     dT  = RemoteView_t("System::dT", X, Y, Z);
-    printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y, Z,
-           my_hi_x, Y, Z);
+    printf("My Domain: (%i %i %i) (%i %i %i)\n", 0, 0, 0, X, Y, Z);
 
     Kokkos::deep_copy(T_h, 0);
     Kokkos::deep_copy(T1, T_h);
@@ -122,7 +100,7 @@ struct System {
         return false;
       }
     }
-    for (int i = 1; i < argc; i++) { /* no i=i+1? no else if? */
+    for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "-X") == 0) X = atoi(argv[i + 1]);
       if (strcmp(argv[i], "-Y") == 0) Y = atoi(argv[i + 1]);
       if (strcmp(argv[i], "-Z") == 0) Z = atoi(argv[i + 1]);
@@ -139,8 +117,8 @@ struct System {
   void Copy_TplusdT_Benchmark() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, copy_TplusdT_benchmark, int>;
-    Kokkos::parallel_for(
-        "TplusdT", policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}), *this);
+    Kokkos::parallel_for("TplusdT", policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}),
+                         *this);
   }
 
   // run time loops
@@ -156,8 +134,9 @@ struct System {
       RemoteSpace_t().fence();
       time_b = timer.seconds();
       time_TplusdT += time_b - time_a;
-      if ((t % 100 == 0 || t == N) && (comm.me == 0)) {
+      if ((t % 400 == 0 || t == N)) {
         double time = timer.seconds();
+        Kokkos::deep_copy(T_h, T1);
         printf("%d T_h(0)=%lf Time (%lf %lf)\n", t, T_h(0, 0, 0), time,
                time - old_time);
         printf("    TplusdT: %lf\n", time_TplusdT);
@@ -194,10 +173,9 @@ int main(int argc, char* argv[]) {
 
   Kokkos::initialize(argc, argv);
   {
-    System sys(MPI_COMM_WORLD);
+    System sys(0);
 
     if (sys.check_args(argc, argv)) sys.timestep();
-    sys.destroy_exec_spaces();
   }
   Kokkos::finalize();
 #ifdef KRS_ENABLE_SHMEMSPACE
@@ -206,6 +184,6 @@ int main(int argc, char* argv[]) {
 #ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
 #endif
-  // MPI_Finalize();
+  MPI_Finalize();
   return 0;
 }

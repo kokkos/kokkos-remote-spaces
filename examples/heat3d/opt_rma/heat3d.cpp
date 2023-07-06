@@ -53,10 +53,11 @@ struct SpaceInstance<Kokkos::Cuda> {
 #endif /* KOKKOS_ENABLE_CUDA */
 #endif /* KOKKOS_ENABLE_DEBUG */
 
-using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
-using HostView_t    = typename RemoteView_t::HostMirror;
-// Kokkos::View<double ***, Kokkos::HostSpace>;
+using RemoteSpace_t   = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t    = Kokkos::View<double***, RemoteSpace_t>;
+using UnmanagedView_t = Kokkos::View<double***, RemoteSpace_t,
+                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+using HostView_t      = typename RemoteView_t::HostMirror;
 
 struct CommHelper {
   MPI_Comm comm;
@@ -124,7 +125,6 @@ struct System {
   // Local box
   int X_lo, Y_lo, Z_lo;
   int X_hi, Y_hi, Z_hi;
-  int X_ra, Y_ra, Z_ra;
   int my_lo_x, my_hi_x;
 
   // number of timesteps
@@ -135,6 +135,7 @@ struct System {
 
   // Temperature and delta Temperature
   RemoteView_t T, dT;
+  UnmanagedView_t T_u;
   HostView_t T_h;
 
   Kokkos::DefaultExecutionSpace E_bulk;
@@ -162,9 +163,6 @@ struct System {
     X_hi               = X;
     Y_hi               = Y;
     Z_hi               = Z;
-    X_ra               = X;
-    Y_ra               = Y;
-    Z_ra               = Z;
     my_lo_x            = 0;
     my_hi_x            = 0;
     N                  = 10000;
@@ -172,6 +170,7 @@ struct System {
     T_h                = HostView_t();
     T                  = RemoteView_t();
     dT                 = RemoteView_t();
+    T_u                = UnmanagedView_t();
     T0                 = 0.0;
     dt                 = 0.1;
     q                  = 1.0;
@@ -189,19 +188,16 @@ struct System {
     X_lo = dX * comm.x;
     X_hi = X_lo + dX;
     if (X_hi > X) X_hi = X;
-    X_ra = X_hi - X_lo;
 
     int dY = (Y + comm.ny - 1) / comm.ny; /* ceil(Y/comm.ny) */
     Y_lo   = dY * comm.y;
     Y_hi   = Y_lo + dY;
     if (Y_hi > Y) Y_hi = Y;
-    Y_ra = Y_hi - Y_lo;
 
     int dZ = (Z + comm.nz - 1) / comm.nz;
     Z_lo   = dZ * comm.z;
     Z_hi   = Z_lo + dZ;
     if (Z_hi > Z) Z_hi = Z;
-    Z_ra = Z_hi - Z_lo;
 
     dX   = X;
     dY   = Y;
@@ -210,9 +206,6 @@ struct System {
     X_hi               = X;
     Y_hi               = Y;
     Z_hi               = Z;
-    X_ra               = X;
-    Y_ra               = Y;
-    Z_ra               = Z;
 
     auto local_range = Kokkos::Experimental::get_local_range(dX);
     my_lo_x          = local_range.first;
@@ -223,6 +216,7 @@ struct System {
     T   = RemoteView_t("System::T", dX, dY, dZ);
     T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
     dT  = RemoteView_t("System::dT", dX, dY, dZ);
+    // T_u = UnmanagedView_t("System::T_u", dX, dY, dZ);
 
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
@@ -486,12 +480,25 @@ struct System {
     return sum_T;
   }
 
+  struct copy_to_T_u {};
+  KOKKOS_FUNCTION
+  void operator()(copy_to_T_u, int x, int y, int z) const {
+    T_u(x, y, z) = T(x, y, z);
+  }
+  void Copy_To_T_u() {
+    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, copy_to_T_u, int>;
+    Kokkos::parallel_for(
+        "TplusdT", policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}), *this);
+  }
+
   // run time loops
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
     double time_a, time_c, time_d;
     double time_compute, time_all;
+    // Copy_To_T_u();
+    // RemoteSpace_t().fence();
     time_all = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */

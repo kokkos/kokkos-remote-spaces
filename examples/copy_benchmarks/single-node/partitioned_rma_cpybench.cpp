@@ -62,7 +62,7 @@ struct System {
   CommHelper comm;
 
   // Temperature and delta Temperature
-  RemoteView_t T1, T2, dT;
+  RemoteView_t T1, dT;
   HostView_t T_h;
 
   Kokkos::DefaultExecutionSpace E_bulk;
@@ -73,7 +73,6 @@ struct System {
     my_lo_x = my_hi_x = -1;
     T_h               = HostView_t();
     T1                = RemoteView_t();
-    T2                = RemoteView_t();
     dT                = RemoteView_t();
     E_bulk            = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
     N                 = 10000;
@@ -94,7 +93,6 @@ struct System {
     my_hi_x          = local_range.second + 1;
 
     T1  = RemoteView_t("System::T1", X, Y, Z);
-    T2  = RemoteView_t("System::T2", X, Y, Z);
     T_h = HostView_t("Host::T", T1.extent(0), Y, Z);
     dT  = RemoteView_t("System::dT", X, Y, Z);
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y, Z,
@@ -122,7 +120,7 @@ struct System {
         return false;
       }
     }
-    for (int i = 1; i < argc; i++) { /* no i=i+1? no else if? */
+    for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "-X") == 0) X = atoi(argv[i + 1]);
       if (strcmp(argv[i], "-Y") == 0) Y = atoi(argv[i + 1]);
       if (strcmp(argv[i], "-Z") == 0) Z = atoi(argv[i + 1]);
@@ -156,7 +154,7 @@ struct System {
       RemoteSpace_t().fence();
       time_b = timer.seconds();
       time_TplusdT += time_b - time_a;
-      if ((t % 100 == 0 || t == N) && (comm.me == 0)) {
+      if ((t % 400 == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
         printf("%d T_h(0)=%lf Time (%lf %lf)\n", t, T_h(0, 0, 0), time,
                time - old_time);
