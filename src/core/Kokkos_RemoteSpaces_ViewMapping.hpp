@@ -28,8 +28,6 @@ namespace Kokkos {
 
 namespace Experimental {
 
-extern size_t get_my_pe();
-
 template <typename T>
 std::pair<size_t, size_t> get_range(
     T &v, size_t pe,
