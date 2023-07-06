@@ -26,7 +26,8 @@
 
 using GenPool_t     = Kokkos::Random_XorShift64_Pool<>;
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
+using RemoteView_t =
+    Kokkos::View<double**, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
 
 int main(int argc, char** argv) {
   int mpi_thread_level_available;
@@ -138,26 +139,25 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 1;
   }
-  int partner_rank = rank ^ 1;
+  int partner_rank = rank == 0 ? 1 : 0;
 
   using Team = Kokkos::TeamPolicy<>::member_type;
   {
     Kokkos::View<double*> target("target", view_size);
     Kokkos::TeamPolicy<> policy(league_size, team_size, 1);
-    RemoteView_t remote("MyView", 2 * view_size);
+    RemoteView_t remote("MyView", nproc, view_size);
 
     Kokkos::Timer init_timer;
     // initialize the list of indices to zero
     // randomly select gaps between misses in the index list
     Kokkos::parallel_for(
         "fill", policy, KOKKOS_LAMBDA(const Team& team) {
-          int team_rank     = team.league_rank();
-          int offset_local  = team_rank * team_size;
-          int offset_remote = (rank * view_size) + team_rank * team_size;
+          int team_rank = team.league_rank();
+          int offset    = team_rank * team_size;
           Kokkos::parallel_for(Kokkos::TeamThreadRange(team, team_size),
                                [&](int idx) {
-                                 target[offset_local + idx]  = 0;
-                                 remote(offset_remote + idx) = offset_local;
+                                 target[offset + idx]       = 0;
+                                 remote(rank, offset + idx) = offset;
                                });
         });
 
@@ -171,17 +171,14 @@ int main(int argc, char** argv) {
       //"miss", causing a remote access
       Kokkos::parallel_for(
           "work", policy, KOKKOS_LAMBDA(const Team& team) {
-            int team_rank    = team.league_rank();
-            int offset_local = team_rank * team_size;
-            int offset_remote =
-                (partner_rank * view_size) + team_rank * team_size;
-            Kokkos::parallel_for(Kokkos::TeamThreadRange(team, team_size),
-                                 [&](int idx) {
-                                   if (idx < remote_threads_per_warp) {
-                                     target[offset_local + idx] =
-                                         2.0 * remote(offset_remote + idx);
-                                   }
-                                 });
+            int offset = uint64_t(team.league_rank()) * team_size;
+            Kokkos::parallel_for(
+                Kokkos::TeamThreadRange(team, team_size), [&](int team_idx) {
+                  int dst_idx = offset + team_idx;
+                  if (team_idx < remote_threads_per_warp) {
+                    target[dst_idx] = 2.0 * remote(partner_rank, dst_idx);
+                  }
+                });
           });
 
       RemoteSpace_t().fence();

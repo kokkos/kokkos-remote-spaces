@@ -1,2 +1,4 @@
 add_executable(misslatency misslatency.cpp)
+add_executable(misslatency_partitioned misslatency_partitioned.cpp)
 target_link_libraries(misslatency PRIVATE Kokkos::kokkosremote)
+target_link_libraries(misslatency_partitioned PRIVATE Kokkos::kokkosremote)
