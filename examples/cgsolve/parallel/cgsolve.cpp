@@ -175,6 +175,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   double zero = 0.0;
 
   axpby(p, one, x, zero, x);
+  RemoteMemSpace_t().fence();
   spmv(Ap, A, p_global);
   axpby(r, one, b, -one, Ap);
 
@@ -288,11 +289,11 @@ int main(int argc, char *argv[]) {
     Kokkos::deep_copy(A.col_idx, h_A.col_idx);
     Kokkos::deep_copy(A.values, h_A.values);
 
-#ifndef USE_GLOBAL_LAYOUT
-    RemoteView_t p = RemoteView_t("MyView", h_x.extent(0));
-#else
+#ifdef USE_GLOBAL_LAYOUT
     // Allocate global size (runtime splits into chunks)
     RemoteView_t p = RemoteView_t("MyView", numRanks * h_x.extent(0));
+#else
+    RemoteView_t p = RemoteView_t("MyView", h_x.extent(0));
 #endif
     Kokkos::Timer timer;
     int num_iters = cg_solve(y, A, x, p, max_iter, tolerance);

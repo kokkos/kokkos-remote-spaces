@@ -791,8 +791,7 @@ struct NVSHMEMDataElement<
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp;
-    tmp = shmem_type_g(ptr, pe);
+    T tmp = shmem_type_g((double *)ptr, pe);
     return tmp;
   }
 };

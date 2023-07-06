@@ -51,6 +51,34 @@ struct ViewTraits<void, Kokkos::Experimental::MPISpace, Properties...> {
   using hooks_policy  = typename ViewTraits<void, Properties...>::hooks_policy;
 };
 
+template <class... Properties>
+struct ViewTraits<
+    void, Kokkos::Device<Kokkos::HostSpace, Kokkos::Experimental::MPISpace>,
+    Properties...> {
+  static_assert(
+      std::is_same<typename ViewTraits<void, Properties...>::execution_space,
+                   void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::memory_space,
+                       void>::value &&
+          std::is_same<
+              typename ViewTraits<void, Properties...>::HostMirrorSpace,
+              void>::value &&
+          std::is_same<typename ViewTraits<void, Properties...>::array_layout,
+                       void>::value,
+      "Only one View Execution or Memory Space template argument");
+
+  // Specify layout, keep subsequent space and memory traits arguments
+  using execution_space =
+      typename Kokkos::Experimental::MPISpace::execution_space;
+  using memory_space = typename Kokkos::Experimental::MPISpace::memory_space;
+  using HostMirrorSpace =
+      typename Kokkos::Impl::HostMirror<Kokkos::Experimental::MPISpace>::Space;
+  using array_layout  = typename execution_space::array_layout;
+  using specialize    = Kokkos::Experimental::RemoteSpaceSpecializeTag;
+  using memory_traits = typename ViewTraits<void, Properties...>::memory_traits;
+  using hooks_policy  = typename ViewTraits<void, Properties...>::hooks_policy;
+};
+
 }  // namespace Kokkos
 
 #endif  // KOKKOS_REMOTESPACES_MPI_VIEWTRAITS_HPP
