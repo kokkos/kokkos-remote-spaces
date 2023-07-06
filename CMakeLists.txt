@@ -56,7 +56,7 @@ if (KRS_ENABLE_NVSHMEMSPACE)
   list(APPEND BACKENDS ${BACKEND_NAME})
 endif()
 if (KRS_ENABLE_ROCSHMEMSPACE)
-# Requiere Kokkos with RDC
+# Require Kokkos with RDC
   kokkos_check(
     OPTIONS HIP_RELOCATABLE_DEVICE_CODE
     DEVICES HIP)

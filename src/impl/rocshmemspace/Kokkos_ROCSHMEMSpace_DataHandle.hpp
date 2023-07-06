@@ -26,7 +26,7 @@ template <class T, class Traits>
 struct ROCSHMEMDataHandle {
   T *ptr;
   KOKKOS_INLINE_FUNCTION
-  ROCSHMEMDataHandle() : ptr(NULL) {}
+  ROCSHMEMDataHandle() : ptr(nullptr) {}
   KOKKOS_INLINE_FUNCTION
   ROCSHMEMDataHandle(T *ptr_) : ptr(ptr_) {}
   KOKKOS_INLINE_FUNCTION

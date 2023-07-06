@@ -75,7 +75,7 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
 #if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
     return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
 #else
-    return (SharedAllocationRecord *)0;
+    return nullptr;
 #endif
   }
 
