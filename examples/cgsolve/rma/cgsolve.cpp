@@ -100,21 +100,9 @@ void spmv(YType y, AType A, XType x) {
 #ifdef USE_GLOBAL_LAYOUT
                                      // Enable for faster pid and offset
                                      // calculation. Caution: will not work with
-                                     // GlobalLayout
-                                     // int64_t pid = idx / MASK;
+                                     // GlobalLayout int64_t pid = idx / MASK;
                                      // int64_t offset = idx % MASK;
-
-                                     // printf("line %u about to access
-                                     // A.values(%ld) * x(%ld)...\n",
-                                     // __LINE__, current_row, offset);
-                                     // sum += A.values(current_row) *
-                                     // x(offset); printf("A.values(%ld) * (%ld)
-                                     // success!\n", current_row, idx);
-                                     // printf("line %u about to access
-                                     // A.values(%ld) * x(%ld)...\n",
-                                     // __LINE__, current_row, idx);
                                      sum += A.values(current_row) * x(idx);
-        // printf("A.values(%ld) * (%ld) success!\n", current_row, idx);
 #else
                     // Enable for faster pid and offset calculation. May result in unfair comparison
                     //int64_t pid = idx / MASK;
@@ -125,9 +113,7 @@ void spmv(YType y, AType A, XType x) {
 #endif
                                    },
                                    y_row);
-                               // printf("about to  y(%ld) = y_row\n", row);
                                y(row) = y_row;
-                               // printf("completed y(%ld) = y_row\n", row);
                              });
       });
 
@@ -206,7 +192,6 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   double brkdown_tol = std::numeric_limits<double>::epsilon();
 
   for (int64_t k = 1; k <= max_iter && normr > tolerance; ++k) {
-    // printf("iteration %d\n", k);
     if (k == 1) {
       axpby(p, one, r, zero, r);
     } else {

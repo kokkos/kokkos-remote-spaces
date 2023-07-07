@@ -38,70 +38,51 @@ struct SpaceInstance<Kokkos::Cuda> {
 #endif /* KOKKOS_ENABLE_DEBUG */
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
-using PlainView_t   = Kokkos::View<double***>;
-// using UnmanagedView_t = Kokkos::View<double***, RemoteSpace_t,
-// Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
+using PlainView_t   = Kokkos::View<double*>;
 using UnmanagedView_t =
-    Kokkos::View<double***, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+    Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 using HostView_t = typename RemoteView_t::HostMirror;
 
-struct System {
-  // size of system
-  int X, Y, Z;
-  int dX, dY, dZ;
-  int my_lo_x, my_hi_x;
-  int N; /* number of timesteps */
+template <typename ViewType_t>
+struct Stream_Manager {
+  int len; /* size of vector */
+  int N;   /* number of iterations */
+  int indication_of_lack_of_cpp_knowledge;
 
   // Temperature and delta Temperature
-  RemoteView_t dT;
-  PlainView_t T1;
-  HostView_t T_h;
-  UnmanagedView_t dT_u;
+  HostView_t V_h;
+  ViewType_t V;
 
-  System(int a) : X(a) {
-    // populate with defaults, set the rest in setup_subdomain.
-    X = Y = Z = 200;
-    my_lo_x = my_hi_x = -1;
-    T_h               = HostView_t();
-    T1                = PlainView_t();
-    dT                = RemoteView_t();
-    N                 = 10000;
+  Stream_Manager(int a) : indication_of_lack_of_cpp_knowledge(a) {
+    // populate with defaults, set the rest in initialize_views.
+    len = 8000000;
+    V_h = HostView_t();
+    V   = ViewType_t();
+    N   = 10000;
   }
 
-  void setup_subdomain() {
-    dX = X;
-    dY = Y;
-    dZ = Z;
+  void initialize_views() {
+    /* how to handle unmanaged? */
+    // if (std::is_same<ViewType_t, UnmanagedView_t>::value) {
+    // R = RemoteView_t("System::Vector", len);
+    // V = ViewType_t(R.data(), len);
+    // }
+    // else {
+    V = ViewType_t("System::Vector", len);
+    // }
+    V_h = HostView_t("Host::Vector", V.extent(0));
 
-    auto local_range = Kokkos::Experimental::get_local_range(dX);
-    my_lo_x          = local_range.first;
-    my_hi_x          = local_range.second + 1;
+    Kokkos::deep_copy(V_h, 0);
+    Kokkos::deep_copy(V, V_h);
 
-    T1  = PlainView_t("System::T1", X, Y, Z);
-    T_h = HostView_t("Host::T", T1.extent(0), Y, Z);
-    dT  = RemoteView_t("System::dT", X, Y, Z);
-
-    Kokkos::deep_copy(T_h, 0);
-    Kokkos::deep_copy(T1, T_h);
-    Kokkos::deep_copy(T_h, 1);
-    Kokkos::deep_copy(dT, T_h);
-    dT_u = UnmanagedView_t(dT.data(), X, Y, Z);
-
-    printf("My Domain: (%i %i %i) (%i %i %i)\n", 0, 0, 0, X, Y, Z);
-    // printf("dimensions: %i %i
-    // %i\n",dT_u.extent(0),dT_u.extent(1),dT_u.extent(2));
-    // Kokkos::deep_copy(T_h, 0);
-    // Kokkos::deep_copy(T_h, dT_u);
-    // printf("T_h(0,0,0)? %lf\n", T_h(0,0,0));
+    printf("My Vector: [%i, %i]\n", 0, len - 1);
   }
 
   void print_help() {
     printf("Options (default):\n");
-    printf("  -X IARG: (%i) num elements in the X direction\n", X);
-    printf("  -Y IARG: (%i) num elements in the Y direction\n", Y);
-    printf("  -Z IARG: (%i) num elements in the Z direction\n", Z);
-    printf("  -N IARG: (%i) num timesteps\n", Z);
+    printf("  -l IARG: (%i) num elements in the V vector\n", len);
+    printf("  -N IARG: (%i) num repititions\n", N);
   }
 
   // check command line args
@@ -113,45 +94,40 @@ struct System {
       }
     }
     for (int i = 1; i < argc; i++) {
-      if (strcmp(argv[i], "-X") == 0) X = atoi(argv[i + 1]);
-      if (strcmp(argv[i], "-Y") == 0) Y = atoi(argv[i + 1]);
-      if (strcmp(argv[i], "-Z") == 0) Z = atoi(argv[i + 1]);
+      if (strcmp(argv[i], "-l") == 0) len = atoi(argv[i + 1]);
+      if (strcmp(argv[i], "-len") == 0) len = atoi(argv[i + 1]);
       if (strcmp(argv[i], "-N") == 0) N = atoi(argv[i + 1]);
     }
-    setup_subdomain();
+    initialize_views();
     return true;
   }
-  struct copy_TplusdT_benchmark {};
+  struct stream_benchmark {};
   KOKKOS_FUNCTION
-  void operator()(copy_TplusdT_benchmark, int x, int y, int z) const {
-    T1(x, y, z) += dT_u(x, y, z);
-  }
-  void Copy_TplusdT_Benchmark() {
-    using policy_t =
-        Kokkos::MDRangePolicy<Kokkos::Rank<3>, copy_TplusdT_benchmark, int>;
-    Kokkos::parallel_for("TplusdT", policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}),
-                         *this);
+  void operator()(stream_benchmark, int i) const { V(i) += 1; }
+  void Stream_Benchmark() {
+    using policy_t = Kokkos::RangePolicy<stream_benchmark, int>;
+    Kokkos::parallel_for("stream", policy_t({0}, {len}), *this);
   }
 
-  // run time loops
+  // run copy benchmark
   void timestep() {
     Kokkos::Timer timer;
     double time_a, time_b;
-    time_a = time_b     = 0;
-    double time_TplusdT = 0;
-    double old_time     = 0.0;
+    time_a = time_b    = 0;
+    double time_stream = 0;
+    double old_time    = 0.0;
     for (int t = 0; t <= N; t++) {
       time_a = timer.seconds();
-      Copy_TplusdT_Benchmark();
+      Stream_Benchmark();
       RemoteSpace_t().fence();
       time_b = timer.seconds();
-      time_TplusdT += time_b - time_a;
+      time_stream += time_b - time_a;
       if ((t % 400 == 0 || t == N)) {
         double time = timer.seconds();
-        Kokkos::deep_copy(T_h, T1);
-        printf("%d T_h(0)=%lf Time (%lf %lf)\n", t, T_h(0, 0, 0), time,
+        Kokkos::deep_copy(V_h, V);
+        printf("%d V_h(0)=%lf Time (%lf %lf)\n", t, V_h(0), time,
                time - old_time);
-        printf("    TplusdT: %lf\n", time_TplusdT);
+        printf("    stream: %lf\n", time_stream);
         old_time = time;
       }
     }
@@ -185,9 +161,36 @@ int main(int argc, char* argv[]) {
 
   Kokkos::initialize(argc, argv);
   {
-    System sys(0);
+    /* use 'mode' variable to pack any of three benchmarks into one here */
+    int mode = 0;
+    for (int i = 1; i < argc; i++) {
+      if (strcmp(argv[i], "-h") == 0) {
+        printf("modes:\n");
+        printf("  0: Kokkos (Normal)  View\n");
+        printf("  1: Kokkos Remote    View\n");
+        printf("  2: Kokkos Unmanaged View\n");
+        printf("  -m IARG: (%d) which mode to choose\n", mode);
+        break;
+      }
+      if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "-type") == 0) {
+        mode = atoi(argv[i + 1]);
+      }
+    }
 
-    if (sys.check_args(argc, argv)) sys.timestep();
+    if (mode == 0) {
+      Stream_Manager<PlainView_t> sys(0);
+      if (sys.check_args(argc, argv)) sys.timestep();
+    } else if (mode == 1) {
+      Stream_Manager<RemoteView_t> sys(0);
+      if (sys.check_args(argc, argv)) sys.timestep();
+    } else if (mode == 2) {
+      printf("unmanaged views not handled yet.");
+      // Stream_Manager<UnmanagedView_t> sys(0);
+      // if (sys.check_args(argc, argv))
+      // sys.timestep();
+    } else {
+      printf("invalid mode selected (%d)\n", mode);
+    }
   }
   Kokkos::finalize();
 #ifdef KRS_ENABLE_SHMEMSPACE

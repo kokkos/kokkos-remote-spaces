@@ -53,11 +53,11 @@ struct SpaceInstance<Kokkos::Cuda> {
 #endif /* KOKKOS_ENABLE_CUDA */
 #endif /* KOKKOS_ENABLE_DEBUG */
 
-using RemoteSpace_t   = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t    = Kokkos::View<double***, RemoteSpace_t>;
-using UnmanagedView_t = Kokkos::View<double***, RemoteSpace_t,
-                                     Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-using HostView_t      = typename RemoteView_t::HostMirror;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
+using UnmanagedView_t =
+    Kokkos::View<double***, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+using HostView_t = typename RemoteView_t::HostMirror;
 
 struct CommHelper {
   MPI_Comm comm;
@@ -135,7 +135,7 @@ struct System {
 
   // Temperature and delta Temperature
   RemoteView_t T, dT;
-  UnmanagedView_t T_u;
+  UnmanagedView_t dT_u;
   HostView_t T_h;
 
   Kokkos::DefaultExecutionSpace E_bulk;
@@ -170,7 +170,7 @@ struct System {
     T_h                = HostView_t();
     T                  = RemoteView_t();
     dT                 = RemoteView_t();
-    T_u                = UnmanagedView_t();
+    dT_u               = UnmanagedView_t();
     T0                 = 0.0;
     dt                 = 0.1;
     q                  = 1.0;
@@ -213,10 +213,10 @@ struct System {
 
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
-    T   = RemoteView_t("System::T", dX, dY, dZ);
-    T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
-    dT  = RemoteView_t("System::dT", dX, dY, dZ);
-    // T_u = UnmanagedView_t("System::T_u", dX, dY, dZ);
+    T    = RemoteView_t("System::T", dX, dY, dZ);
+    T_h  = HostView_t("Host::T", T.extent(0), dY, dZ);
+    dT   = RemoteView_t("System::dT", dX, dY, dZ);
+    dT_u = UnmanagedView_t(dT.data(), dX, dY, dZ);
 
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
@@ -451,14 +451,15 @@ struct System {
   // Some compilers have deduction issues if this were just a tagget operator
   // So it is instead a full Functor
   struct computeT {
-    RemoteView_t T, dT;
+    RemoteView_t T;
+    UnmanagedView_t dT_u;
     double dt;
-    computeT(RemoteView_t T_, RemoteView_t dT_, double dt_)
-        : T(T_), dT(dT_), dt(dt_) {}
+    computeT(RemoteView_t T_, UnmanagedView_t dT_u_, double dt_)
+        : T(T_), dT_u(dT_u_), dt(dt_) {}
     KOKKOS_FUNCTION
     void operator()(int x, int y, int z, double& sum_T) const {
       sum_T += T(x, y, z);
-      T(x, y, z) += dt * dT(x, y, z);
+      T(x, y, z) += dt * dT_u(x, y, z);
     }
   };
 
@@ -471,7 +472,7 @@ struct System {
         Kokkos::Experimental::require(
             policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {10, 10, 10}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        computeT(T, dT, dt), my_T);
+        computeT(T, dT_u, dt), my_T);
     double sum_T;
     RemoteSpace_t().fence();
     Kokkos::DefaultExecutionSpace().fence();
@@ -480,25 +481,12 @@ struct System {
     return sum_T;
   }
 
-  struct copy_to_T_u {};
-  KOKKOS_FUNCTION
-  void operator()(copy_to_T_u, int x, int y, int z) const {
-    T_u(x, y, z) = T(x, y, z);
-  }
-  void Copy_To_T_u() {
-    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, copy_to_T_u, int>;
-    Kokkos::parallel_for(
-        "TplusdT", policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}), *this);
-  }
-
   // run time loops
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
     double time_a, time_c, time_d;
     double time_compute, time_all;
-    // Copy_To_T_u();
-    // RemoteSpace_t().fence();
     time_all = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */
