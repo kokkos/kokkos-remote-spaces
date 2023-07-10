@@ -104,8 +104,9 @@ static void miniFE_get_row(int64_t *rows, S *vals, GO *cols,
 #ifndef USE_GLOBAL_LAYOUT
           cols[offset + m] = col_idx;
           // Enable for faster pid and offset calculation. May result in unfair
-          // comparison cols[offset + m] = (col_idx / rows_per_proc) * MASK +
-          // col_idx % rows_per_proc;
+          // comparison
+          cols[offset + m] =
+              (col_idx / rows_per_proc) * MASK + col_idx % rows_per_proc;
 #else
           cols[offset + m] = col_idx;
 #endif

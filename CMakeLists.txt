@@ -89,7 +89,7 @@ message(STATUS "Enabled remote spaces: ${BACKENDS}")
 
 list(LENGTH BACKENDS N_BACKENDS)
 if (NOT ${N_BACKENDS} EQUAL "1")
-  message(FATAL_ERROR "Must give a single valid backend")
+  message(FATAL_ERROR "Must give a single valid backend. ${N_BACKENDS} given.")
 endif()
 
 set(SOURCES)
