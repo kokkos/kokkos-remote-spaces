@@ -1,4 +1,9 @@
-add_executable(stream stream_benchmark.cpp)
-target_link_libraries(stream PRIVATE Kokkos::kokkosremote)
-target_include_directories(stream PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(stream PRIVATE KRS_ENABLE_NVSHMEM_PTR)
+add_executable(stream_1node access_overhead_1node.cpp)
+target_link_libraries(stream_1node PRIVATE Kokkos::kokkosremote)
+target_include_directories(stream_1node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(stream_1node PRIVATE KRS_ENABLE_NVSHMEM_PTR)
+
+add_executable(stream_2node stream_benchmark_2node.cpp)
+target_link_libraries(stream_2node PRIVATE Kokkos::kokkosremote)
+target_include_directories(stream_2node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(stream_2node PRIVATE KRS_ENABLE_NVSHMEM_PTR)
