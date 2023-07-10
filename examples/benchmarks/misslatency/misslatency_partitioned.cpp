@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 1;
   }
-  int partner_rank = rank == 0 ? 1 : 0;
+  int partner_rank = rank ^ 1;
 
   using Team = Kokkos::TeamPolicy<>::member_type;
   {

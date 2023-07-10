@@ -33,9 +33,10 @@
 #define SIGMA 1000
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using RemoteView_t  = Kokkos::View<ORDINAL_T **, RemoteSpace_t>;
-using Generator_t   = Kokkos::Random_XorShift64_Pool<>;
-using TeamPolicy    = Kokkos::TeamPolicy<>;
+using RemoteView_t =
+    Kokkos::View<ORDINAL_T **, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
+using Generator_t = Kokkos::Random_XorShift64_Pool<>;
+using TeamPolicy  = Kokkos::TeamPolicy<>;
 
 /*
   Uncomment to select between random or linear access pattern.
