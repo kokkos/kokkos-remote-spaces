@@ -4,6 +4,9 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 #include <assert.h>
+#include <typeinfo>
+#include <concepts>
+#include <type_traits>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
@@ -15,6 +18,8 @@ using policy_t = Kokkos::RangePolicy<int>;
 
 #define default_N 800000
 #define default_iters 3
+
+std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyView"};
 
 struct Args_t{
   int mode = 0;
@@ -50,14 +55,20 @@ bool read_args(int argc, char* argv[], Args_t & args) {
   return true;
 }
 
+template <typename ViewType_t, typename Enable = void>
+struct Access;
+
 template <typename ViewType_t>
-struct Stream {
-  int N; /* size of vector */
+struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,UnmanagedView_t>::value>> {
+  int N;       /* size of vector */
   int iters;   /* number of iterations */
+  int mode;    /* View type */
 
   ViewType_t v;
 
-  Stream(Args_t args):N(args.N),iters(args.iters){};
+  Access(Args_t args):N(args.N),iters(args.iters), 
+  v(string(typeid(v).name()),args.N), mode(args.mode)
+  {};
 
   KOKKOS_FUNCTION
   void operator()(int i) const { v(i) += 1; }
@@ -70,14 +81,62 @@ struct Stream {
     double time = 0;
     for (int i = 0; i <= iters; i++) {
       time_a = timer.seconds();
-      Kokkos::parallel_for("stream", policy_t({0}, {N}), *this);
+      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
       RemoteSpace_t().fence();
+      Kokkos::fence();
       time_b = timer.seconds();
       time += time_b - time_a;
     }
-    double gups =  time / (N * iters) / 1000 / 1000;
-    printf("Stream,%lu,%lu,%lf,%lf",
+    double gups =  10e-9 * ((N * iters) / time);
+    size_t size =  N * sizeof(double) / 1024 / 1024;
+    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+      modes[mode].c_str(),
       N,
+      size,
+      iters,
+      time,
+      gups);
+  }
+};
+
+template <typename ViewType_t>
+struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,UnmanagedView_t>::value>> {
+  int N;       /* size of vector */
+  int iters;   /* number of iterations */
+  int mode;    /* View type */
+
+  ViewType_t v;
+  RemoteView_t rv;
+
+  Access(Args_t args):N(args.N),iters(args.iters), 
+  rv(string(typeid(v).name()),args.N), mode(args.mode)
+  {
+    v = ViewType_t(rv.data(), N);
+  };
+
+  KOKKOS_FUNCTION
+  void operator()(int i) const { v(i) += 1; }
+
+  // run copy benchmark
+  void run() {
+    Kokkos::Timer timer;
+    double time_a, time_b;
+    time_a = time_b = 0;
+    double time = 0;
+    for (int i = 0; i <= iters; i++) {
+      time_a = timer.seconds();
+      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
+      RemoteSpace_t().fence();
+      Kokkos::fence();
+      time_b = timer.seconds();
+      time += time_b - time_a;
+    }
+    double gups =  10e-9 * ((N * iters) / time);
+    size_t size =  N * sizeof(double) / 1024 / 1024;
+    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+      modes[mode].c_str(),
+      N,
+      size,
       iters,
       time,
       gups);
@@ -114,21 +173,19 @@ int main(int argc, char* argv[]) {
   do{
     Args_t args;
     if(!read_args(argc,argv, args)){
-      printf("Wrong args\n");
       break;
     };
        
     {
       if (args.mode == 0) {
-        Stream<PlainView_t> s(args);
+        Access<PlainView_t> s(args);
         s.run();
       } else if (args.mode == 1) {
-        Stream<RemoteView_t> s(args);
+        Access<RemoteView_t> s(args);
         s.run();
       } else if (args.mode == 2) {
-        printf("unmanaged views not handled yet.");
-        // Stream<UnmanagedView_t> s(args);
-        // s.run();
+        Access<UnmanagedView_t> s(args);
+        s.run();
       } else {
         printf("invalid mode selected (%d)\n", args.mode);
       }

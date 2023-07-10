@@ -1,0 +1,3 @@
+add_executable(access_overhead access_overhead.cpp)
+target_link_libraries(access_overhead PRIVATE Kokkos::kokkosremote)
+target_include_directories(access_overhead PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
