@@ -16,8 +16,15 @@ using UnmanagedView_t =
 using HostView_t = typename RemoteView_t::HostMirror;
 using policy_t = Kokkos::RangePolicy<int>;
 
+using StreamIndex = int;
+using Policy      = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
+
 #define default_N 800000
 #define default_iters 3
+
+#define LEAGE_SIZE 1
+#define TEAM_SIZE 1024
+#define VECTOR_LEN 1
 
 std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyView"};
 
@@ -70,9 +77,6 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
   v(string(typeid(v).name()),args.N), mode(args.mode)
   {};
 
-  KOKKOS_FUNCTION
-  void operator()(int i) const { v(i) += 1; }
-
   // run copy benchmark
   void run() {
     Kokkos::Timer timer;
@@ -81,9 +85,38 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     double time = 0;
     for (int i = 0; i <= iters; i++) {
       time_a = timer.seconds();
-      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
+      int ls = LEAGE_SIZE;
+      int ts = TEAM_SIZE;
+      int vl = VECTOR_LEN;
+
+      const int64_t iters_per_team = N / ls;
+      const int64_t iters_per_thread= iters_per_team / ts;
+
+      auto policy =
+      Kokkos::TeamPolicy<Kokkos::DefaultExecutionSpace>(ls, ts, vl);
+      using team_t = const Kokkos::TeamPolicy<>::member_type;
+
+      Kokkos::parallel_for(
+      "scale", policy,
+      KOKKOS_LAMBDA(team_t &team) {
+      const int64_t first_i = team.league_rank() * iters_per_team;
+      const int64_t last_i  = first_i + iters_per_team < v.extent(0)
+                            ? first_i + iters_per_team
+                            : v.extent(0);
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_i, last_i), [&](const StreamIndex j){
+          const int64_t first_thread_i = team.team_rank() * iters_per_thread;
+          const int64_t last_thread_i  = first_thread_i + iters_per_thread < last_i
+                                ? first_thread_i + iters_per_thread
+                                : last_i;
+          Kokkos::parallel_for(
+          Kokkos::ThreadVectorRange(team,last_thread_i - first_thread_i), [=](const StreamIndex i) {
+          v(i) += 1; 
+          });
+        });
+      });
+      
       RemoteSpace_t().fence();
-      Kokkos::fence();
+      
       time_b = timer.seconds();
       time += time_b - time_a;
     }
@@ -125,9 +158,38 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
     double time = 0;
     for (int i = 0; i <= iters; i++) {
       time_a = timer.seconds();
-      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
+      int ls = LEAGE_SIZE;
+      int ts = TEAM_SIZE;
+      int vl = VECTOR_LEN;
+
+      const int64_t iters_per_team = N / ls;
+      const int64_t iters_per_thread= iters_per_team / ts;
+
+      auto policy =
+      Kokkos::TeamPolicy<Kokkos::DefaultExecutionSpace>(ls, ts, vl);
+      using team_t = const Kokkos::TeamPolicy<>::member_type;
+
+      Kokkos::parallel_for(
+      "scale", policy,
+      KOKKOS_LAMBDA(team_t &team) {
+      const int64_t first_i = team.league_rank() * iters_per_team;
+      const int64_t last_i  = first_i + iters_per_team < v.extent(0)
+                            ? first_i + iters_per_team
+                            : v.extent(0);
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_i, last_i), [&](const StreamIndex j){
+          const int64_t first_thread_i = team.team_rank() * iters_per_thread;
+          const int64_t last_thread_i  = first_thread_i + iters_per_thread < last_i
+                                ? first_thread_i + iters_per_thread
+                                : last_i;
+          Kokkos::parallel_for(
+          Kokkos::ThreadVectorRange(team,last_thread_i - first_thread_i), [=](const StreamIndex i) {
+          v(i) += 1; 
+          });
+        });
+      });
+      
       RemoteSpace_t().fence();
-      Kokkos::fence();
+      
       time_b = timer.seconds();
       time += time_b - time_a;
     }
