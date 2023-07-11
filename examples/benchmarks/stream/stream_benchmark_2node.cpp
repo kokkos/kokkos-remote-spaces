@@ -21,25 +21,22 @@ struct CommInfo {
     lneighbor = (me == 0) ? nranks - 1 : me - 1;
     rneighbor = (me == nranks - 1) ? 0 : me + 1;
 
-    printf("NumRanks: %i Me: %i\n", nranks, me);
-    printf("rneighbor: %i\n", rneighbor);
+    printf("NumRanks: %i Me: %i", nranks, me);
+    printf(" rneighbor rank: %i\n", rneighbor);
   }
 };
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double *>;
-using UnmanagedView_t =
-    Kokkos::View<double *, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-using HostView_t = typename RemoteView_t::HostMirror;
-using policy_t   = Kokkos::RangePolicy<int>;
+using policy_t      = Kokkos::RangePolicy<int>;
 
 template <typename ViewType_t>
 struct Stream_Manager {
   int N;          /* size of vector */
   int iterations; /* number of iterations */
-  int my_min_i;
-  int my_max_i;
+  int my_min_i;   /* my rank's minimum i */
+  int my_max_i;   /* my rank's maximum i */
   int interval;
   int rstart;
   int rend;
@@ -51,7 +48,7 @@ struct Stream_Manager {
 
   ViewType_t A;
   ViewType_t B;
-  ViewType_t C; /* C, an initially empty view */
+  ViewType_t C; /* C, an initially empty view only used for mpi version */
 
   CommInfo comm;
 
@@ -59,11 +56,9 @@ struct Stream_Manager {
                  int n, int i)
       : comm(comm_), A(a), B(b), C(c), N(n), iterations(i) {
     if (std::is_same<ViewType_t, PlainView_t>::value) {
-      printf("detected using plain view\n");
       remote = false;
     }
     if (std::is_same<ViewType_t, RemoteView_t>::value) {
-      printf("detected using remote view\n");
       remote = true;
     }
 
@@ -115,10 +110,10 @@ struct Stream_Manager {
     void operator()(int i) const { A(my_min_i + i) += B(rstart + i); }
   };
 
-  double remote_benchmark(int minterval) {
+  void remote_benchmark(int minterval) {
     Kokkos::parallel_for("remote_stream", policy_t({0}, {minterval}),
                          remote_add(A, B, my_min_i, rstart));
-    return 0.0; /* maybe return something different in the future */
+    return;
   }
 
   struct mpi_add {
@@ -129,7 +124,7 @@ struct Stream_Manager {
     void operator()(int i) const { A(i) += C(i); }
   };
 
-  double mpi_benchmark(int minterval) {
+  void mpi_benchmark(int minterval) {
     MPI_Irecv(C.data(), minterval, MPI_DOUBLE, comm.rneighbor, 1, comm.comm,
               &mpi_request_recv);
     MPI_Isend(B.data(), minterval, MPI_DOUBLE, comm.lneighbor, 1, comm.comm,
@@ -139,7 +134,7 @@ struct Stream_Manager {
 
     Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
                          mpi_add(A, C));
-    return 0.0;
+    return;
   }
 
   // run stream benchmark
@@ -151,7 +146,6 @@ struct Stream_Manager {
     double old_time    = 0.0;
     int minterval;
     minterval = rinterval < interval ? rinterval : interval;
-    printf("minterval = %d\n", minterval);
     for (int t = 0; t <= iterations; t++) {
       time_a = timer.seconds();
 
@@ -213,8 +207,8 @@ int main(int argc, char *argv[]) {
     int mode = 0;
     int N;
     int iterations;
-    iterations = 10000;
-    N          = 8000000;
+    iterations = 1e4;
+    N          = 1e7;
     for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "-h") == 0) {
         printf("Options (default):\n");
@@ -238,41 +232,37 @@ int main(int argc, char *argv[]) {
       Type_t a;
       Type_t b;
       Type_t c;
-      PlainView_t::HostMirror d;
+      Type_t::HostMirror d;
       int view_size = (N + nranks - 1) / nranks;
       a             = Type_t("System::A", view_size);
       b             = Type_t("System::B", view_size);
       c             = Type_t("System::C", view_size);
-      d             = PlainView_t::HostMirror("Host::init", view_size);
+      d             = Type_t::HostMirror("Host::init", view_size);
       Kokkos::deep_copy(d, myrank);
       Kokkos::deep_copy(a, d);
       Kokkos::deep_copy(b, d);
       Kokkos::deep_copy(c, d);
       Stream_Manager<Type_t> sys(mpi_comm, a, b, c, view_size, iterations);
       sys.benchmark();
-      Kokkos::deep_copy(d, a);
-      // printf("rank %d: A(0) is %lf\n", myrank, d(0));
     }
     if (mode == 1) {
       using Type_t = RemoteView_t;
       Type_t a;
       Type_t b;
       Type_t c;
-      HostView_t d;
+      Type_t::HostMirror d;
       int host_view_size = (N + nranks - 1) / nranks;
       a                  = Type_t("System::A", N);
       b                  = Type_t("System::B", N);
       c                  = Type_t("System::C", N);
 
-      d = HostView_t("Host::init", host_view_size);
+      d = Type_t::HostMirror("Host::init", host_view_size);
       Kokkos::deep_copy(d, myrank);
       Kokkos::deep_copy(a, d);
       Kokkos::deep_copy(b, d);
       Kokkos::deep_copy(c, d);
       Stream_Manager<Type_t> sys(mpi_comm, a, b, c, N, iterations);
       sys.benchmark();
-      Kokkos::deep_copy(d, a);
-      // printf("rank %d: A(0) is %lf\n", myrank, d(0));
     }
   }
   Kokkos::finalize();
