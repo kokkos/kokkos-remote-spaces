@@ -110,10 +110,15 @@ struct Stream_Manager {
     void operator()(int i) const { A(my_min_i + i) += B(rstart + i); }
   };
 
-  void remote_benchmark(int minterval) {
+  double remote_benchmark(int minterval) {
+    Kokkos::Timer timer;
+    double time_begin, time_end;
+    time_begin = timer.seconds();
     Kokkos::parallel_for("remote_stream", policy_t({0}, {minterval}),
                          remote_add(A, B, my_min_i, rstart));
-    return;
+    RemoteSpace_t().fence();
+    time_end = timer.seconds();
+    return time_end - time_begin;
   }
 
   struct mpi_add {
@@ -124,7 +129,10 @@ struct Stream_Manager {
     void operator()(int i) const { A(i) += C(i); }
   };
 
-  void mpi_benchmark(int minterval) {
+  double mpi_benchmark(int minterval) {
+    Kokkos::Timer timer;
+    double time_begin, time_end;
+    time_begin = timer.seconds();
     MPI_Irecv(C.data(), minterval, MPI_DOUBLE, comm.rneighbor, 1, comm.comm,
               &mpi_request_recv);
     MPI_Isend(B.data(), minterval, MPI_DOUBLE, comm.lneighbor, 1, comm.comm,
@@ -134,29 +142,24 @@ struct Stream_Manager {
 
     Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
                          mpi_add(A, C));
-    return;
+    RemoteSpace_t().fence();
+    time_end = timer.seconds();
+    return time_end - time_begin;
   }
 
   // run stream benchmark
   void benchmark() {
     Kokkos::Timer timer;
-    double time_a, time_b;
-    time_a = time_b    = 0;
     double time_stream = 0;
     double old_time    = 0.0;
     int minterval;
     minterval = rinterval < interval ? rinterval : interval;
     for (int t = 0; t <= iterations; t++) {
-      time_a = timer.seconds();
-
       if (remote)
-        remote_benchmark(minterval);
+        time_stream += remote_benchmark(minterval);
       else
-        mpi_benchmark(minterval);
+        time_stream += mpi_benchmark(minterval);
 
-      RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time_stream += time_b - time_a;
       if ((t % 400 == 0 || t == iterations) && (comm.me == 0)) {
         double time = timer.seconds();
         printf("%d Time (%lf %lf)\n", t, time, time - old_time);
@@ -203,7 +206,7 @@ int main(int argc, char *argv[]) {
 
   Kokkos::initialize(argc, argv);
   {
-    /* use 'mode' variable to pack any of three benchmarks into one here */
+    /* use 'mode' variable to pack any of two benchmarks into one here */
     int mode = 0;
     int N;
     int iterations;

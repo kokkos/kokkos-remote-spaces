@@ -15,31 +15,68 @@ using policy_t   = Kokkos::RangePolicy<int>;
 
 template <typename AViewType_t, typename BViewType_t>
 struct Stream_Manager {
-  int N;          /* size of vector */
-  int iterations; /* number of iterations */
+  int N;           /* size of vector */
+  int iterations;  /* number of iterations */
+  bool plusequals; /* by default, do +=. But do ++ if asked. */
 
   AViewType_t A;
   BViewType_t B;
 
-  Stream_Manager(AViewType_t &a, BViewType_t &b, int n, int i)
-      : A(a), B(b), N(n), iterations(i) {}
+  Stream_Manager(AViewType_t &a, BViewType_t &b, int n, int i, bool pe)
+      : A(a), B(b), N(n), iterations(i), plusequals(pe) {}
 
-  KOKKOS_FUNCTION
-  void operator()(int i) const { A(i) += B(i); }
+  struct stream_plusequals_add {
+    AViewType_t A;
+    BViewType_t B;
+    stream_plusequals_add(AViewType_t A_, BViewType_t B_) : A(A_), B(B_) { ; }
+    KOKKOS_FUNCTION
+    void operator()(int i) const { A(i) += B(i); }
+  };
+
+  double stream_plusequals_benchmark(void) {
+    Kokkos::Timer timer;
+    double time_begin, time_end;
+    time_begin = timer.seconds();
+
+    Kokkos::parallel_for("plusequals", policy_t({0}, {N}),
+                         stream_plusequals_add(A, B));
+
+    RemoteSpace_t().fence();
+    time_end = timer.seconds();
+    return time_end - time_begin;
+  }
+
+  struct stream_plusplus_add {
+    AViewType_t A;
+    stream_plusplus_add(AViewType_t A_) : A(A_) { ; }
+    KOKKOS_FUNCTION
+    void operator()(int i) const { A(i) += 1; }
+  };
+
+  double stream_plusplus_benchmark(void) {
+    Kokkos::Timer timer;
+    double time_begin, time_end;
+    time_begin = timer.seconds();
+
+    Kokkos::parallel_for("plusplus", policy_t({0}, {N}),
+                         stream_plusplus_add(A));
+
+    RemoteSpace_t().fence();
+    time_end = timer.seconds();
+    return time_end - time_begin;
+  }
 
   // run stream benchmark
   void benchmark() {
     Kokkos::Timer timer;
-    double time_a, time_b;
-    time_a = time_b    = 0;
     double time_stream = 0;
     double old_time    = 0.0;
     for (int t = 0; t <= iterations; t++) {
-      time_a = timer.seconds();
-      Kokkos::parallel_for("stream", policy_t({0}, {N}), *this);
-      RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time_stream += time_b - time_a;
+      if (plusequals)
+        time_stream += stream_plusequals_benchmark();
+      else
+        time_stream += stream_plusplus_benchmark();
+
       if ((t % 400 == 0 || t == iterations)) {
         double time = timer.seconds();
         printf("%d Time (%lf %lf)\n", t, time, time - old_time);
@@ -77,9 +114,9 @@ int main(int argc, char *argv[]) {
 
   Kokkos::initialize(argc, argv);
   {
-    /* use 'mode' variables to pack any of nine benchmarks into one here */
+    /* use 'mode' variables to pack any of twelve benchmarks into one here */
     int a_mode = 0;
-    int b_mode = 0;
+    int b_mode = -1;
     int N;
     int iterations;
     iterations = 10000;
@@ -95,6 +132,7 @@ int main(int argc, char *argv[]) {
         printf("  0: Kokkos (Normal)  View\n");
         printf("  1: Kokkos Remote    View\n");
         printf("  2: Kokkos Unmanaged View\n");
+        printf("  if nothing passed for view b, then benchmark A(i) ++\n");
         return 0;
       }
       if (strcmp(argv[i], "-a") == 0) a_mode = atoi(argv[i + 1]);
@@ -113,24 +151,22 @@ int main(int argc, char *argv[]) {
       if (b_mode == 0) {
         PlainView_t b;
         b = PlainView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
-      }
-      if (b_mode == 1) {
+      } else if (b_mode == 1) {
         RemoteView_t b;
         b = RemoteView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
-      }
-      if (b_mode == 2) {
+      } else if (b_mode == 2) {
         UnmanagedView_t b;
         RemoteView_t c;
         c = RemoteView_t("System::B", N);
         b = UnmanagedView_t(c.data(), N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations, true);
+        sys.benchmark();
+      } else {
+        Stream_Manager<AType_t, AType_t> sys(a, a, N, iterations, false);
         sys.benchmark();
       }
     }
@@ -141,24 +177,22 @@ int main(int argc, char *argv[]) {
       if (b_mode == 0) {
         PlainView_t b;
         b = PlainView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
-      }
-      if (b_mode == 1) {
+      } else if (b_mode == 1) {
         RemoteView_t b;
         b = RemoteView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
-      }
-      if (b_mode == 2) {
+      } else if (b_mode == 2) {
         UnmanagedView_t b;
         RemoteView_t c;
         c = RemoteView_t("System::B", N);
         b = UnmanagedView_t(c.data(), N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations, true);
+        sys.benchmark();
+      } else {
+        Stream_Manager<AType_t, AType_t> sys(a, a, N, iterations, false);
         sys.benchmark();
       }
     }
@@ -171,15 +205,12 @@ int main(int argc, char *argv[]) {
       if (b_mode == 0) {
         PlainView_t b;
         b = PlainView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, PlainView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
-      }
-      if (b_mode == 1) {
+      } else if (b_mode == 1) {
         RemoteView_t b;
         b = RemoteView_t("System::B", N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, RemoteView_t> sys(a, b, N, iterations, true);
         sys.benchmark();
       }
       if (b_mode == 2) {
@@ -187,8 +218,10 @@ int main(int argc, char *argv[]) {
         RemoteView_t c;
         c = RemoteView_t("System::B", N);
         b = UnmanagedView_t(c.data(), N);
-        printf("init stream manager\n");
-        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations);
+        Stream_Manager<AType_t, UnmanagedView_t> sys(a, b, N, iterations, true);
+        sys.benchmark();
+      } else {
+        Stream_Manager<AType_t, AType_t> sys(a, a, N, iterations, false);
         sys.benchmark();
       }
     }
