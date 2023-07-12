@@ -84,7 +84,7 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     time_a = time_b = 0;
     double time = 0;
 
-    Kokkos::parallel_for("init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       v(i) = 0.0;
     });
 
@@ -102,7 +102,7 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
       using team_t = const Kokkos::TeamPolicy<>::member_type;
 
       Kokkos::parallel_for(
-      "scale", policy,
+      "access_overhead", policy,
       KOKKOS_LAMBDA(team_t &team) {
       const int64_t first_i = team.league_rank() * iters_per_team;
       const int64_t last_i  = first_i + iters_per_team < v.extent(0)
@@ -128,7 +128,7 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
 
 
     #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       assert(v(i) == iters * 1.0 );
     });
     #endif
@@ -184,7 +184,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
       using team_t = const Kokkos::TeamPolicy<>::member_type;
 
       Kokkos::parallel_for(
-      "scale", policy,
+      "access_overhead-check", policy,
       KOKKOS_LAMBDA(team_t &team) {
       const int64_t first_i = team.league_rank() * iters_per_team;
       const int64_t last_i  = first_i + iters_per_team < v.extent(0)
@@ -210,7 +210,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
 
 
     #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       assert(v(i) == iters );
     });
     #endif

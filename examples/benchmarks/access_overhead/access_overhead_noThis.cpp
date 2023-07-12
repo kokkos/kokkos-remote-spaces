@@ -82,7 +82,7 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     time_a = time_b = 0;
     double time = 0;
 
-    Kokkos::parallel_for("init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       v(i) = 0.0;
     });
 
@@ -98,7 +98,7 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     }
 
     #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       assert(v(i) == iters * 1.0 );
     });
   #endif
@@ -152,7 +152,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
     }
 
   #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
       assert(v(i) == iters );
     });
   #endif
