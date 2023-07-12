@@ -7,6 +7,7 @@
 #include <typeinfo>
 #include <concepts>
 #include <type_traits>
+#include <string>
 
 #define CHECK_FOR_CORRECTNESS
 
@@ -16,7 +17,7 @@ using PlainView_t   = Kokkos::View<double*>;
 using UnmanagedView_t =
     Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 using HostView_t = typename RemoteView_t::HostMirror;
-using policy_t = Kokkos::RangePolicy<int>;
+using policy_t = Kokkos::RangePolicy<size_t>;
 
 #define default_N 800000
 #define default_iters 3
@@ -25,7 +26,7 @@ std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyV
 
 struct Args_t{
   int mode = 0;
-  int N = default_N;
+  size_t N = default_N;
   int iters = default_iters;
 };
 
@@ -52,122 +53,145 @@ bool read_args(int argc, char* argv[], Args_t & args) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-N") == 0) args.N = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-I") == 0) args.iters = atoi(argv[i + 1]);
-    if (strcmp(argv[i], "-M") == 0) args.mode = atoi(argv[i + 1]);
+    if (strcmp(argv[i], "-M") == 0) args.mode = atol(argv[i + 1]);
   }
   return true;
 }
 
-template <typename ViewType_t, typename Enable = void>
-struct Access;
+// run copy benchmark
+void run_1(Args_t & args) {
+  Kokkos::Timer timer;
+  double time_a, time_b;
+  time_a = time_b = 0;
+  double time = 0;
+  using ViewType_t = PlainView_t;
+  ViewType_t v("PlainView_t",args.N);
 
-template <typename ViewType_t>
-struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,UnmanagedView_t>::value>> {
-  int N;       /* size of vector */
-  int iters;   /* number of iterations */
-  int mode;    /* View type */
+  size_t N = args.N;       /* size of vector */
+  int iters = args.iters;   /* number of iterations */
+  int mode = args.mode;    /* View type */
 
-  ViewType_t v;
-
-  Access(Args_t args):N(args.N),iters(args.iters), 
-  v(string(typeid(v).name()),args.N), mode(args.mode)
-  {};
-
-  KOKKOS_FUNCTION
-  void operator()(int i) const { v(i) += 1;}
-
-  // run copy benchmark
-  void run() {
-    Kokkos::Timer timer;
-    double time_a, time_b;
-    time_a = time_b = 0;
-    double time = 0;
-
-    Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
-      v(i) = 0.0;
+  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    v(i) = 0.0;
+  });
+  
+  time_a = timer.seconds();
+  for (int i = 0; i < iters; i++) {
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
+      v(i) += 1;
     });
-
-    for (int i = 0; i < iters; i++) {
-      time_a = timer.seconds();
-      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const int i){
-        v(i) += 1;
-      });
-      RemoteSpace_t().fence();
-      Kokkos::fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
-    }
-
-    #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
-      assert(v(i) == iters * 1.0 );
-    });
-  #endif
-
-    double gups =  10e-9 * ((N * iters) / time);
-    double size =  N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
-      modes[mode].c_str(),
-      N,
-      size,
-      iters,
-      time,
-      gups);
+    RemoteSpace_t().fence();
   }
-};
-
-template <typename ViewType_t>
-struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,UnmanagedView_t>::value>> {
-  int N;       /* size of vector */
-  int iters;   /* number of iterations */
-  int mode;    /* View type */
-
-  ViewType_t v;
-  RemoteView_t rv;
-
-  Access(Args_t args):N(args.N),iters(args.iters), 
-  rv(string(typeid(v).name()),args.N), mode(args.mode)
-  {
-    v = ViewType_t(rv.data(), N);
-    deep_copy(v, 0.0);
-  };
-
-  KOKKOS_FUNCTION
-  void operator()(int i) const { v(i) += 1; }
-
-  // run copy benchmark
-  void run() {
-    Kokkos::Timer timer;
-    double time_a, time_b;
-    time_a = time_b = 0;
-    double time = 0;
-    for (int i = 0; i < iters; i++) {
-      time_a = timer.seconds();
-      Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),KOKKOS_LAMBDA(const int i){
-        v(i) += 1;
-      });
-      RemoteSpace_t().fence();
-      Kokkos::fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
-    }
+  time_b = timer.seconds();
+  time += time_b - time_a;
 
   #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
-      assert(v(i) == iters );
-    });
+  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    assert(v(i) == iters * 1.0 );
+  });
   #endif
 
-    double gups =  10e-9 * ((N * iters) / time);
-    double size =  N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
-      modes[mode].c_str(),
-      N,
-      size,
-      iters,
-      time,
-      gups);
+  double gups =  1e-9 * ((N * iters) / time);
+  double size =  N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
+    modes[mode].c_str(),
+    N,
+    size,
+    iters,
+    time,
+    gups);
+}
+
+// run copy benchmark
+void run_2(Args_t & args) {
+  Kokkos::Timer timer;
+  double time_a, time_b;
+  time_a = time_b = 0;
+  double time = 0;
+  using ViewType_t = RemoteView_t;
+  ViewType_t v("RemoteView_t", args.N);
+
+  size_t N = args.N;       /* size of vector */
+  int iters = args.iters;   /* number of iterations */
+  int mode = args.mode;    /* View type */
+
+  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    v(i) = 0.0;
+  });
+
+  time_a = timer.seconds();
+  for (int i = 0; i < iters; i++) {
+    
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
+      v(i) += 1;
+    });
+    RemoteSpace_t().fence();
   }
-};
+  time_b = timer.seconds();
+  time += time_b - time_a;
+
+  #ifdef CHECK_FOR_CORRECTNESS
+  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    assert(v(i) == iters * 1.0 );
+  });
+  #endif
+
+  double gups =  10e-9 * ((N * iters) / time);
+  double size =  N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
+    modes[mode].c_str(),
+    N,
+    size,
+    iters,
+    time,
+    gups);
+}
+
+// run copy benchmark
+void run_3(Args_t & args) {
+  Kokkos::Timer timer;
+  double time_a, time_b;
+  time_a = time_b = 0;
+  double time = 0;
+
+  size_t N = args.N;       /* size of vector */
+  int iters = args.iters;   /* number of iterations */
+  int mode = args.mode;    /* View type */
+
+  RemoteView_t rv("RemoteView_t", args.N);
+  UnmanagedView_t v(rv.data(), N);
+
+  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    v(i) = 0.0;
+  });
+
+  time_a = timer.seconds();
+  for (int i = 0; i < iters; i++) {
+    
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
+      v(i) += 1;
+    });
+    RemoteSpace_t().fence();
+  }
+  time_b = timer.seconds();
+  time += time_b - time_a;
+
+  #ifdef CHECK_FOR_CORRECTNESS
+  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
+    assert(v(i) == iters * 1.0 );
+  });
+  #endif
+
+  double gups =  1e-9 * ((N * iters) / time);
+  double size =  N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
+    modes[mode].c_str(),
+    N,
+    size,
+    iters,
+    time,
+    gups);
+}
 
 int main(int argc, char* argv[]) {
   int mpi_thread_level_available;
@@ -201,16 +225,12 @@ int main(int argc, char* argv[]) {
     if(!read_args(argc,argv, args)){
       break;
     };     
-  
     if (args.mode == 0) {
-      Access<PlainView_t> s(args);
-      s.run();
+      run_1(args);
     } else if (args.mode == 1) {
-      Access<RemoteView_t> s(args);
-      s.run();
+      run_2(args);
     } else if (args.mode == 2) {
-      Access<UnmanagedView_t> s(args);
-      s.run();
+      run_3(args);
     } else {
       printf("invalid mode selected (%d)\n", args.mode);
     }
