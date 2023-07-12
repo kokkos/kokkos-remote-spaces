@@ -1,6 +1,6 @@
 #/bin/bash
 BENCHMARK=$1
-DEFAULT_SIZE=1000000
+DEFAULT_SIZE=10000
 
 #exports
 export OMP_PROC_BIND=spread 
@@ -16,27 +16,27 @@ echo "name,type,N,size,iters,time,gups" | tee $FILENAME
 
 #run test over size
 SIZE=$DEFAULT_SIZE
-for S in $(seq 1 8); do 
+for S in $(seq 1 13); do 
    for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I 10 -M 0 | tee -a $FILENAME
+      ./$BENCHMARK -N $SIZE -I 5 -M 0 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
 
 #run test over size
 let SIZE=$DEFAULT_SIZE
-for S in $(seq 1 8); do 
+for S in $(seq 1 13); do 
    for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I 10 -M 1 | tee -a $FILENAME
+      ./$BENCHMARK -N $SIZE -I 5 -M 1 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
 
 #run test over size
 let SIZE=$DEFAULT_SIZE
-for S in $(seq 1 8); do 
+for S in $(seq 1 13); do 
    for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I 10 -M 2 | tee -a $FILENAME
+      ./$BENCHMARK -N $SIZE -I 5 -M 2 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done

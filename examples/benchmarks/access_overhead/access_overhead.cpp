@@ -7,6 +7,9 @@
 #include <typeinfo>
 #include <concepts>
 #include <type_traits>
+#include <string>
+
+#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
@@ -67,11 +70,11 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
   ViewType_t v;
 
   Access(Args_t args):N(args.N),iters(args.iters), 
-  v(string(typeid(v).name()),args.N), mode(args.mode)
+  v(std::string(typeid(v).name()),args.N), mode(args.mode)
   {};
 
   KOKKOS_FUNCTION
-  void operator()(int i) const { v(i) += 1; }
+  void operator()(int i) const { v(i) += 1;}
 
   // run copy benchmark
   void run() {
@@ -79,7 +82,12 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     double time_a, time_b;
     time_a = time_b = 0;
     double time = 0;
-    for (int i = 0; i <= iters; i++) {
+
+    Kokkos::parallel_for("init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      v(i) = 0.0;
+    });
+
+    for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
       Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
       RemoteSpace_t().fence();
@@ -87,9 +95,16 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
       time_b = timer.seconds();
       time += time_b - time_a;
     }
+
+    #ifdef CHECK_FOR_CORRECTNESS
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      assert(v(i) == iters * 1.0 );
+    });
+  #endif
+
     double gups =  10e-9 * ((N * iters) / time);
-    size_t size =  N * sizeof(double) / 1024 / 1024;
-    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+    double size =  N * sizeof(double) / 1024.0 / 1024.0;
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
       modes[mode].c_str(),
       N,
       size,
@@ -109,9 +124,10 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
   RemoteView_t rv;
 
   Access(Args_t args):N(args.N),iters(args.iters), 
-  rv(string(typeid(v).name()),args.N), mode(args.mode)
+  rv(std::string(typeid(v).name()),args.N), mode(args.mode)
   {
     v = ViewType_t(rv.data(), N);
+    deep_copy(v, 0.0);
   };
 
   KOKKOS_FUNCTION
@@ -123,7 +139,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
     double time_a, time_b;
     time_a = time_b = 0;
     double time = 0;
-    for (int i = 0; i <= iters; i++) {
+    for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
       Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), *this);
       RemoteSpace_t().fence();
@@ -131,9 +147,16 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
       time_b = timer.seconds();
       time += time_b - time_a;
     }
+
+  #ifdef CHECK_FOR_CORRECTNESS
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      assert(v(i) == iters );
+    });
+  #endif
+
     double gups =  10e-9 * ((N * iters) / time);
-    size_t size =  N * sizeof(double) / 1024 / 1024;
-    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+    double size =  N * sizeof(double) / 1024.0 / 1024.0;
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
       modes[mode].c_str(),
       N,
       size,
@@ -200,3 +223,5 @@ int main(int argc, char* argv[]) {
   MPI_Finalize();
   return 0;
 }
+
+#undef CHECK_FOR_CORRECTNESS
