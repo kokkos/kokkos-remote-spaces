@@ -10,7 +10,7 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
-using PlainView_t   = Kokkos::View<double*>;
+using PlainView_t   = Kokkos::View<double*, Kokkos::LayoutLeft>;
 using UnmanagedView_t =
     Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 using HostView_t = typename RemoteView_t::HostMirror;
@@ -20,10 +20,10 @@ using StreamIndex = int;
 using Policy      = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
 
 #define default_N 800000
-#define default_iters 3
+#define default_iters 50
 
-#define LEAGE_SIZE 1
-#define TEAM_SIZE 1024
+#define LEAGE_SIZE 64
+#define TEAM_SIZE 64
 #define VECTOR_LEN 1
 
 std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyView"};
@@ -37,7 +37,7 @@ struct Args_t{
 void print_help() {
   printf("Options (default):\n");
   printf("  -N IARG: (%i) num elements in the vector\n",default_N);
-  printf("  -I IARG: (%i) num repititions\n",default_iters);
+  printf("  -I IARG: (%i) num repetitions\n",default_iters);
   printf("  -M IARG: (%i) mode (view type)\n",0);
   printf("     modes:\n");
   printf("       0: Kokkos (Normal)  View\n");
@@ -83,7 +83,12 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
     double time_a, time_b;
     time_a = time_b = 0;
     double time = 0;
-    for (int i = 0; i <= iters; i++) {
+
+    Kokkos::parallel_for("init", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      v(i) = 0.0;
+    });
+
+    for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
       int ls = LEAGE_SIZE;
       int ts = TEAM_SIZE;
@@ -120,9 +125,17 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
       time_b = timer.seconds();
       time += time_b - time_a;
     }
+
+
+    #ifdef CHECK_FOR_CORRECTNESS
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      assert(v(i) == iters * 1.0 );
+    });
+    #endif
+
     double gups =  10e-9 * ((N * iters) / time);
-    size_t size =  N * sizeof(double) / 1024 / 1024;
-    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+    double size =  N * sizeof(double) / 1024.0 / 1024.0;
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
       modes[mode].c_str(),
       N,
       size,
@@ -144,6 +157,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
   Access(Args_t args):N(args.N),iters(args.iters), 
   rv(string(typeid(v).name()),args.N), mode(args.mode)
   {
+    deep_copy(v, 0.0);
     v = ViewType_t(rv.data(), N);
   };
 
@@ -156,7 +170,7 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
     double time_a, time_b;
     time_a = time_b = 0;
     double time = 0;
-    for (int i = 0; i <= iters; i++) {
+    for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
       int ls = LEAGE_SIZE;
       int ts = TEAM_SIZE;
@@ -193,9 +207,17 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
       time_b = timer.seconds();
       time += time_b - time_a;
     }
+
+
+    #ifdef CHECK_FOR_CORRECTNESS
+    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}), KOKKOS_LAMBDA(const int i){
+      assert(v(i) == iters );
+    });
+    #endif
+
     double gups =  10e-9 * ((N * iters) / time);
-    size_t size =  N * sizeof(double) / 1024 / 1024;
-    printf("access_overhead,%s,%lu,%lu,%lu,%lf,%lf\n",
+    double size =  N * sizeof(double) / 1024.0 / 1024.0;
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
       modes[mode].c_str(),
       N,
       size,
