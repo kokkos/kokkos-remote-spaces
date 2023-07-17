@@ -154,7 +154,14 @@ struct Stream_Manager {
     double old_time    = 0.0;
     int minterval;
     minterval = rinterval < interval ? rinterval : interval;
-    for (int t = 0; t <= iterations; t++) {
+    /* warmup run */
+    for (int t = 1; t <= 1; t++) {
+      if (remote)
+        remote_benchmark(minterval);
+      else
+        mpi_benchmark(minterval);
+    }
+    for (int t = 1; t <= iterations; t++) {
       if (remote)
         time_stream += remote_benchmark(minterval);
       else

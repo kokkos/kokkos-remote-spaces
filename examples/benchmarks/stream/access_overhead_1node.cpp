@@ -71,7 +71,14 @@ struct Stream_Manager {
     Kokkos::Timer timer;
     double time_stream = 0;
     double old_time    = 0.0;
-    for (int t = 0; t <= iterations; t++) {
+    /* warmup run */
+    for (int t = 1; t <= 1; t++) {
+      if (plusequals)
+        stream_plusequals_benchmark();
+      else
+        stream_plusplus_benchmark();
+    }
+    for (int t = 1; t <= iterations; t++) {
       if (plusequals)
         time_stream += stream_plusequals_benchmark();
       else
