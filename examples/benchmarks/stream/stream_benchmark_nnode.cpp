@@ -1,8 +1,4 @@
 /* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
-/*
- * UNLIKE the nnodes version of the stream benchmark, this version *only*
- * has mpi rank 0 add mpi rank 1's data
- */
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -51,12 +47,14 @@ struct Stream_Manager {
   MPI_Request mpi_request_send;
 
   ViewType_t A;
-  ViewType_t B; /* B, an initially empty view only used for mpi version */
+  ViewType_t B;
+  ViewType_t C; /* C, an initially empty view only used for mpi version */
 
   CommInfo comm;
 
-  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, int n, int i)
-      : comm(comm_), A(a), B(b), N(n), iterations(i) {
+  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, ViewType_t &c,
+                 int n, int i)
+      : comm(comm_), A(a), B(b), C(c), N(n), iterations(i) {
     if (std::is_same<ViewType_t, PlainView_t>::value) {
       remote = false;
     }
@@ -101,57 +99,49 @@ struct Stream_Manager {
   }
 
   struct remote_add {
-    ViewType_t A;
+    ViewType_t A, B;
     int my_min_i, rstart;
 
-    remote_add(ViewType_t A_, int my_min_i_, int rstart_)
-        : A(A_), my_min_i(my_min_i_), rstart(rstart_) {
+    remote_add(ViewType_t A_, ViewType_t B_, int my_min_i_, int rstart_)
+        : A(A_), B(B_), my_min_i(my_min_i_), rstart(rstart_) {
       ;
     }
     KOKKOS_FUNCTION
-    void operator()(int i) const { A(my_min_i + i) += A(rstart + i); }
+    void operator()(int i) const { A(my_min_i + i) += B(rstart + i); }
   };
 
   double remote_benchmark(int minterval) {
     Kokkos::Timer timer;
     double time_begin, time_end;
     time_begin = timer.seconds();
-    if (comm.me == 0) {
-      Kokkos::parallel_for("remote_stream", policy_t({0}, {minterval}),
-                           remote_add(A, my_min_i, rstart));
-    }
+    Kokkos::parallel_for("remote_stream", policy_t({0}, {minterval}),
+                         remote_add(A, B, my_min_i, rstart));
     RemoteSpace_t().fence();
     time_end = timer.seconds();
     return time_end - time_begin;
   }
 
   struct mpi_add {
-    ViewType_t A, B;
+    ViewType_t A, C;
 
-    mpi_add(ViewType_t A_, ViewType_t B_) : A(A_), B(B_) { ; }
+    mpi_add(ViewType_t A_, ViewType_t C_) : A(A_), C(C_) { ; }
     KOKKOS_FUNCTION
-    void operator()(int i) const { A(i) += B(i); }
+    void operator()(int i) const { A(i) += C(i); }
   };
 
   double mpi_benchmark(int minterval) {
     Kokkos::Timer timer;
     double time_begin, time_end;
     time_begin = timer.seconds();
-    if (comm.me == 1) {
-      MPI_Isend(A.data(), minterval, MPI_DOUBLE, 0, 1, comm.comm,
-                &mpi_request_send);
-      MPI_Waitall(1, &mpi_request_send, MPI_STATUSES_IGNORE);
-    }
-    if (comm.me == 0) {
-      MPI_Irecv(B.data(), minterval, MPI_DOUBLE, 1, 1, comm.comm,
-                &mpi_request_recv);
-      MPI_Waitall(1, &mpi_request_recv, MPI_STATUSES_IGNORE);
-    }
+    MPI_Irecv(C.data(), minterval, MPI_DOUBLE, comm.rneighbor, 1, comm.comm,
+              &mpi_request_recv);
+    MPI_Isend(B.data(), minterval, MPI_DOUBLE, comm.lneighbor, 1, comm.comm,
+              &mpi_request_send);
+    MPI_Waitall(1, &mpi_request_send, MPI_STATUSES_IGNORE);
+    MPI_Waitall(1, &mpi_request_recv, MPI_STATUSES_IGNORE);
 
-    if (comm.me == 0) {
-      Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
-                           mpi_add(A, B));
-    }
+    Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
+                         mpi_add(A, C));
     RemoteSpace_t().fence();
     time_end = timer.seconds();
     return time_end - time_begin;
@@ -217,7 +207,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(mpi_comm, &nranks);
   MPI_Comm_rank(mpi_comm, &myrank);
   if (nranks < 2) {
-    printf("required *exactly* 2 processes for this benchmark\n");
+    printf("required at least 2 processes for this benchmark\n");
     return 0;
   }
 
@@ -251,31 +241,37 @@ int main(int argc, char *argv[]) {
       using Type_t = PlainView_t;
       Type_t a;
       Type_t b;
-      Type_t::HostMirror c;
+      Type_t c;
+      Type_t::HostMirror d;
       int view_size = (N + nranks - 1) / nranks;
       a             = Type_t("System::A", view_size);
       b             = Type_t("System::B", view_size);
-      c             = Type_t::HostMirror("Host::init", view_size);
-      Kokkos::deep_copy(c, myrank);
-      Kokkos::deep_copy(a, c);
-      Kokkos::deep_copy(b, c);
-      Stream_Manager<Type_t> sys(mpi_comm, a, b, view_size, iterations);
+      c             = Type_t("System::C", view_size);
+      d             = Type_t::HostMirror("Host::init", view_size);
+      Kokkos::deep_copy(d, myrank);
+      Kokkos::deep_copy(a, d);
+      Kokkos::deep_copy(b, d);
+      Kokkos::deep_copy(c, d);
+      Stream_Manager<Type_t> sys(mpi_comm, a, b, c, view_size, iterations);
       sys.benchmark();
     }
     if (mode == 1) {
       using Type_t = RemoteView_t;
       Type_t a;
       Type_t b;
-      Type_t::HostMirror c;
+      Type_t c;
+      Type_t::HostMirror d;
       int host_view_size = (N + nranks - 1) / nranks;
       a                  = Type_t("System::A", N);
       b                  = Type_t("System::B", N);
+      c                  = Type_t("System::C", N);
 
-      c = Type_t::HostMirror("Host::init", host_view_size);
-      Kokkos::deep_copy(c, myrank);
-      Kokkos::deep_copy(a, c);
-      Kokkos::deep_copy(b, c);
-      Stream_Manager<Type_t> sys(mpi_comm, a, b, N, iterations);
+      d = Type_t::HostMirror("Host::init", host_view_size);
+      Kokkos::deep_copy(d, myrank);
+      Kokkos::deep_copy(a, d);
+      Kokkos::deep_copy(b, d);
+      Kokkos::deep_copy(c, d);
+      Stream_Manager<Type_t> sys(mpi_comm, a, b, c, N, iterations);
       sys.benchmark();
     }
   }

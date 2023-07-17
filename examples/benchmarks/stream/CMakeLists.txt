@@ -7,3 +7,8 @@ add_executable(stream_2node stream_benchmark_2node.cpp)
 target_link_libraries(stream_2node PRIVATE Kokkos::kokkosremote)
 target_include_directories(stream_2node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(stream_2node PRIVATE KRS_ENABLE_NVSHMEM_PTR)
+
+add_executable(stream_nnode stream_benchmark_nnode.cpp)
+target_link_libraries(stream_nnode PRIVATE Kokkos::kokkosremote)
+target_include_directories(stream_nnode PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(stream_nnode PRIVATE KRS_ENABLE_NVSHMEM_PTR)
