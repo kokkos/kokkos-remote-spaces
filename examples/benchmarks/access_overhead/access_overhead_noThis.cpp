@@ -136,7 +136,7 @@ void run_2(Args_t & args) {
   });
   #endif
 
-  double gups =  10e-9 * ((N * iters) / time);
+  double gups =  1e-9 * ((N * iters) / time);
   double size =  N * sizeof(double) / 1024.0 / 1024.0;
   printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
     modes[mode].c_str(),

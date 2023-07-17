@@ -11,10 +11,6 @@
 
 #define CHECK_FOR_CORRECTNESS
 
-#define LEAGE_SIZE 128
-#define TEAM_SIZE 1024
-#define VECTOR_LEN 1
-
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double*, Kokkos::LayoutLeft>;
@@ -23,32 +19,26 @@ using UnmanagedView_t =
 using HostView_t = typename RemoteView_t::HostMirror;
 struct InitTag{};
 struct UpdateTag{};
+struct UpdateTag_put{};
+struct UpdateTag_get{};
 struct CheckTag{};
 using policy_init_t = Kokkos::RangePolicy<InitTag,size_t>;
-using policy_update_t = Kokkos::TeamPolicy<UpdateTag,Kokkos::DefaultExecutionSpace>;
+using policy_update_t = Kokkos::RangePolicy<UpdateTag,size_t>;
+using policy_update_put_t = Kokkos::RangePolicy<UpdateTag_put,size_t>;
+using policy_update_get_t = Kokkos::RangePolicy<UpdateTag_get,size_t>;
 using policy_check_t = Kokkos::RangePolicy<CheckTag,size_t>;
-
-using StreamIndex = size_t;
-
-using team_t = const policy_update_t::member_type;
-
 #define default_N 800000
 #define default_iters 3
-
-#define default_LS 64
-#define default_TS 128
-#define default_VL 1
-
+#define rma_op_default 0; //get
 
 std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyView"};
+enum {RMA_GET, RMA_PUT};
 
 struct Args_t{
   int mode = 0;
   int N = default_N;
   int iters = default_iters;
-  int LS = default_LS; 
-  int TS = default_TS; 
-  int VL = default_VL;
+  int rma_op = rma_op_default;
 };
 
 void print_help() {
@@ -56,13 +46,10 @@ void print_help() {
   printf("  -N IARG: (%i) num elements in the vector\n",default_N);
   printf("  -I IARG: (%i) num repititions\n",default_iters);
   printf("  -M IARG: (%i) mode (view type)\n",0);
-  printf("  -LS IARG: (%i) num leagues\n",default_LS);
-  printf("  -TS IARG: (%i) num theads\n",default_TS);
-  printf("  -VL IARG: (%i) vector length\n",default_VL);
+  printf("  -O IARG: (%i) rma operation (0...get, 1...put)\n",0);
   printf("     modes:\n");
   printf("       0: Kokkos (Normal)  View\n");
   printf("       1: Kokkos Remote    View\n");
-  printf("       2: Kokkos Unmanaged View\n");
 }
 
 // read command line args
@@ -78,6 +65,7 @@ bool read_args(int argc, char* argv[], Args_t & args) {
     if (strcmp(argv[i], "-N") == 0) args.N = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-I") == 0) args.iters = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-M") == 0) args.mode = atoi(argv[i + 1]);
+    if (strcmp(argv[i], "-O") == 0) args.rma_op = atoi(argv[i + 1]);
   }
   return true;
 }
@@ -86,44 +74,33 @@ template <typename ViewType_t, typename Enable = void>
 struct Access;
 
 template <typename ViewType_t>
-struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,UnmanagedView_t>::value>> {
-  size_t N;    /* size of vector */
+struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,RemoteView_t>::value>> {
+  size_t N;       /* size of vector */
   int iters;   /* number of iterations */
   int mode;    /* View type */
+  int rma_op;
 
-  int ls; 
-  int ts;
-  int vl;
+  int my_rank, other_rank, num_ranks;
 
   ViewType_t v;
 
-  Access(Args_t args):N(args.N),iters(args.iters), 
-  v(std::string(typeid(v).name()),args.N), mode(args.mode), ls(args.LS), ts(args.TS), vl(args.LS)
-  {};
+  Access(Args_t args):N(args.N),iters(args.iters),mode(args.mode), rma_op(args.rma_op)
+  {
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+    assert(num_ranks == 2);
+    other_rank = my_rank ^ 1;
+    v = ViewType_t(std::string(typeid(v).name()),num_ranks * args.N);
+  };
 
   KOKKOS_FUNCTION
-  void operator()(const InitTag &, const size_t i) const { v(i) = 0;}
+  void operator()(const InitTag &, const size_t i) const { v(i) = my_rank;}
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, team_t &team) const { 
-      const int64_t iters_per_team = N / ls;
-      const int64_t iters_per_thread= iters_per_team / ts;
-      const int64_t first_i = team.league_rank() * iters_per_team;
-      const int64_t last_i  = first_i + iters_per_team < v.extent(0)
-                            ? first_i + iters_per_team
-                            : v.extent(0);
-        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_i, last_i), [&](const StreamIndex j){
-          const int64_t first_thread_i = team.team_rank() * iters_per_thread;
-          const int64_t last_thread_i  = first_thread_i + iters_per_thread < last_i
-                                ? first_thread_i + iters_per_thread
-                                : last_i;
-          Kokkos::parallel_for(
-          Kokkos::ThreadVectorRange(team,last_thread_i - first_thread_i), [=](const StreamIndex i) {
-          v(i) += 1; 
-          });
-        });
-      }
-    
+  void operator()(const UpdateTag_get &, const size_t i) const { v(i) += v(other_rank * N + i);}
+
+KOKKOS_FUNCTION
+  void operator()(const UpdateTag_put &, const size_t i) const { v(other_rank * N + i) += v(i);}
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const { assert(v(i) == iters * 1.0 );}
@@ -137,83 +114,76 @@ struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,Un
 
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
       *this);
-    
-    Kokkos::fence();
-    
-    for (int i = 0; i < iters; i++) {
+    Kokkos::fence();  
+
+    if(rma_op == RMA_GET){
+      for (int i = 0; i < iters; i++) {
+        if (my_rank == 0){
+        time_a = timer.seconds();
+        Kokkos::parallel_for("access_overhead", policy_update_get_t({0}, {N}), *this);
+        RemoteSpace_t().fence();
+        time_b = timer.seconds();
+        time += time_b - time_a;
+        }
+       }
+    }else
+    {
+      for (int i = 0; i < iters; i++) {
+      if (my_rank == 0){
       time_a = timer.seconds();
-
-
-      auto policy =
-      policy_update_t(ls, ts, vl);
-      
-
-      Kokkos::parallel_for(
-      "access_overhead", policy,*this);
-      
+      Kokkos::parallel_for("access_overhead", policy_update_put_t({0}, {N}), *this);
       RemoteSpace_t().fence();
       time_b = timer.seconds();
       time += time_b - time_a;
+      }
+    }
     }
 
-    #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}), *this);
-    #endif
+    if (my_rank == 0){
+      #ifdef CHECK_FOR_CORRECTNESS
+      Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}), *this);
+      #endif
 
-    double gups =  1e-9 * ((N * iters) / time);
-    double size =  N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%lf\n",
-      modes[mode].c_str(),
-      N,
-      size,
-      iters,
-      time,
-      gups);
+      double gups =  1e-9 * ((N * iters) / time);
+      double size =  N * sizeof(double) / 1024.0 / 1024.0;
+      printf("access_overhead_p2p,%s,%lu,%lf,%lu,%lf,%lf\n",
+        modes[mode].c_str(),
+        N,
+        size,
+        iters,
+        time,
+        gups);
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
   }
 };
 
 template <typename ViewType_t>
-struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,UnmanagedView_t>::value>> {
+struct Access <ViewType_t, typename std::enable_if_t<!std::is_same<ViewType_t,RemoteView_t>::value>> {
   size_t N;       /* size of vector */
   int iters;   /* number of iterations */
   int mode;    /* View type */
 
-  UnmanagedView_t v;
-  RemoteView_t rv;
+  int my_rank, other_rank, num_ranks;
 
-  int ls; 
-  int ts;
-  int vl;
+  ViewType_t v;
+  ViewType_t v_tmp;
 
   Access(Args_t args):N(args.N),iters(args.iters), 
-  rv(std::string(typeid(v).name()),args.N), mode(args.mode), ls(args.LS), ts(args.TS), vl(args.LS)
+  v(std::string(typeid(v).name()),args.N),v_tmp(std::string(typeid(v).name()) + "_tmp",args.N), mode(args.mode)
   {
-    v = ViewType_t(rv.data(), N);
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+    other_rank = my_rank ^ 1;
+    assert(num_ranks == 2);
   };
 
   KOKKOS_FUNCTION
-  void operator()(const InitTag &, const size_t i) const { v(i) = 0;}
+  void operator()(const InitTag &, const size_t i) const { v(i) = my_rank;}
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, team_t &team) const { 
-      const int64_t iters_per_team = N / ls;
-      const int64_t iters_per_thread= iters_per_team / ts;
-      const int64_t first_i = team.league_rank() * iters_per_team;
-      const int64_t last_i  = first_i + iters_per_team < v.extent(0)
-                            ? first_i + iters_per_team
-                            : v.extent(0);
-        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_i, last_i), [&](const StreamIndex j){
-          const int64_t first_thread_i = team.team_rank() * iters_per_thread;
-          const int64_t last_thread_i  = first_thread_i + iters_per_thread < last_i
-                                ? first_thread_i + iters_per_thread
-                                : last_i;
-          Kokkos::parallel_for(
-          Kokkos::ThreadVectorRange(team,last_thread_i - first_thread_i), [=](const StreamIndex i) {
-          v(i) += 1; 
-          });
-        });
-      }
-    
+  void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i);}
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const { assert(v(i) == iters * 1.0 );}
@@ -227,40 +197,41 @@ struct Access <ViewType_t, typename std::enable_if_t<std::is_same<ViewType_t,Unm
 
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
       *this);
-    
     Kokkos::fence();
+
     
     for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
 
-
-      auto policy =
-      policy_update_t(ls, ts, vl);
-      
-
-      Kokkos::parallel_for(
-      "access_overhead", policy,*this);
-      
-      RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
+      if (my_rank == 1){
+        MPI_Send(v.data(),N,MPI_DOUBLE,other_rank,0,MPI_COMM_WORLD);
+      }
+      else {
+        MPI_Recv(v_tmp.data(),N,MPI_DOUBLE,other_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
+        RemoteSpace_t().fence();
+        time_b = timer.seconds();
+        time += time_b - time_a;
+      }
     }
+  
+    if (my_rank == 0){
+      #ifdef CHECK_FOR_CORRECTNESS
+      Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}), *this);
+      #endif
 
-    #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}), *this);
-    #endif
-
-    double gups =  1e-9 * ((N * iters) / time);
-    double size =  N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%lf\n",
-      modes[mode].c_str(),
-      N,
-      size,
-      iters,
-      time,
-      gups);
+      double gups =  1e-9 * ((N * iters) / time);
+      double size =  N * sizeof(double) / 1024.0 / 1024.0;
+      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n",
+        modes[mode].c_str(),
+        N,
+        size,
+        iters,
+        time,
+        gups);
+    }
+  MPI_Barrier(MPI_COMM_WORLD);
   }
- 
 };
 
 int main(int argc, char* argv[]) {
@@ -301,9 +272,6 @@ int main(int argc, char* argv[]) {
       s.run();
     } else if (args.mode == 1) {
       Access<RemoteView_t> s(args);
-      s.run();
-    } else if (args.mode == 2) {
-      Access<UnmanagedView_t> s(args);
       s.run();
     } else {
       printf("invalid mode selected (%d)\n", args.mode);
