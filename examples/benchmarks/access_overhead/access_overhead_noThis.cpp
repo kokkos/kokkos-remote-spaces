@@ -17,24 +17,25 @@ using PlainView_t   = Kokkos::View<double*>;
 using UnmanagedView_t =
     Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 using HostView_t = typename RemoteView_t::HostMirror;
-using policy_t = Kokkos::RangePolicy<size_t>;
+using policy_t   = Kokkos::RangePolicy<size_t>;
 
 #define default_N 800000
 #define default_iters 3
 
-std::string modes[3] = {"Kokkos::View","Kokkos::RemoteView","Kokkos::LocalProxyView"};
+std::string modes[3] = {"Kokkos::View", "Kokkos::RemoteView",
+                        "Kokkos::LocalProxyView"};
 
-struct Args_t{
-  int mode = 0;
-  size_t N = default_N;
+struct Args_t {
+  int mode  = 0;
+  size_t N  = default_N;
   int iters = default_iters;
 };
 
 void print_help() {
   printf("Options (default):\n");
-  printf("  -N IARG: (%i) num elements in the vector\n",default_N);
-  printf("  -I IARG: (%i) num repititions\n",default_iters);
-  printf("  -M IARG: (%i) mode (view type)\n",0);
+  printf("  -N IARG: (%i) num elements in the vector\n", default_N);
+  printf("  -I IARG: (%i) num repititions\n", default_iters);
+  printf("  -M IARG: (%i) mode (view type)\n", 0);
   printf("     modes:\n");
   printf("       0: Kokkos (Normal)  View\n");
   printf("       1: Kokkos Remote    View\n");
@@ -42,7 +43,7 @@ void print_help() {
 }
 
 // read command line args
-bool read_args(int argc, char* argv[], Args_t & args) {
+bool read_args(int argc, char* argv[], Args_t& args) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-h") == 0) {
       print_help();
@@ -59,138 +60,124 @@ bool read_args(int argc, char* argv[], Args_t & args) {
 }
 
 // run copy benchmark
-void run_1(Args_t & args) {
+void run_1(Args_t& args) {
   Kokkos::Timer timer;
   double time_a, time_b;
-  time_a = time_b = 0;
-  double time = 0;
+  time_a = time_b  = 0;
+  double time      = 0;
   using ViewType_t = PlainView_t;
-  ViewType_t v("PlainView_t",args.N);
+  ViewType_t v("PlainView_t", args.N);
 
-  size_t N = args.N;       /* size of vector */
-  int iters = args.iters;   /* number of iterations */
-  int mode = args.mode;    /* View type */
+  size_t N  = args.N;     /* size of vector */
+  int iters = args.iters; /* number of iterations */
+  int mode  = args.mode;  /* View type */
 
-  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    v(i) = 0.0;
-  });
-  
+  Kokkos::parallel_for(
+      "access_overhead-init", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
+
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
-      v(i) += 1;
-    });
+    Kokkos::parallel_for(
+        "access_overhead", policy_t({0}, {N}),
+        KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
   time_b = timer.seconds();
   time += time_b - time_a;
 
-  #ifdef CHECK_FOR_CORRECTNESS
-  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    assert(v(i) == iters * 1.0 );
-  });
-  #endif
+#ifdef CHECK_FOR_CORRECTNESS
+  Kokkos::parallel_for(
+      "access_overhead-check", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
+  Kokkos::fence();
+#endif
 
-  double gups =  1e-9 * ((N * iters) / time);
-  double size =  N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
-    modes[mode].c_str(),
-    N,
-    size,
-    iters,
-    time,
-    gups);
+  double gups = 1e-9 * ((N * iters) / time);
+  double size = N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
+         N, size, iters, time, gups);
 }
 
 // run copy benchmark
-void run_2(Args_t & args) {
+void run_2(Args_t& args) {
   Kokkos::Timer timer;
   double time_a, time_b;
-  time_a = time_b = 0;
-  double time = 0;
+  time_a = time_b  = 0;
+  double time      = 0;
   using ViewType_t = RemoteView_t;
   ViewType_t v("RemoteView_t", args.N);
 
-  size_t N = args.N;       /* size of vector */
-  int iters = args.iters;   /* number of iterations */
-  int mode = args.mode;    /* View type */
+  size_t N  = args.N;     /* size of vector */
+  int iters = args.iters; /* number of iterations */
+  int mode  = args.mode;  /* View type */
 
-  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    v(i) = 0.0;
-  });
+  Kokkos::parallel_for(
+      "access_overhead-init", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
-    
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
-      v(i) += 1;
-    });
+    Kokkos::parallel_for(
+        "access_overhead", policy_t({0}, {N}),
+        KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
   time_b = timer.seconds();
   time += time_b - time_a;
 
-  #ifdef CHECK_FOR_CORRECTNESS
-  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    assert(v(i) == iters * 1.0 );
-  });
-  #endif
+#ifdef CHECK_FOR_CORRECTNESS
+  Kokkos::parallel_for(
+      "access_overhead-check", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
+  Kokkos::fence();
+#endif
 
-  double gups =  1e-9 * ((N * iters) / time);
-  double size =  N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
-    modes[mode].c_str(),
-    N,
-    size,
-    iters,
-    time,
-    gups);
+  double gups = 1e-9 * ((N * iters) / time);
+  double size = N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
+         N, size, iters, time, gups);
 }
 
 // run copy benchmark
-void run_3(Args_t & args) {
+void run_3(Args_t& args) {
   Kokkos::Timer timer;
   double time_a, time_b;
   time_a = time_b = 0;
-  double time = 0;
+  double time     = 0;
 
-  size_t N = args.N;       /* size of vector */
-  int iters = args.iters;   /* number of iterations */
-  int mode = args.mode;    /* View type */
+  size_t N  = args.N;     /* size of vector */
+  int iters = args.iters; /* number of iterations */
+  int mode  = args.mode;  /* View type */
 
   RemoteView_t rv("RemoteView_t", args.N);
   UnmanagedView_t v(rv.data(), N);
 
-  Kokkos::parallel_for("access_overhead-init", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    v(i) = 0.0;
-  });
+  Kokkos::parallel_for(
+      "access_overhead-init", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
-    
-    Kokkos::parallel_for("access_overhead", policy_t({0}, {N}),  KOKKOS_LAMBDA(const size_t i){
-      v(i) += 1;
-    });
+    Kokkos::parallel_for(
+        "access_overhead", policy_t({0}, {N}),
+        KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
   time_b = timer.seconds();
   time += time_b - time_a;
 
-  #ifdef CHECK_FOR_CORRECTNESS
-  Kokkos::parallel_for("access_overhead-check", policy_t({0}, {N}), KOKKOS_LAMBDA(const size_t i){
-    assert(v(i) == iters * 1.0 );
-  });
-  #endif
+#ifdef CHECK_FOR_CORRECTNESS
+  Kokkos::parallel_for(
+      "access_overhead-check", policy_t({0}, {N}),
+      KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
+  Kokkos::fence();
+#endif
 
-  double gups =  1e-9 * ((N * iters) / time);
-  double size =  N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n",
-    modes[mode].c_str(),
-    N,
-    size,
-    iters,
-    time,
-    gups);
+  double gups = 1e-9 * ((N * iters) / time);
+  double size = N * sizeof(double) / 1024.0 / 1024.0;
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
+         N, size, iters, time, gups);
 }
 
 int main(int argc, char* argv[]) {
@@ -220,11 +207,11 @@ int main(int argc, char* argv[]) {
 
   Kokkos::initialize(argc, argv);
 
-  do{
+  do {
     Args_t args;
-    if(!read_args(argc,argv, args)){
+    if (!read_args(argc, argv, args)) {
       break;
-    };     
+    };
     if (args.mode == 0) {
       run_1(args);
     } else if (args.mode == 1) {
@@ -234,7 +221,7 @@ int main(int argc, char* argv[]) {
     } else {
       printf("invalid mode selected (%d)\n", args.mode);
     }
-  }while(false);
+  } while (false);
 
   Kokkos::finalize();
 #ifdef KRS_ENABLE_SHMEMSPACE

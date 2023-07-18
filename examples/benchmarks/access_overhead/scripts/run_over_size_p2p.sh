@@ -9,6 +9,7 @@ export OMP_NUM_THREADS=32
 
 ITERS=100000
 
+DS=$DATA_SIZE
 #print header
 HASH=`date|md5sum|head -c 5`
 FILENAME="${BENCHMARK}_${HASH}.res"
@@ -19,7 +20,7 @@ echo "name,type,N,size,iters,time,gups" | tee $FILENAME
 SIZE=$DEFAULT_SIZE
 for S in $(seq 1 13); do 
    for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
+      mpirun -np 2 ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
@@ -28,16 +29,7 @@ done
 let SIZE=$DEFAULT_SIZE
 for S in $(seq 1 13); do 
    for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
-   done
-   let SIZE=$SIZE*2
-done
-
-#run test over size
-let SIZE=$DEFAULT_SIZE
-for S in $(seq 1 13); do 
-   for reps in $(seq 1 3); do
-      ./$BENCHMARK -N $SIZE -I $ITERS -M 2 | tee -a $FILENAME
+      mpirun -np 2 ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
