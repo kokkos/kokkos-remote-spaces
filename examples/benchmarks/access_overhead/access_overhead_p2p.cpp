@@ -1,4 +1,20 @@
-/* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
+//@HEADER
+// ************************************************************************
+//
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
+//               Solutions of Sandia, LLC (NTESS).
+//
+// Under the terms of Contract DE-NA0003525 with NTESS,
+// the U.S. Government retains certain rights in this software.
+//
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+// Contact: Jan Ciesko (jciesko@sandia.gov)
+//
+//@HEADER
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -32,7 +48,7 @@ using policy_check_t      = Kokkos::RangePolicy<CheckTag, size_t>;
 using policy_check_put_t  = Kokkos::RangePolicy<CheckTag_put, size_t>;
 using policy_check_get_t  = Kokkos::RangePolicy<CheckTag_get, size_t>;
 #define default_Mode 0
-#define default_N 800000
+#define default_N 134217728
 #define default_Iters 3
 #define default_RmaOp 0  // get
 
@@ -199,8 +215,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
       if (my_rank == 0) {
         double gups = 1e-9 * ((N * iters) / time);
         double size = N * sizeof(double) / 1024.0 / 1024.0;
-        printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf\n",
-               modes[mode].c_str(), N, size, iters, time, gups);
+        double bw   = gups * sizeof(double);
+        printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+               modes[mode].c_str(), N, size, iters, time, gups, bw);
       }
     }
   }
@@ -282,8 +299,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
       double gups = 1e-9 * ((N * iters) / time);
       double size = N * sizeof(double) / 1024.0 / 1024.0;
-      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(), N,
-             size, iters, time, gups);
+      double bw   = gups * sizeof(double);
+      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+             modes[mode].c_str(), N, size, iters, time, gups, bw);
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }

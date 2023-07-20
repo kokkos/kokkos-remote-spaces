@@ -1,20 +1,20 @@
 #/bin/bash
 BENCHMARK=$1
-DEFAULT_SIZE=10000
+DEFAULT_SIZE=5120000
 
 #exports
 export OMP_PROC_BIND=spread 
 export OMP_PLACES=threads
 export OMP_NUM_THREADS=32
 
-ITERS=100000
+ITERS=200
 
 DS=$DATA_SIZE
 #print header
 HASH=`date|md5sum|head -c 5`
-FILENAME="${BENCHMARK}_${HASH}.res"
+FILENAME="${BENCHMARK}_${HASH}_p2p.res"
 echo $FILENAME
-echo "name,type,N,size,iters,time,gups" | tee $FILENAME 
+echo "name,type,N,size,iters,time,gups,bw" | tee $FILENAME 
 
 #run test over size
 SIZE=$DEFAULT_SIZE

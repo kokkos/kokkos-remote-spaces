@@ -1,4 +1,20 @@
-/* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
+//@HEADER
+// ************************************************************************
+//
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
+//               Solutions of Sandia, LLC (NTESS).
+//
+// Under the terms of Contract DE-NA0003525 with NTESS,
+// the U.S. Government retains certain rights in this software.
+//
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+// Contact: Jan Ciesko (jciesko@sandia.gov)
+//
+//@HEADER
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -23,7 +39,7 @@ struct CheckTag {};
 using policy_init_t   = Kokkos::RangePolicy<InitTag, size_t>;
 using policy_update_t = Kokkos::RangePolicy<UpdateTag, size_t>;
 using policy_check_t  = Kokkos::RangePolicy<CheckTag, size_t>;
-#define default_N 800000
+#define default_N 134217728
 #define default_iters 3
 
 std::string modes[3] = {"Kokkos::View", "Kokkos::RemoteView",
@@ -67,8 +83,8 @@ template <typename ViewType_t, typename Enable = void>
 struct Access;
 
 template <typename ViewType_t>
-struct Access<ViewType_t, typename std::enable_if_t<
-                              std::is_same<ViewType_t, RemoteView_t>::value>> {
+struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
+                              ViewType_t, UnmanagedView_t>::value>> {
   size_t N;  /* size of vector */
   int iters; /* number of iterations */
   int mode;  /* View type */
@@ -102,14 +118,15 @@ struct Access<ViewType_t, typename std::enable_if_t<
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
                          *this);
     Kokkos::fence();
+    nvshmem_barrier_all();  // Not sure why this impacts perf
 
+    time_a = timer.seconds();
     for (int i = 0; i < iters; i++) {
-      time_a = timer.seconds();
       Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
       RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
     }
+    time_b = timer.seconds();
+    time += time_b - time_a;
 
 #ifdef CHECK_FOR_CORRECTNESS
     Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
@@ -119,70 +136,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
     double gups = 1e-9 * ((N * iters) / time);
     double size = N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(), N,
-           size, iters, time, gups);
-  }
-};
-
-template <typename ViewType_t>
-struct Access<ViewType_t, typename std::enable_if_t<
-                              std::is_same<ViewType_t, PlainView_t>::value>> {
-  size_t N;  /* size of vector */
-  int iters; /* number of iterations */
-  int mode;  /* View type */
-
-  UnmanagedView_t v;
-  
-
-  Access(Args_t args)
-      : N(args.N),
-        iters(args.iters),
-        mode(args.mode){
-    void *ptr;
-    cudaMalloc(&ptr, (size_t)args.N * sizeof(double));
-    v = UnmanagedView_t((double *)ptr, args.N);
-  };
-
-  KOKKOS_FUNCTION
-  void operator()(const InitTag &, const size_t i) const { v(i) = 0; }
-
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, const size_t i) const { v(i) += 1; }
-
-  KOKKOS_FUNCTION
-  void operator()(const CheckTag &, const size_t i) const {
-    assert(v(i) == iters * 1.0);
-  }
-
-  // run copy benchmark
-  void run() {
-    Kokkos::Timer timer;
-    double time_a, time_b;
-    time_a = time_b = 0;
-    double time     = 0;
-
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
-    Kokkos::fence();
-
-    for (int i = 0; i < iters; i++) {
-      time_a = timer.seconds();
-      Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
-      RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
-    }
-
-#ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
-                         *this);
-    Kokkos::fence();
-#endif
-
-    double gups = 1e-9 * ((N * iters) / time);
-    double size = N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(), N,
-           size, iters, time, gups);
+    double bw   = gups * sizeof(double);
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n", modes[mode].c_str(),
+           N, size, iters, time, gups, bw);
   }
 };
 
@@ -226,13 +182,13 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
                          *this);
     Kokkos::fence();
 
+    time_a = timer.seconds();
     for (int i = 0; i < iters; i++) {
-      time_a = timer.seconds();
       Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
       RemoteSpace_t().fence();
-      time_b = timer.seconds();
-      time += time_b - time_a;
     }
+    time_b = timer.seconds();
+    time += time_b - time_a;
 
 #ifdef CHECK_FOR_CORRECTNESS
     Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
@@ -242,8 +198,9 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
 
     double gups = 1e-9 * ((N * iters) / time);
     double size = N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(), N,
-           size, iters, time, gups);
+    double bw   = gups * sizeof(double);
+    printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n", modes[mode].c_str(),
+           N, size, iters, time, gups, bw);
   }
 };
 

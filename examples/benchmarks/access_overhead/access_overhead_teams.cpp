@@ -1,4 +1,20 @@
-/* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
+//@HEADER
+// ************************************************************************
+//
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
+//               Solutions of Sandia, LLC (NTESS).
+//
+// Under the terms of Contract DE-NA0003525 with NTESS,
+// the U.S. Government retains certain rights in this software.
+//
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+// Contact: Jan Ciesko (jciesko@sandia.gov)
+//
+//@HEADER
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -32,7 +48,7 @@ using StreamIndex = size_t;
 
 using team_t = const policy_update_t::member_type;
 
-#define default_N 800000
+#define default_N 134217728
 #define default_iters 3
 
 #define default_LS 64
@@ -133,6 +149,8 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
                          *this);
     Kokkos::fence();
+    nvshmem_barrier_all();  // Not sure why this impacts perf
+
     auto policy = policy_update_t(ls, ts, 1);
 
     for (int i = 0; i < iters; i++) {
@@ -151,8 +169,9 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
 
     double gups = 1e-9 * ((N * iters) / time);
     double size = N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%i,%i,%lf\n",
-           modes[mode].c_str(), N, size, iters, time, ls, ts, gups);
+    double bw   = gups * sizeof(double);
+    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%i,%i,%lf,%lf\n",
+           modes[mode].c_str(), N, size, iters, time, ls, ts, gups, bw);
   }
 };
 
@@ -175,7 +194,7 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
         mode(args.mode),
         ls(args.LS),
         ts(args.TS) {
-    v = ViewType_t(rv.data(), N);
+    v = ViewType_t(rv.data(), args.N);
   };
 
   KOKKOS_FUNCTION
@@ -209,6 +228,8 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
                          *this);
 
     Kokkos::fence();
+    nvshmem_barrier_all();  // Not sure why this impacts perf
+
     auto policy = policy_update_t(ls, ts, 1);
     for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
@@ -226,8 +247,9 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
 
     double gups = 1e-9 * ((N * iters) / time);
     double size = N * sizeof(double) / 1024.0 / 1024.0;
-    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%i,%i,%lf\n",
-           modes[mode].c_str(), N, size, iters, time, ls, ts, gups);
+    double bw   = gups * sizeof(double);
+    printf("access_overhead_teams,%s,%lu,%lf,%lu,%lf,%i,%i,%lf,%lf\n",
+           modes[mode].c_str(), N, size, iters, time, ls, ts, gups, bw);
   }
 };
 

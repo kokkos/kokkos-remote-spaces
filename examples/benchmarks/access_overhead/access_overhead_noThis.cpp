@@ -1,4 +1,20 @@
-/* A micro benchmark ported mainly from Heat3D to test overhead of RMA */
+//@HEADER
+// ************************************************************************
+//
+//                        Kokkos v. 4.0
+//       Copyright (2022) National Technology & Engineering
+//               Solutions of Sandia, LLC (NTESS).
+//
+// Under the terms of Contract DE-NA0003525 with NTESS,
+// the U.S. Government retains certain rights in this software.
+//
+// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
+// See https://kokkos.org/LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+// Contact: Jan Ciesko (jciesko@sandia.gov)
+//
+//@HEADER
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
@@ -16,10 +32,11 @@ using RemoteView_t  = Kokkos::View<double*, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double*>;
 using UnmanagedView_t =
     Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-using HostView_t = typename RemoteView_t::HostMirror;
-using policy_t   = Kokkos::RangePolicy<size_t>;
+using HostView_t  = typename RemoteView_t::HostMirror;
+using StreamIndex = size_t;
+using policy_t    = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
 
-#define default_N 800000
+#define default_N 134217728
 #define default_iters 3
 
 std::string modes[3] = {"Kokkos::View", "Kokkos::RemoteView",
@@ -76,6 +93,9 @@ void run_1(Args_t& args) {
       "access_overhead-init", policy_t({0}, {N}),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
+  Kokkos::fence();
+  nvshmem_barrier_all();  // Not sure why this impacts perf
+
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
@@ -95,8 +115,9 @@ void run_1(Args_t& args) {
 
   double gups = 1e-9 * ((N * iters) / time);
   double size = N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
-         N, size, iters, time, gups);
+  double bw   = gups * sizeof(double);
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+         modes[mode].c_str(), N, size, iters, time, gups, bw);
 }
 
 // run copy benchmark
@@ -116,6 +137,9 @@ void run_2(Args_t& args) {
       "access_overhead-init", policy_t({0}, {N}),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
+  Kokkos::fence();
+  nvshmem_barrier_all();  // Not sure why this impacts perf
+
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
@@ -135,8 +159,9 @@ void run_2(Args_t& args) {
 
   double gups = 1e-9 * ((N * iters) / time);
   double size = N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
-         N, size, iters, time, gups);
+  double bw   = gups * sizeof(double);
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+         modes[mode].c_str(), N, size, iters, time, gups, bw);
 }
 
 // run copy benchmark
@@ -157,6 +182,9 @@ void run_3(Args_t& args) {
       "access_overhead-init", policy_t({0}, {N}),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
+  Kokkos::fence();
+  nvshmem_barrier_all();  // Not sure why this impacts perf
+
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
@@ -176,8 +204,9 @@ void run_3(Args_t& args) {
 
   double gups = 1e-9 * ((N * iters) / time);
   double size = N * sizeof(double) / 1024.0 / 1024.0;
-  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf\n", modes[mode].c_str(),
-         N, size, iters, time, gups);
+  double bw   = gups * sizeof(double);
+  printf("access_overhead-noThis,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+         modes[mode].c_str(), N, size, iters, time, gups, bw);
 }
 
 int main(int argc, char* argv[]) {
