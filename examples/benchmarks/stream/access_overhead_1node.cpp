@@ -91,6 +91,9 @@ struct Stream_Manager {
         old_time = time;
       }
     }
+    double elements_updated = 1.0 * iterations * N;
+    double gups             = elements_updated * 1e-9 / time_stream;
+    printf("GUPs: %lf\n", gups);
   }
 };
 
