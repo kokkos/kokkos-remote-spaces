@@ -1,5 +1,6 @@
 #/bin/bash
 BENCHMARK=$1
+HOST=$2
 DEFAULT_SIZE=5120000
 
 #exports
@@ -18,18 +19,18 @@ echo "name,type,N,size,iters,time,gups,bw" | tee $FILENAME
 
 #run test over size
 SIZE=$DEFAULT_SIZE
-for S in $(seq 1 13); do 
+for S in $(seq 1 21); do 
    for reps in $(seq 1 3); do
-      mpirun -np 2 ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
+      mpirun -np 2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
 
 #run test over size
 let SIZE=$DEFAULT_SIZE
-for S in $(seq 1 13); do 
+for S in $(seq 1 21); do 
    for reps in $(seq 1 3); do
-      mpirun -np 2 ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
+      mpirun -np 2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
    done
    let SIZE=$SIZE*2
 done
