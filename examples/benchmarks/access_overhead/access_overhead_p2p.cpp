@@ -211,6 +211,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
         Kokkos::fence();
 #endif
       }
+  }
 
       if (my_rank == 0) {
         double gups = 1e-9 * ((N * iters) / time);
@@ -219,7 +220,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
         printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
                modes[mode].c_str(), N, size, iters, time, gups, bw);
       }
-    }
+    
   }
 };
 
