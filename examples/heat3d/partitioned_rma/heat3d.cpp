@@ -21,6 +21,8 @@
 #include <mpi.h>
 #include <assert.h>
 
+#include <comm.hpp>
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using LocalView_t  = Kokkos::View<double****>;
 using RemoteView_t =
@@ -131,7 +133,11 @@ struct System {
     Y_ra               = Y;
     Z_ra               = Z;
     N                  = 10000;
+    #if KRS_ENABLE_DEBUG 
     I                  = 100;
+    #else
+    I                  = N-1;
+    #endif
     T0                 = 0.0;
     dt                 = 0.1;
     q                  = 1.0;
@@ -449,47 +455,13 @@ struct System {
 };
 
 int main(int argc, char* argv[]) {
-  int mpi_thread_level_available;
-  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
-
-#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
-  mpi_thread_level_required = MPI_THREAD_SINGLE;
-#endif
-
-  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
-                  &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-#endif
-
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm      = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
-
-  int myPE, numPEs;
-  MPI_Comm_rank(MPI_COMM_WORLD, &myPE);
-  MPI_Comm_size(MPI_COMM_WORLD, &numPEs);
-
+  comm_init(argc, argv);
   Kokkos::initialize(argc, argv);
   {
     System sys(MPI_COMM_WORLD);
-
     if (sys.check_args(argc, argv)) sys.timestep();
   }
   Kokkos::finalize();
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
+  comm_fini();
   return 0;
 }

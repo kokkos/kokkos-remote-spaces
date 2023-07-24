@@ -152,7 +152,11 @@ struct System {
     X_lo = Y_lo = Z_lo = 0;
     X_hi = Y_hi = Z_hi = X;
     N                  = 10000;
+    #if KRS_ENABLE_DEBUG 
     I                  = 100;
+    #else
+    I                  = N-1;
+    #endif
     T                  = Kokkos::View<double***>();
     dT                 = Kokkos::View<double***>();
     T0                 = 0.0;

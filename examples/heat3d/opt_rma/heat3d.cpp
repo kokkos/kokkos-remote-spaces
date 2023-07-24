@@ -21,6 +21,8 @@
 #include <mpi.h>
 #include <assert.h>
 
+#include <comm.hpp>
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using LocalView_t  = Kokkos::View<double***>;
 using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
@@ -67,10 +69,12 @@ struct CommHelper {
     left = right = down = up = front = back = -1;
     x = y = z = 0;
 
+    #if KRS_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i (old Grid): %i %i %i MyPos: %i %i %i\n", nranks,
            me, nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
+    #endif
   }
 };
 
@@ -134,7 +138,11 @@ struct System {
     my_lo_x            = 0;
     my_hi_x            = 0;
     N                  = 10000;
+    #if KRS_ENABLE_DEBUG 
     I                  = 100;
+    #else
+    I                  = N-1;
+    #endif
     T0                 = 0.0;
     dt                 = 0.1;
     q                  = 1.0;
@@ -171,8 +179,10 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
+    #if KRS_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
+    #endif
     T    = RemoteView_t("System::T", dX, dY, dZ);
     T_h  = HostView_t("Host::T", T.extent(0), dY, dZ);
     dT   = LocalView_t("System::dT", T.extent(0), dY, dZ);
@@ -319,7 +329,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double time_a, time_c, time_d;
+    double time_a, time_b, time_c;
     double time_compute, time_all;
     time_all = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -327,18 +337,22 @@ struct System {
       time_a = timer.seconds();
       compute_dT();
       RemoteSpace_t().fence();
-      Kokkos::DefaultExecutionSpace().fence();
-      time_c       = timer.seconds();
+      time_b       = timer.seconds();
       double T_ave = compute_T();
-      time_d       = timer.seconds();
+      time_c       = timer.seconds();
       time_all += time_c - time_a;
-      time_compute += time_d - time_c;
+      time_compute += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
       if ((t % I == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
-        printf("%d T=%lf Time (%lf %lf)\n", t, T_ave, time, time - old_time);
-        printf("     inner + surface: %lf compute: %lf\n", time_all,
-               time_compute);
+        printf("%d,%lf,%lf,%lf,%lf,%lf",
+          t,
+          T_ave,
+          time,
+          time - old_time,
+          time_all,
+          time_compute
+        );          
         old_time = time;
       }
     }
@@ -346,42 +360,13 @@ struct System {
 };
 
 int main(int argc, char* argv[]) {
-  int mpi_thread_level_available;
-  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
-
-#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
-  mpi_thread_level_required = MPI_THREAD_SINGLE;
-#endif
-
-  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
-                  &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-#endif
-
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm      = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
-
+  comm_init(argc, argv);
   Kokkos::initialize(argc, argv);
   {
     System sys(MPI_COMM_WORLD);
     if (sys.check_args(argc, argv)) sys.timestep();
   }
   Kokkos::finalize();
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
+  comm_fini();
   return 0;
 }
