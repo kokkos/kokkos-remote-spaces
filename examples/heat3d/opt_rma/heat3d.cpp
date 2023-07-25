@@ -69,7 +69,7 @@ struct CommHelper {
     left = right = down = up = front = back = -1;
     x = y = z = 0;
 
-    #if KRS_ENABLE_DEBUG
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i (old Grid): %i %i %i MyPos: %i %i %i\n", nranks,
            me, nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
@@ -138,8 +138,8 @@ struct System {
     my_lo_x            = 0;
     my_hi_x            = 0;
     N                  = 10000;
-    #if KRS_ENABLE_DEBUG 
-    I                  = 100;
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG 
+    I                  = 10;
     #else
     I                  = N-1;
     #endif
@@ -179,7 +179,7 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
-    #if KRS_ENABLE_DEBUG
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
     #endif
@@ -307,7 +307,7 @@ struct System {
     }
   };
 
-  double compute_T() {
+  double update_T() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
     double my_T;
@@ -329,31 +329,41 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double time_a, time_b, time_c;
-    double time_compute, time_all;
-    time_all = time_compute = 0.0;
+    double GUPs;
+    double time_a, time_b, time_c, time_update, time_compute, time_all;
+    time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */
       time_a = timer.seconds();
       compute_dT();
       RemoteSpace_t().fence();
       time_b       = timer.seconds();
-      double T_ave = compute_T();
+      double T_ave = update_T();
       time_c       = timer.seconds();
-      time_all += time_c - time_a;
-      time_compute += time_c - time_b;
+      time_compute += time_b - time_a;
+      time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
-      if ((t % I == 0 || t == N) && (comm.me == 0)) {
+        #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+        #else
+        if ((t == N) && (comm.me == 0)) {
+        #endif
         double time = timer.seconds();
-        printf("%d,%lf,%lf,%lf,%lf,%lf",
-          t,
-          T_ave,
-          time,
-          time - old_time,
-          time_all,
-          time_compute
-        );          
-        old_time = time;
+        time_all += time - old_time;
+        GUPs += 1e-9 * (dT.size() / time_compute);
+        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+          printf("heat3D,KokkosRemoteSpaces_localproxy,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+            t,
+            T_ave,
+            0.0,
+            time_compute,
+            time_update,
+            time - old_time, /* time last iter */
+            time_all,        /* current runtime  */
+            GUPs/t
+          );  
+          old_time = time;
+        }
       }
     }
   }

@@ -8,7 +8,7 @@ struct SpaceInstance {
   static bool overlap() { return false; }
 };
 
-#ifndef KOKKOS_ENABLE_DEBUG
+#ifndef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
 #ifdef KOKKOS_ENABLE_CUDA
 template <>
 struct SpaceInstance<Kokkos::Cuda> {
@@ -152,8 +152,8 @@ struct System {
     X_lo = Y_lo = Z_lo = 0;
     X_hi = Y_hi = Z_hi = X;
     N                  = 10000;
-    #if KRS_ENABLE_DEBUG 
-    I                  = 100;
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG 
+    I                  = 10;
     #else
     I                  = N-1;
     #endif
@@ -275,32 +275,49 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
+    double time_all = 0.0;
+    double GUPs;
     double time_a, time_b, time_c, time_d;
-    double time_inner, time_surface, time_compute;
-    time_inner = time_surface = time_compute = 0.0;
+    double time_inner, time_surface, time_update;
+    time_inner = time_surface = time_update = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0;
-      pack_T_halo();
       time_a = timer.seconds();
-      compute_inner_dT();
+      pack_T_halo(); //Overlap O1
+      compute_inner_dT(); //Overlap O1
       Kokkos::fence();
       time_b = timer.seconds();
       exchange_T_halo();
       compute_surface_dT();
       Kokkos::fence();
       time_c       = timer.seconds();
-      double T_ave = compute_T();
+      double T_ave = update_T();
       time_d       = timer.seconds();
       time_inner += time_b - time_a;
       time_surface += time_c - time_b;
-      time_compute += time_d - time_c;
+      time_update += time_d - time_c;
       T_ave /= 1e-9 * (X * Y * Z);
       if ((t % I == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
-        printf("%i T=%lf Time (%lf %lf)\n", t, T_ave, time, time - old_time);
-        printf("     inner + surface: %lf compute: %lf\n",
-               time_inner + time_surface, time_compute);
-        old_time = time;
+        time_all += time - old_time;
+        GUPs += 1e-9 * (dT.size() / time_inner);
+        #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+        #else
+        if ((t == N) && (comm.me == 0)) {
+        #endif
+          printf("heat3D,Kokkos+MPI,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+            t,
+            T_ave,
+            time_inner,
+            time_surface,
+            time_update,
+            time - old_time, /* time last iter */
+            time_all,        /* current runtime  */
+            GUPs/t
+          );  
+          old_time = time;
+        }
       }
     }
   }
@@ -553,10 +570,10 @@ struct System {
 
   // Some compilers have deduction issues if this were just a tagged operator
   // So did a full Functor here instead
-  struct ComputeT {
+  struct UpdateT {
     Kokkos::View<double***> T, dT;
     double dt;
-    ComputeT(Kokkos::View<double***> T_, Kokkos::View<double***> dT_,
+    UpdateT(Kokkos::View<double***> T_, Kokkos::View<double***> dT_,
              double dt_)
         : T(T_), dT(dT_), dt(dt_) {}
     KOKKOS_FUNCTION
@@ -566,20 +583,21 @@ struct System {
     }
   };
 
-  double compute_T() {
+  double update_T() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
     int X = T.extent(0);
     int Y = T.extent(1);
     int Z = T.extent(2);
-    double my_T;
+    double my_T = 0.0;
     Kokkos::parallel_reduce(
-        "ComputeT",
+        "UpdateT",
         Kokkos::Experimental::require(
             policy_t(E_bulk, {0, 0, 0}, {X, Y, Z}, {10, 10, 10}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        ComputeT(T, dT, dt), my_T);
+        UpdateT(T, dT, dt), my_T);
     double sum_T;
+    printf("RED%lf\n",my_T);
     MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM, comm.comm);
     return sum_T;
   }
