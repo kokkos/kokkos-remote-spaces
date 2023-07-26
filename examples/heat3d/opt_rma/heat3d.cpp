@@ -329,7 +329,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double GUPs;
+    double GUPs = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
     time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -352,7 +352,8 @@ struct System {
         time_all += time - old_time;
         GUPs += 1e-9 * (dT.size() / time_compute);
         if ((t % I == 0 || t == N) && (comm.me == 0)) {
-          printf("heat3D,KokkosRemoteSpaces_localproxy,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+          printf("heat3D,KokkosRemoteSpaces_localproxy,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
+            comm.nranks,
             t,
             T_ave,
             0.0,
@@ -360,7 +361,9 @@ struct System {
             time_update,
             time - old_time, /* time last iter */
             time_all,        /* current runtime  */
-            GUPs/t
+            GUPs/t,
+            X,
+            1e-6* (dT.size() * sizeof(double))
           );  
           old_time = time;
         }

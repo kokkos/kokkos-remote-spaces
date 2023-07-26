@@ -42,6 +42,9 @@ struct CommHelper {
   // My rank
   int me;
 
+  // N ranks
+  int nranks;
+
   // My pos in proc grid
   int x, y, z;
 
@@ -50,7 +53,7 @@ struct CommHelper {
 
   CommHelper(MPI_Comm comm_) {
     comm = comm_;
-    int nranks;
+    
     MPI_Comm_size(comm, &nranks);
     MPI_Comm_rank(comm, &me);
 
@@ -71,10 +74,12 @@ struct CommHelper {
     front = z == 0 ? -1 : me - nx * ny;
     back  = z == nz - 1 ? -1 : me + nx * ny;
 
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i Grid: %i %i %i MyPos: %i %i %i\n", nranks, me,
            nx, ny, nz, x, y, z);
     printf("Me: %i MyNeighs: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
+    #endif
   }
 
   template <class ViewType>
@@ -197,8 +202,10 @@ struct System {
     Z_hi   = Z_lo + dZ;
     if (Z_hi > Z) Z_hi = Z;
 
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, X_lo, Y_lo, Z_lo,
            X_hi, Y_hi, Z_hi);
+    #endif
     T  = Kokkos::View<double***>("System::T", X_hi - X_lo, Y_hi - Y_lo,
                                 Z_hi - Z_lo);
     dT = Kokkos::View<double***>("System::dT", T.extent(0), T.extent(1),
@@ -276,7 +283,7 @@ struct System {
     Kokkos::Timer timer;
     double old_time = 0.0;
     double time_all = 0.0;
-    double GUPs;
+    double GUPs = 0.0;
     double time_a, time_b, time_c, time_d;
     double time_inner, time_surface, time_update;
     time_inner = time_surface = time_update = 0.0;
@@ -306,7 +313,8 @@ struct System {
         #else
         if ((t == N) && (comm.me == 0)) {
         #endif
-          printf("heat3D,Kokkos+MPI,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+          printf("heat3D,Kokkos+MPI,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
+            comm.nranks,
             t,
             T_ave,
             time_inner,
@@ -314,7 +322,9 @@ struct System {
             time_update,
             time - old_time, /* time last iter */
             time_all,        /* current runtime  */
-            GUPs/t
+            GUPs/t,
+            X,
+            1e-6* (dT.size() * sizeof(double))
           );  
           old_time = time;
         }
@@ -596,8 +606,7 @@ struct System {
             policy_t(E_bulk, {0, 0, 0}, {X, Y, Z}, {10, 10, 10}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         UpdateT(T, dT, dt), my_T);
-    double sum_T;
-    printf("RED%lf\n",my_T);
+    double sum_T; 
     MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM, comm.comm);
     return sum_T;
   }

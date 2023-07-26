@@ -66,11 +66,12 @@ struct CommHelper {
 
     left = right = down = up = front = back = -1;
     x = y = z = 0;
-
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i (old Grid): %i %i %i MyPos: %i %i %i\n", nranks,
            me, nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
+    #endif
   }
 };
 
@@ -184,8 +185,10 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
+    #endif
     T   = RemoteView_t("System::T", dX, dY, dZ);
     T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
     dT  = LocalView_t("System::dT", dX, dY, dZ);
@@ -332,7 +335,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double GUPs;
+    double GUPs = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
     time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -355,7 +358,8 @@ struct System {
         #else
         if ((t == N) && (comm.me == 0)) {
         #endif
-          printf("heat3D,KokkosRemoteSpaces,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+          printf("heat3D,KokkosRemoteSpaces,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
+            comm.nranks,
             t,
             T_ave,
             0.0,
@@ -363,7 +367,9 @@ struct System {
             time_update,
             time - old_time, /* time last iter */
             time_all,        /* current runtime  */
-            GUPs/t
+            GUPs/t,
+            X,
+            1e-6* (dT.size() * sizeof(double))
           );  
           old_time = time;
         }

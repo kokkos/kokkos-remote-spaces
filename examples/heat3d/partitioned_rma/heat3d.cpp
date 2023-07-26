@@ -66,10 +66,12 @@ struct CommHelper {
     front = (z == 0) ? -1 : me - nx * ny;
     back  = (z == nz - 1) ? -1 : me + nx * ny;
 
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i Grid: %i %i %i MyPos: %i %i %i\n", nranks, me,
            nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
+    #endif
   }
 };
 
@@ -165,8 +167,10 @@ struct System {
     if (Z_hi > Z) Z_hi = Z;
     Z_ra = Z_hi - Z_lo;
 
+    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, X_lo, Y_lo, Z_lo,
            X_hi, Y_hi, Z_hi);
+    #endif
     T_h = HostView_t("Host::T", 1, dX, dY, dZ);
     T   = RemoteView_t("System::T", comm.nranks, dX, dY, dZ);
     dT  = LocalView_t("System::dT", 1, T.extent(1), T.extent(2),
@@ -396,7 +400,6 @@ struct System {
     KOKKOS_FUNCTION
     void operator()(int me, int x, int y, int z, double& sum_T) const {
       sum_T += T(me, x, y, z);
-      // printf("just added %lf\n", T(me,x,y,z));
       T(me, x, y, z) += dt * dT(me, x, y, z);
     }
   };
@@ -424,7 +427,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double GUPs;
+    double GUPs = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
     time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -449,7 +452,8 @@ struct System {
         #else
         if ((t == N) && (comm.me == 0)) {
         #endif
-          printf("heat3D,KokkosRemoteSpaces_partitioned,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+          printf("heat3D,KokkosRemoteSpaces_partitioned,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
+            comm.nranks,
             t,
             T_ave,
             0.0,
@@ -457,7 +461,9 @@ struct System {
             time_update,
             time - old_time, /* time last iter */
             time_all,        /* current runtime  */
-            GUPs/t
+            GUPs/t,
+            X,
+            1e-6* (dT.size() * sizeof(double))
           );
           old_time = time;
         }
