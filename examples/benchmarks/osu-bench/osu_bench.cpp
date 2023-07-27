@@ -63,6 +63,7 @@ struct Bench_Manager {
     }
     RemoteSpace_t().fence();
     Kokkos::fence();
+    MPI_Barrier(MPI_COMM_WORLD);
     for (t = 1; t <= iterations; t++) {
       if (t % 100 == 0 && me == 0) printf("iteration %d\n", t);
       start_time = timer.seconds();
@@ -73,6 +74,7 @@ struct Bench_Manager {
       }
       RemoteSpace_t().fence();
       Kokkos::fence();
+      MPI_Barrier(MPI_COMM_WORLD);
       end_time = timer.seconds();
       benchmark_time += (end_time - start_time);
     }
