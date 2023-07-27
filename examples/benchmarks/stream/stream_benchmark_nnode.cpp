@@ -117,6 +117,7 @@ struct Stream_Manager {
     Kokkos::parallel_for("remote_stream", policy_t({0}, {minterval}),
                          remote_add(A, B, my_min_i, rstart));
     RemoteSpace_t().fence();
+    MPI_Barrier(MPI_COMM_WORLD);
     time_end = timer.seconds();
     return time_end - time_begin;
   }
@@ -167,14 +168,14 @@ struct Stream_Manager {
       else
         time_stream += mpi_benchmark(minterval);
 
-      if ((t % 400 == 0 || t == iterations) && (comm.me == 0)) {
+      if ((t % 100 == 0 || t == iterations) && (comm.me == 0)) {
         double time = timer.seconds();
         printf("%d Time (%lf %lf)\n", t, time, time - old_time);
         printf("    stream: %lf\n", time_stream);
         old_time = time;
       }
     }
-    if(comm.me == 0) {
+    if (comm.me == 0) {
       double elements_updated = 1.0 * iterations * N;
       double gups             = elements_updated * 1e-9 / time_stream;
       printf("GUPs: %lf\n", gups);
@@ -222,7 +223,7 @@ int main(int argc, char *argv[]) {
     int mode = 0;
     int N;
     int iterations;
-    iterations = 1e4;
+    iterations = 1e3;
     N          = 1e7;
     for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "-h") == 0) {
