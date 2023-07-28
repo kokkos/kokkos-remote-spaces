@@ -5,7 +5,6 @@
 <br/>
 <br/>
 <br/>
-
 <br/>
 
 *Kokkos Remote Spaces* adds distributed shared memory (DSM) support to [*Kokkos*](https://github.com/kokkos/kokkos/). This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
@@ -17,7 +16,7 @@ Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-
 
 ## New APIs and Kokkos API overloads
 
-t```
+```
 Kokkos::Experimental::DefaultRemoteMemorySpace;
 Kokkos::Experimental::DefaultRemoteMemorySpace::fence();
 Kokkos::Experimental::PartitionedLayout;
