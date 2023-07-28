@@ -1,9 +1,5 @@
-<img src="https://github.com/kokkos/kokkos-remote-spaces/assets/755191/401eedaf-df35-4a59-bcd8-24c793e0a3f4" width="300" align="right"></img>
-<br/>
-<br/>
-<br/>
-<br/>
-## Kokkos Remote Spaces
+<img src="https://github.com/kokkos/kokkos-remote-spaces/assets/755191/401eedaf-df35-4a59-bcd8-24c793e0a3f4" width="200" align="right"></img>
+# Kokkos Remote Spaces
 *Kokkos Remote Spaces* adds distributed shared memory (DSM) support to [*Kokkos*](https://github.com/kokkos/kokkos/). This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
 A new memory space type, namely the `DefaultRemoteMemorySpace` type, represents a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer.
