@@ -2,18 +2,15 @@
 <br/>
 <br/>
 <br/>
-
 <br/>
-<img src="https://user-images.githubusercontent.com/755191/120260364-ff398a80-c252-11eb-9f01-886bb888533a.png" width="500" align="right" ></img>
-
 ## Kokkos Remote Spaces
-
 *Kokkos Remote Spaces* adds distributed shared memory (DSM) support to [*Kokkos*](https://github.com/kokkos/kokkos/). This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
 A new memory space type, namely the `DefaultRemoteMemorySpace` type, represents a Kokkos memory space with remote access semantic. Kokkos View specialized to this memory space through template arguments expose this semantic to the programmer. The underlying implementation of remote memory accesses relies on PGAS as a backend layer.
 
 Currently, three PGAS backends are supported namely SHMEM, NVSHMEM, and MPI One-sided (preview). SHMEM and MPI One-sided are host-only programming models and thus support distributed memory accesses on hosts only. This corresponds to Kokko's execution spaces such as Serial or OpenMP. NVSHMEM supports device-initiated communication on CUDA devices and consequently the Kokkos CUDA execution space. The following diagram shows how Kokkos Remote Spaces fits into the landscape of Kokkos and PGAS libraries.
 
+<img src="https://user-images.githubusercontent.com/755191/120260364-ff398a80-c252-11eb-9f01-886bb888533a.png" width="500" align="right" ></img>
 
 ## New APIs and Kokkos API overloads
 
