@@ -1,11 +1,12 @@
-<img src="https://github.com/kokkos/kokkos-remote-spaces/assets/755191/401eedaf-df35-4a59-bcd8-24c793e0a3f4" width="300" align="left"></img>
+<img src="https://github.com/kokkos/kokkos-remote-spaces/assets/755191/401eedaf-df35-4a59-bcd8-24c793e0a3f4" width="300" align="right"></img>
+<br/>
+<br/>
+<br/>
 
+<br/>
 <img src="https://user-images.githubusercontent.com/755191/120260364-ff398a80-c252-11eb-9f01-886bb888533a.png" width="500" align="right" ></img>
 
-<br/>
-<br/>
-<br/>
-<br/>
+## Kokkos Remote Spaces
 
 *Kokkos Remote Spaces* adds distributed shared memory (DSM) support to [*Kokkos*](https://github.com/kokkos/kokkos/). This enables a global view on data for a convenient multi-GPU, multi-node, and multi-device programming.
 
