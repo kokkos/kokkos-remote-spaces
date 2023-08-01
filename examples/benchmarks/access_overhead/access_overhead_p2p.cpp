@@ -25,7 +25,10 @@
 #include <type_traits>
 #include <string>
 
-#define CHECK_FOR_CORRECTNESS
+//#define CHECK_FOR_CORRECTNESS
+
+//#define CUDA_AWARE_MPI
+
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
@@ -269,26 +272,40 @@ struct Access<ViewType_t, typename std::enable_if_t<
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
                          *this);
     Kokkos::fence();
+    MPI_Barrier(MPI_COMM_WORLD);
 
     for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
 
       if (my_rank == 1) {
+        #ifndef CUDA_AWARE_MPI
         auto v_tmp_host = Kokkos::create_mirror_view(v_tmp);
         Kokkos::deep_copy(v_tmp_host, v);
         MPI_Send(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
-                 MPI_COMM_WORLD);
+          MPI_COMM_WORLD);
+        #else
+        MPI_Send(v.data(), N, MPI_DOUBLE, other_rank, TAG,
+          MPI_COMM_WORLD);
+        #endif
       } else {
-        auto v_tmp_host = Kokkos::create_mirror_view(v_tmp);
-        MPI_Recv(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
+        #ifndef CUDA_AWARE_MPI
+         auto v_tmp_host = Kokkos::create_mirror_view(v_tmp);
+         MPI_Recv(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         Kokkos::deep_copy(v_tmp, v_tmp_host);
+        #else
+        MPI_Recv(v_tmp.data(), N, MPI_DOUBLE, other_rank, TAG,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        #endif
         Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}),
                              *this);
+                             
         Kokkos::fence();
+        
         time_b = timer.seconds();
         time += time_b - time_a;
       }
+      MPI_Barrier(MPI_COMM_WORLD);
     }
 
     if (my_rank == 0) {
@@ -301,8 +318,14 @@ struct Access<ViewType_t, typename std::enable_if_t<
       double gups = 1e-9 * ((N * iters) / time);
       double size = N * sizeof(double) / 1024.0 / 1024.0;
       double bw   = gups * sizeof(double);
+      #ifdef CUDA_AWARE_MPI
       printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
-             modes[mode].c_str(), N, size, iters, time, gups, bw);
+             (modes[mode]+"-MPIIsCudaAware").c_str(), N, size, iters, time, gups, bw);
+      #else
+      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+            modes[mode].c_str(), N, size, iters, time, gups, bw);
+      #endif
+
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }

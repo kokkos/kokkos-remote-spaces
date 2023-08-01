@@ -343,15 +343,15 @@ struct System {
       time_compute += time_b - time_a;
       time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
+       if ((t % I == 0 || t == N) && (comm.me == 0)) {
+        double time = timer.seconds();
+        time_all += time - old_time;
+        GUPs += 1e-9 * (dT.size() / time_compute);
         #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
         if ((t % I == 0 || t == N) && (comm.me == 0)) {
         #else
         if ((t == N) && (comm.me == 0)) {
         #endif
-        double time = timer.seconds();
-        time_all += time - old_time;
-        GUPs += 1e-9 * (dT.size() / time_compute);
-        if ((t % I == 0 || t == N) && (comm.me == 0)) {
           printf("heat3D,KokkosRemoteSpaces_localproxy,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
             comm.nranks,
             t,

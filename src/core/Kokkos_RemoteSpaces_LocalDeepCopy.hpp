@@ -52,6 +52,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         type * = nullptr) {
   Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
                        [&](const int &i) { dst.data()[i] = src.data()[i]; });
+
+  //Kokkos::RemoteSpaces::BlockTransfer();
 }
 
 template <class DT, class... DP, class ST, class... SP>
