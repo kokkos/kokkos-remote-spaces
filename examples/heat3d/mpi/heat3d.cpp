@@ -323,7 +323,7 @@ struct System {
             time - old_time, /* time last iter */
             time_all,        /* current runtime  */
             GUPs/t,
-            X * comm.nranks,
+            X,
             1e-6* (dT.size() * sizeof(double))
           );  
           old_time = time;
