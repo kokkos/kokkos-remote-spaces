@@ -21,7 +21,6 @@
 #include <mpi.h>
 #include <assert.h>
 #include <typeinfo>
-#include <concepts>
 #include <type_traits>
 #include <string>
 
