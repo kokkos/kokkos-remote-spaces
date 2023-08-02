@@ -172,11 +172,13 @@ struct Stream_Manager {
       else
         mpi_benchmark(minterval);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     for (int t = 1; t <= iterations; t++) {
       if (remote)
         time_stream += remote_benchmark(minterval);
       else
         time_stream += mpi_benchmark(minterval);
+      MPI_Barrier(MPI_COMM_WORLD);
 
       if ((t % 100 == 0 || t == iterations) && (comm.me == 0)) {
         double time = timer.seconds();
