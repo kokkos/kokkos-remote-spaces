@@ -35,6 +35,10 @@ using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double *>;
 using policy_t      = Kokkos::RangePolicy<int>;
 
+#define MODE_MPI     0
+#define MODE_RMA     1
+#define MODE_MPI_NCA 3 /* non cuda aware mpi */
+
 template <typename ViewType_t>
 struct Stream_Manager {
   int N;          /* size of vector */
@@ -45,26 +49,26 @@ struct Stream_Manager {
   int rstart;
   int rend;
   int rinterval;
-  bool remote;
+  int mode;
 
   MPI_Request mpi_request_recv;
   MPI_Request mpi_request_send;
 
   ViewType_t A;
   ViewType_t B; /* B, an initially empty view only used for mpi version */
+  PlainView_t::HostMirror A_h;
+  PlainView_t::HostMirror B_h;
 
   CommInfo comm;
 
-  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, int n, int i)
-      : comm(comm_), A(a), B(b), N(n), iterations(i) {
-    if (std::is_same<ViewType_t, PlainView_t>::value) {
-      remote = false;
-    }
-    if (std::is_same<ViewType_t, RemoteView_t>::value) {
-      remote = true;
-    }
+  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, int n, int i, int mode_)
+      : comm(comm_), A(a), B(b), N(n), iterations(i), mode(mode_) {
 
-    if (remote) {
+    A_h = PlainView_t::HostMirror("Host::A", A.size());
+    B_h = PlainView_t::HostMirror("Host::B", B.size());
+    printf("I have allocated my views\n");
+
+    if (mode == 0 || mode == 3) {
       interval = (N + comm.nranks - 1) / comm.nranks;
       my_min_i = interval * comm.me;
       my_max_i = (interval) * (comm.me + 1); /* interval non-inclusive */
@@ -158,6 +162,37 @@ struct Stream_Manager {
     return time_end - time_begin;
   }
 
+  double mpi_unaware_benchmark(int minterval) {
+    Kokkos::Timer timer;
+    double time_begin, time_end;
+    time_begin = timer.seconds();
+    if (comm.me == 1) {
+      Kokkos::deep_copy(A_h, A);
+      RemoteSpace_t().fence();
+      MPI_Isend(A_h.data(), minterval, MPI_DOUBLE, 0, 1, comm.comm,
+                &mpi_request_send);
+      MPI_Waitall(1, &mpi_request_send, MPI_STATUSES_IGNORE);
+      RemoteSpace_t().fence();
+    }
+    if (comm.me == 0) {
+      RemoteSpace_t().fence();
+      MPI_Irecv(B_h.data(), minterval, MPI_DOUBLE, 1, 1, comm.comm,
+                &mpi_request_recv);
+      MPI_Waitall(1, &mpi_request_recv, MPI_STATUSES_IGNORE);
+      Kokkos::deep_copy(B, B_h);
+      RemoteSpace_t().fence();
+    }
+
+    if (comm.me == 0) {
+      Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
+                           mpi_add(A, B));
+    }
+    RemoteSpace_t().fence();
+    MPI_Barrier(MPI_COMM_WORLD);
+    time_end = timer.seconds();
+    return time_end - time_begin;
+  }
+
   // run stream benchmark
   void benchmark() {
     Kokkos::Timer timer;
@@ -167,17 +202,21 @@ struct Stream_Manager {
     minterval = rinterval < interval ? rinterval : interval;
     /* warmup run */
     for (int t = 1; t <= 1; t++) {
-      if (remote)
+      if (mode == 1)
         remote_benchmark(minterval);
-      else
+      else if (mode == 0)
         mpi_benchmark(minterval);
+      else if (mode == 3)
+        mpi_unaware_benchmark(minterval);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     for (int t = 1; t <= iterations; t++) {
-      if (remote)
+      if (mode == 1)
         time_stream += remote_benchmark(minterval);
-      else
+      else if (mode == 0)
         time_stream += mpi_benchmark(minterval);
+      else if (mode == 3)
+        time_stream += mpi_unaware_benchmark(minterval);
       MPI_Barrier(MPI_COMM_WORLD);
 
       if ((t % 100 == 0 || t == iterations) && (comm.me == 0)) {
@@ -246,6 +285,7 @@ int main(int argc, char *argv[]) {
         printf("modes:\n");
         printf("  0: Kokkos (Normal)  View\n");
         printf("  1: Kokkos Remote    View\n");
+        printf("  3: Kokkos (Normal)  View without cuda-aware MPI\n");
         return 0;
       }
       if (strcmp(argv[i], "-m") == 0) mode = atoi(argv[i + 1]);
@@ -268,10 +308,10 @@ int main(int argc, char *argv[]) {
       Kokkos::deep_copy(c, myrank);
       Kokkos::deep_copy(a, c);
       Kokkos::deep_copy(b, c);
-      Stream_Manager<Type_t> sys(mpi_comm, a, b, view_size, iterations);
+      Stream_Manager<Type_t> sys(mpi_comm, a, b, view_size, iterations, mode);
       sys.benchmark();
     }
-    if (mode == 1) {
+    if (mode == 1 || mode == 3) {
       using Type_t = RemoteView_t;
       Type_t a;
       Type_t b;
@@ -284,7 +324,7 @@ int main(int argc, char *argv[]) {
       Kokkos::deep_copy(c, myrank);
       Kokkos::deep_copy(a, c);
       Kokkos::deep_copy(b, c);
-      Stream_Manager<Type_t> sys(mpi_comm, a, b, N, iterations);
+      Stream_Manager<Type_t> sys(mpi_comm, a, b, N, iterations, mode);
       sys.benchmark();
     }
   }
