@@ -93,7 +93,7 @@ struct Stream_Manager {
     }
     double elements_updated = 1.0 * iterations * N;
     double gups             = elements_updated * 1e-9 / time_stream;
-    printf("GUPs: %lf\n", gups);
+    printf("GUPs: %lf bandwidth: %lf\n", gups, gups * 8);
   }
 };
 

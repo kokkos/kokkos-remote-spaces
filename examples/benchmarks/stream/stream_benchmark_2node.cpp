@@ -35,8 +35,8 @@ using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
 using PlainView_t   = Kokkos::View<double *>;
 using policy_t      = Kokkos::RangePolicy<int>;
 
-#define MODE_MPI     0
-#define MODE_RMA     1
+#define MODE_MPI 0
+#define MODE_RMA 1
 #define MODE_MPI_NCA 3 /* non cuda aware mpi */
 
 template <typename ViewType_t>
@@ -47,8 +47,6 @@ struct Stream_Manager {
   int my_max_i;   /* my rank's maximum i */
   int interval;
   int rstart;
-  int rend;
-  int rinterval;
   int mode;
 
   MPI_Request mpi_request_recv;
@@ -61,47 +59,23 @@ struct Stream_Manager {
 
   CommInfo comm;
 
-  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, int n, int i, int mode_)
+  Stream_Manager(MPI_Comm comm_, ViewType_t &a, ViewType_t &b, int n, int i,
+                 int mode_)
       : comm(comm_), A(a), B(b), N(n), iterations(i), mode(mode_) {
-
     A_h = PlainView_t::HostMirror("Host::A", A.size());
     B_h = PlainView_t::HostMirror("Host::B", B.size());
-    printf("I have allocated my views\n");
 
     if (mode == 0 || mode == 3) {
-      interval = (N + comm.nranks - 1) / comm.nranks;
-      my_min_i = interval * comm.me;
-      my_max_i = (interval) * (comm.me + 1); /* interval non-inclusive */
-      if (my_max_i > N) {
-        my_max_i = N;
-      }
-
-      rstart = (interval)*comm.rneighbor;
-      rend   = (interval) * (comm.rneighbor + 1);
-      if (rend > N) {
-        rend = N;
-      }
-      rinterval = rend - rstart;
-
-      interval = my_max_i - my_min_i;
+      interval = N;
+      my_min_i = 0;
     } else {
-      rinterval = interval = N;
-      my_min_i = rstart = 0;
-
-      if (N % interval != 0) {
-        if (comm.me == comm.nranks - 1) {
-          interval = N % interval;
-        }
-        if (comm.rneighbor == comm.nranks - 1) {
-          rinterval = N % interval;
-        }
-      }
-
-      my_max_i = interval;
-      rend     = rinterval;
+      interval = N / comm.nranks;
+      my_min_i = interval * comm.me;
+      rstart   = (my_min_i + interval) % N;
     }
-    printf("my_min_i: %d my_max_i: %d interval: %d\n", my_min_i, my_max_i,
-           interval);
+    my_max_i = my_min_i + interval;
+    printf("rank %d - my_min_i: %d my_max_i: %d interval: %d\n", comm.me,
+           my_min_i, my_max_i, interval);
   }
 
   struct remote_add {
@@ -144,12 +118,12 @@ struct Stream_Manager {
     if (comm.me == 1) {
       MPI_Isend(A.data(), minterval, MPI_DOUBLE, 0, 1, comm.comm,
                 &mpi_request_send);
-      MPI_Waitall(1, &mpi_request_send, MPI_STATUSES_IGNORE);
+      MPI_Wait(&mpi_request_send, MPI_STATUSES_IGNORE);
     }
     if (comm.me == 0) {
       MPI_Irecv(B.data(), minterval, MPI_DOUBLE, 1, 1, comm.comm,
                 &mpi_request_recv);
-      MPI_Waitall(1, &mpi_request_recv, MPI_STATUSES_IGNORE);
+      MPI_Wait(&mpi_request_recv, MPI_STATUSES_IGNORE);
     }
 
     if (comm.me == 0) {
@@ -166,22 +140,20 @@ struct Stream_Manager {
     Kokkos::Timer timer;
     double time_begin, time_end;
     time_begin = timer.seconds();
+    Kokkos::deep_copy(A_h, A);
+    RemoteSpace_t().fence();
     if (comm.me == 1) {
-      Kokkos::deep_copy(A_h, A);
-      RemoteSpace_t().fence();
       MPI_Isend(A_h.data(), minterval, MPI_DOUBLE, 0, 1, comm.comm,
                 &mpi_request_send);
-      MPI_Waitall(1, &mpi_request_send, MPI_STATUSES_IGNORE);
-      RemoteSpace_t().fence();
+      MPI_Wait(&mpi_request_send, MPI_STATUSES_IGNORE);
     }
     if (comm.me == 0) {
-      RemoteSpace_t().fence();
       MPI_Irecv(B_h.data(), minterval, MPI_DOUBLE, 1, 1, comm.comm,
                 &mpi_request_recv);
-      MPI_Waitall(1, &mpi_request_recv, MPI_STATUSES_IGNORE);
-      Kokkos::deep_copy(B, B_h);
-      RemoteSpace_t().fence();
+      MPI_Wait(&mpi_request_recv, MPI_STATUSES_IGNORE);
     }
+    Kokkos::deep_copy(B, B_h);
+    RemoteSpace_t().fence();
 
     if (comm.me == 0) {
       Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
@@ -199,7 +171,7 @@ struct Stream_Manager {
     double time_stream = 0;
     double old_time    = 0.0;
     int minterval;
-    minterval = rinterval < interval ? rinterval : interval;
+    minterval = interval;
     /* warmup run */
     for (int t = 1; t <= 1; t++) {
       if (mode == 1)
@@ -296,12 +268,16 @@ int main(int argc, char *argv[]) {
       if (strcmp(argv[i], "-l") == 0) N = atoi(argv[i + 1]);
     }
 
-    if (mode == 0) {
+    if (N % nranks != 0) {
+      printf("required that N is divisible by nranks\n");
+    }
+
+    if (mode == 0 || mode == 3) {
       using Type_t = PlainView_t;
       Type_t a;
       Type_t b;
       Type_t::HostMirror c;
-      int view_size = (N + nranks - 1) / nranks;
+      int view_size = N / nranks;
       a             = Type_t("System::A", view_size);
       b             = Type_t("System::B", view_size);
       c             = Type_t::HostMirror("Host::init", view_size);
@@ -311,12 +287,12 @@ int main(int argc, char *argv[]) {
       Stream_Manager<Type_t> sys(mpi_comm, a, b, view_size, iterations, mode);
       sys.benchmark();
     }
-    if (mode == 1 || mode == 3) {
+    if (mode == 1) {
       using Type_t = RemoteView_t;
       Type_t a;
       Type_t b;
       Type_t::HostMirror c;
-      int host_view_size = (N + nranks - 1) / nranks;
+      int host_view_size = N / nranks;
       a                  = Type_t("System::A", N);
       b                  = Type_t("System::B", N);
 
