@@ -81,7 +81,6 @@ struct Stream_Manager {
   struct remote_add {
     ViewType_t A;
     int my_min_i, rstart;
-
     remote_add(ViewType_t A_, int my_min_i_, int rstart_)
         : A(A_), my_min_i(my_min_i_), rstart(rstart_) {
       ;
@@ -127,7 +126,7 @@ struct Stream_Manager {
     }
 
     if (comm.me == 0) {
-      Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
+      Kokkos::parallel_for("mpi_aware_stream", policy_t({0}, {minterval}),
                            mpi_add(A, B));
     }
     RemoteSpace_t().fence();
@@ -156,7 +155,7 @@ struct Stream_Manager {
     RemoteSpace_t().fence();
 
     if (comm.me == 0) {
-      Kokkos::parallel_for("mpi_stream", policy_t({0}, {minterval}),
+      Kokkos::parallel_for("mpi_unaware_stream", policy_t({0}, {minterval}),
                            mpi_add(A, B));
     }
     RemoteSpace_t().fence();
