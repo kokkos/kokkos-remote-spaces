@@ -16,9 +16,9 @@ HASH=`date|md5sum|head -c 5`
 FILENAME="${BENCHMARK}_${HASH}_p2p.res"
 echo $FILENAME
 echo "name,type,N,size,iters,time,gups,bw" | tee $FILENAME 
-VARS0="--bind-to socket --map-by socket -x CUDA_VISIBLE_DEVICES=0,3 -x NVSHMEM_SYMMETRIC_SIZE=10737418240"
-VARS1="-x UCX_WARN_UNUSED_ENV_VARS=n"
-VARS2="-x LD_LIBRARY_PATH=/projects/ppc64le-pwr9-rhel8/tpls/cuda/12.0.0/gcc/12.2.0/base/rantbbm/lib64/:$LD_LIBRARY_PATH"
+VARS0="--bind-to core --map-by socket -x CUDA_VISIBLE_DEVICES=0,1 -x NVSHMEM_SYMMETRIC_SIZE=10737418240"
+VARS1="-x UCX_WARN_UNUSED_ENV_VARS=n  -x HCOLL_RCACHE=^ucs -x LD_LIBRARY_PATH=/g/g92/ciesko1/software/nvshmem_src_2.9.0-2/install/lib:$LD_LIBRARY_PATH"
+#VARS2="-x :$LD_LIBRARY_PATH"
 
 #run test over size
 let SIZE=$DEFAULT_SIZE
@@ -29,23 +29,23 @@ for S in $(seq 1 21); do
    let SIZE=$SIZE*2
 done
 
-#run test over size
-SIZE=$DEFAULT_SIZE
-for S in $(seq 1 21); do 
-   for reps in $(seq 1 3); do
-      mpirun -np 2 $VARS0 $VARS1 $VARS2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
-   done
-   let SIZE=$SIZE*2
-done
+# #run test over size
+# SIZE=$DEFAULT_SIZE
+# for S in $(seq 1 21); do 
+#    for reps in $(seq 1 3); do
+#       mpirun -np 2 $VARS0 $VARS1 $VARS2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 0 | tee -a $FILENAME
+#    done
+#    let SIZE=$SIZE*2
+# done
 
-#run test over size
-let SIZE=$DEFAULT_SIZE
-for S in $(seq 1 21); do 
-   for reps in $(seq 1 3); do
-      mpirun -np 2 $VARS0 $VARS1 $VARS2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
-   done
-   let SIZE=$SIZE*2
-done
+# #run test over size
+# let SIZE=$DEFAULT_SIZE
+# for S in $(seq 1 21); do 
+#    for reps in $(seq 1 3); do
+#       mpirun -np 2 $VARS0 $VARS1 $VARS2 -host $HOST  ./$BENCHMARK -N $SIZE -I $ITERS -M 1 | tee -a $FILENAME
+#    done
+#    let SIZE=$SIZE*2
+# done
 
 
 

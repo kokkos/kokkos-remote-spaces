@@ -24,10 +24,9 @@
 #include <type_traits>
 #include <string>
 
-//#define CHECK_FOR_CORRECTNESS
+#define CHECK_FOR_CORRECTNESS
 
-//#define CUDA_AWARE_MPI
-
+#define CUDA_AWARE_MPI
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;

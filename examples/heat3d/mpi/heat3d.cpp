@@ -324,7 +324,7 @@ struct System {
             time_all,        /* current runtime  */
             GUPs/t,
             X,
-            1e-6* (dT.size() * sizeof(double))
+            1e-6* (X * sizeof(double))
           );  
           old_time = time;
         }
