@@ -50,8 +50,31 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
-                       [&](const int &i) { dst.data()[i] = src.data()[i]; });
+  int src_rank = src.impl_map().get_owning_pe();
+  int dst_rank = dst.impl_map().get_owning_pe();
+  int my_rank  = get_my_pe();
+
+  if (src_rank != my_rank && dst_rank != my_rank)
+    static_assert(
+        "local_deep_copy allows only one view with remote data access");
+
+  using src_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
+      typename ViewTraits<ST, SP...>::value_type, ViewTraits<ST, SP...>>;
+  using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
+      typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
+  if (src_rank != my_rank) {
+    src_data_block_t src_data =
+        src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+    src_data.get();
+  } else if (dst_rank != my_rank) {
+    dst_data_block_t dst_data =
+        dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+    dst_data.put();
+  } else {
+    // Data resides within the node, copy as usual
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
+                         [&](const int &i) { dst.data()[i] = src.data()[i]; });
+  }
 }
 
 template <class DT, class... DP, class ST, class... SP>
@@ -63,8 +86,30 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  for (size_t i = 0; i < src.span(); ++i) {
-    dst.data()[i] = src.data()[i];
+  int src_rank = src.impl_map().get_owning_pe();
+  int dst_rank = dst.impl_map().get_owning_pe();
+  int my_rank  = get_my_pe();
+
+  if (src_rank != my_rank && dst_rank != my_rank)
+    static_assert(
+        "local_deep_copy allows only one view with remote data access");
+
+  using src_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
+      typename ViewTraits<ST, SP...>::value_type, ViewTraits<ST, SP...>>;
+  using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
+      typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
+
+  if (src_rank != my_rank) {
+    src_data_block_t src_data =
+        src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+    src_data.get();
+  } else if (dst_rank != my_rank) {
+    dst_data_block_t dst_data =
+        dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+    dst_data.put();
+  } else {
+    // Data resides within the node, copy as usual
+    for (size_t i = 0; i < src.span(); ++i) dst.data()[i] = src.data()[i];
   }
 }
 
@@ -96,7 +141,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 }
 
 // Accepts (team, src_view, dst_view)
-
 template <class TeamType, class DT, class... DP, class ST, class... SP>
 void KOKKOS_INLINE_FUNCTION local_deep_copy(
     const TeamType &team, const View<DT, DP...> &dst,
@@ -360,8 +404,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   }
 }
 
-// Accepts (src_view, dst_view)
-
 template <class DT, class... DP, class ST, class... SP>
 void KOKKOS_INLINE_FUNCTION local_deep_copy(
     const View<DT, DP...> &dst, const View<ST, SP...> &src,
@@ -376,12 +418,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   if (dst.data() == nullptr) {
     return;
   }
-
-  const size_t N = dst.extent(0);
-
-  for (size_t i = 0; i < N; ++i) {
-    dst(i) = src(i);
-  }
+  Kokkos::Experimental::RemoteSpaces::local_deep_copy_contiguous(dst, src);
 }
 
 template <class DT, class... DP, class ST, class... SP>

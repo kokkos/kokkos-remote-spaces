@@ -65,7 +65,7 @@ KOKKOS_REMOTESPACES_G(float, nvshmem_float_g)
 KOKKOS_REMOTESPACES_G(double, nvshmem_double_g)
 
 #undef KOKKOS_REMOTESPACES_G
-/*
+
 #define KOKKOS_REMOTESPACES_ATOMIC_SET(type, op)            \
   static KOKKOS_INLINE_FUNCTION void shmem_type_atomic_set( \
       type *ptr, type value, int pe) {                      \
@@ -81,7 +81,7 @@ KOKKOS_REMOTESPACES_ATOMIC_SET(unsigned long long, nvshmem_ulonglong_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(float, nvshmem_float_atomic_set)
 KOKKOS_REMOTESPACES_ATOMIC_SET(double, nvshmem_double_atomic_set)
 
-#undef KOKKOS_REMOTESPACES_ATOMIC_SET*/
+#undef KOKKOS_REMOTESPACES_ATOMIC_SET
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type, op)                      \
   static KOKKOS_INLINE_FUNCTION type shmem_type_atomic_fetch(type *ptr, \
@@ -186,7 +186,7 @@ struct NVSHMEMDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator=(const_value_type &val) const {
-    //  shmem_type_atomic_set(ptr, val, pe);
+    shmem_type_atomic_set(ptr, val, pe);
     return val;
   }
 

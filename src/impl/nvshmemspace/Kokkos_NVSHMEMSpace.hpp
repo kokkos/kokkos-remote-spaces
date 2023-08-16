@@ -90,7 +90,10 @@ KOKKOS_FUNCTION
 size_t get_my_pe();
 KOKKOS_FUNCTION
 size_t get_indexing_block_size(size_t size);
+
 std::pair<size_t, size_t> getRange(size_t size, size_t pe);
+KOKKOS_FUNCTION
+size_t getRangeOnDevice(size_t size, size_t pe);
 
 }  // namespace Experimental
 }  // namespace Kokkos
@@ -144,13 +147,14 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
 
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
-#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_BlockOps.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
+#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_NVSHMEMSPACE_HPP

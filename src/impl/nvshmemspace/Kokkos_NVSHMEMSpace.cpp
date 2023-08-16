@@ -83,6 +83,26 @@ std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
   end          = (pe + 1) * block;
 
   size_t num_pes = get_num_pes();
+  if (size < num_pes) {
+    size_t diff = (num_pes * block) - size;
+    if (pe > num_pes - 1 - diff) end--;
+  } else {
+    if (pe == num_pes - 1) {
+      size_t diff = size - (num_pes - 1) * block;
+      end         = start + diff;
+    }
+  }
+  return std::make_pair(start, end);
+}
+
+KOKKOS_FUNCTION
+size_t getRangeOnDevice(size_t size, size_t pe) {
+  size_t start, end;
+  size_t block = get_indexing_block_size(size);
+  start        = pe * block;
+  end          = (pe + 1) * block;
+
+  size_t num_pes = get_num_pes();
 
   if (size < num_pes) {
     size_t diff = (num_pes * block) - size;
@@ -92,9 +112,8 @@ std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
       size_t diff = size - (num_pes - 1) * block;
       end         = start + diff;
     }
-    end--;
   }
-  return std::make_pair(start, end);
+  return end - start;
 }
 
 }  // namespace Experimental
