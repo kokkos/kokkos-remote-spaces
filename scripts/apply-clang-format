@@ -21,7 +21,6 @@ fi
 
 BASE_DIR="$(git rev-parse --show-toplevel)"
 cd $BASE_DIR
-echo "${BASE_DIR}"
 if [ ! -f "scripts/apply-clang-format" ]; then
   echo "***   The indenting script must be executed from within the Kokkos clone!"
   exit 1
@@ -39,3 +38,4 @@ TRACKED_FILES="$(git ls-tree HEAD --name-only)"
 find ${TRACKED_FILES} \
   -type f \( -name "*.md" -o -name "*.cc" -o -name "*.h" -o -name "*.txt" -o -name "*.cmake" \) |
   xargs -n 1 -P 10 -I {} bash -c "sed -i -e 's/\s\+$//g' {} && rm -f '{}-e'"
+
