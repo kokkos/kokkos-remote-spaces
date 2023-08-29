@@ -85,12 +85,20 @@ class NVSHMEMSpace {
 };
 
 KOKKOS_FUNCTION
-size_t get_num_pes();
+int get_num_pes();
 KOKKOS_FUNCTION
-size_t get_my_pe();
+int get_my_pe();
 KOKKOS_FUNCTION
 size_t get_indexing_block_size(size_t size);
-std::pair<size_t, size_t> getRange(size_t size, size_t pe);
+
+template <typename T>
+KOKKOS_FUNCTION Kokkos::pair<T, T> getRange(T size, int pe);
+
+template <typename T>
+KOKKOS_FUNCTION Kokkos::pair<T, T> get_range(T size, int pe);
+
+template <typename T>
+KOKKOS_FUNCTION Kokkos::pair<T, T> get_local_range(T size);
 
 }  // namespace Experimental
 }  // namespace Kokkos
@@ -144,13 +152,14 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
 
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
-#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_NVSHMEMSpace_Ops.hpp>
+#include <Kokkos_NVSHMEMSpace_BlockOps.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
+#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_NVSHMEMSPACE_HPP
