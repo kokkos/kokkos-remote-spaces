@@ -142,7 +142,7 @@ struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutLeft,
               (Kokkos::Impl::is_integral_extent_type<Arg>::value)) ||
              ((CurrentArg >= RankDest) && (std::is_integral<Arg>::value)) ||
              ((CurrentArg < RankDest) &&
-              (std::is_same<Arg, Kokkos::Impl::ALL_t>::value)) ||
+              (std::is_same<Arg, Kokkos::ALL_t>::value)) ||
              ((CurrentArg == 0) &&
               (Kokkos::Impl::is_integral_extent_type<Arg>::value))) &&
             (SubviewLegalArgsCompileTime<
@@ -174,7 +174,7 @@ struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
              ((CurrentArg < RankSrc - RankDest) &&
               (std::is_integral<Arg>::value)) ||
              ((CurrentArg >= RankSrc - RankDest) &&
-              (std::is_same<Arg, Kokkos::Impl::ALL_t>::value))) &&
+              (std::is_same<Arg, Kokkos::ALL_t>::value))) &&
             (SubviewLegalArgsCompileTime<
                 Kokkos::PartitionedLayoutRight, Kokkos::PartitionedLayoutRight,
                 RankDest, RankSrc, CurrentArg + 1, SubViewArgs...>::value)
@@ -187,7 +187,7 @@ struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
                                    RankSrc, CurrentArg, Arg> {
   enum {
     value = ((CurrentArg == RankSrc - 1) &&
-             (std::is_same<Arg, Kokkos::Impl::ALL_t>::value))
+             (std::is_same<Arg, Kokkos::ALL_t>::value))
   };
 };
 
