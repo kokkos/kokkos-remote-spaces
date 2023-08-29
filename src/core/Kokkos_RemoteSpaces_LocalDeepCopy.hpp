@@ -63,13 +63,19 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
       typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
   if (src_rank != my_rank) {
-    src_data_block_t src_data =
-        src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
-    src_data.get();
+    team.team_barrier();
+    Kokkos::single(Kokkos::PerTeam(team), [&]() {
+      src_data_block_t src_data =
+          src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+      src_data.get();
+    });
   } else if (dst_rank != my_rank) {
-    dst_data_block_t dst_data =
-        dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
-    dst_data.put();
+    team.team_barrier();
+    Kokkos::single(Kokkos::PerTeam(team), [&]() {
+      dst_data_block_t dst_data =
+          dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+      dst_data.put();
+    });
   } else {
     // Data resides within the node, copy as usual
     Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),

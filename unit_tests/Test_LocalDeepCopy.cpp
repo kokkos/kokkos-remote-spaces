@@ -384,12 +384,9 @@ void test_localdeepcopy_withSubview(
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
         "Team", TeamPolicy_t(1, 1),
-        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
-          Kokkos::single(Kokkos::PerThread(team), [&]() {
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team){
             Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-                team, v_R_subview_local, v_R_subview_next);
-          });
-        });
+                team, v_R_subview_local, v_R_subview_next);});
   }
   RemoteSpace_t().fence();
   Kokkos::deep_copy(v_H, v_R);
@@ -403,10 +400,8 @@ void test_localdeepcopy_withSubview(
     Kokkos::parallel_for(
         "Team", TeamPolicy_t(1, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
-          Kokkos::single(Kokkos::PerTeam(team), [&]() {
-            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-                team, v_R_subview_local, v_R_subview_prev);
-          });
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_local, v_R_subview_prev);
         });
   }
 
@@ -546,10 +541,8 @@ void test_localdeepcopy_withSubview(
     Kokkos::parallel_for(
         "Team", TeamPolicy_t(1, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
-          Kokkos::single(Kokkos::PerThread(team), [&]() {
-            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-                team, v_R_subview_next, v_R_subview_local);
-          });
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_next, v_R_subview_local);
         });
   }
   RemoteSpace_t().fence();
@@ -564,10 +557,8 @@ void test_localdeepcopy_withSubview(
     Kokkos::parallel_for(
         "Team", TeamPolicy_t(1, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
-          Kokkos::single(Kokkos::PerTeam(team), [&]() {
-            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-                team, v_R_subview_prev, v_R_subview_local);
-          });
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_prev, v_R_subview_local);
         });
   }
 

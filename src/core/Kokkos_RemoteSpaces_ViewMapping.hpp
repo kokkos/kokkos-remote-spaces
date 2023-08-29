@@ -25,71 +25,6 @@
 /** \brief  View mapping for non-specialized data type and standard layout */
 
 namespace Kokkos {
-
-namespace Experimental {
-
-// We currently do not support this overload
-// This would require to add a member var to layout
-
-// template <typename T>
-// std::pair<size_t, size_t> get_range(
-//     T &v, size_t pe,
-//     typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
-//   static_assert(!(std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutRight>::value ||
-//                   std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutLeft>::value ||
-//                   std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutStride>::value),
-//                 "get_local_range over partitioned layouts are not allowed");
-
-//   static_assert((std::is_same<typename T::traits::specialize,
-//                                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value),
-//                 "Requires a globally allocated view");
-
-//   if (pe == get_my_pe())
-//     return std::pair(0,v.extent(0));
-
-//   //find out how the local range has been computed and derive range
-//   // For now this overload is unsupported.
-//   // return ...
-// }
-
-// template <typename T>
-// std::pair<size_t, size_t> get_local_range(
-//     T &v,
-//     typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
-//   static_assert(!(std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutRight>::value ||
-//                   std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutLeft>::value ||
-//                   std::is_same<typename T::traits::array_layout,
-//                                Kokkos::PartitionedLayoutStride>::value),
-//                 "get_local_range over partitioned layouts are not allowed");
-
-//   static_assert((std::is_same<typename T::traits::specialize,
-//                                Kokkos::Experimental::RemoteSpaceSpecializeTag>::value),
-//                 "Requires a globally allocated view");
-//   return std::pair(0,v.extent(0));
-// }
-
-template <typename T>
-std::pair<size_t, size_t> get_range(
-    T size, size_t pe,
-    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
-  return getRange(size, pe);
-}
-
-template <typename T>
-std::pair<size_t, size_t> get_local_range(
-    T size,
-    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
-  size_t pe = get_my_pe();
-  return getRange(size, pe);
-}
-
-}  // namespace Experimental
-
 namespace Impl {
 
 /*
@@ -809,7 +744,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   // Implements global views
 
   struct dim0_offsets {
-    size_t pe, offset;
+    int pe;
+    size_t offset;
   };
 
   // TODO: move this to kokkos::view_offset (new template specialization
@@ -818,15 +754,16 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0>
   KOKKOS_INLINE_FUNCTION dim0_offsets
   compute_dim0_offsets(const I0 &_i0) const {
-    size_t target_pe, dim0_mod, i0;
+    int target_pe;
+    size_t dim0_mod, i0;
     i0 = static_cast<size_t>(_i0);
     assert(m_local_dim0);
-    target_pe = i0 / m_local_dim0;
+    target_pe = static_cast<int>(i0 / m_local_dim0);
     dim0_mod  = i0 % m_local_dim0;
     return {target_pe, dim0_mod};
   }
 
-  KOKKOS_INLINE_FUNCTION size_t get_owning_pe() const {
+  KOKKOS_INLINE_FUNCTION int get_owning_pe() const {
     // If subview with a valid m_offset_remote_dim,
     // compute the corresponding PE
     if (isSubView) return compute_dim0_offsets(m_offset_remote_dim).pe;
