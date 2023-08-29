@@ -69,31 +69,31 @@ HASH=`date|md5sum|head -c 5`
 #=====================================
 #=====================================
 
-TYPE="2x1"
-FILENAME="${BENCHMARK}_${HASH}_${TYPE}_p2p.res"
-echo $FILENAME
-echo "name,type,ranks,step,t_avg,time_inner,time_surface,time_update,time_last_iter,time_all,GUPs,view_size_elems,view_size(MB)" | tee $FILENAME 
-SIZE=$DEFAULT_SIZE
-for S in $(seq 1 7); do 
-   for reps in $(seq 1 3); do
-     mpirun -x CUDA_VISIBLE_DEVICES=0 -np 2 -npernode 1 $VARS0 $VARS1 $VARS2 -host "$HOST1:1,$HOST2:1" ./$BENCHMARK -X $SIZE -Y $SIZE -Z $SIZE -N $ITERS | tee -a $FILENAME
-   done
-   let SIZE=$SIZE*2
-done
+# TYPE="2x1"
+# FILENAME="${BENCHMARK}_${HASH}_${TYPE}_p2p.res"
+# echo $FILENAME
+# echo "name,type,ranks,step,t_avg,time_inner,time_surface,time_update,time_last_iter,time_all,GUPs,view_size_elems,view_size(MB)" | tee $FILENAME 
+# SIZE=$DEFAULT_SIZE
+# for S in $(seq 1 7); do 
+#    for reps in $(seq 1 3); do
+#      mpirun -x CUDA_VISIBLE_DEVICES=0 -np 2 -npernode 1 $VARS0 $VARS1 $VARS2 -host "$HOST1:1,$HOST2:1" ./$BENCHMARK -X $SIZE -Y $SIZE -Z $SIZE -N $ITERS | tee -a $FILENAME
+#    done
+#    let SIZE=$SIZE*2
+# done
 
-TYPE="2x2"
-FILENAME="${BENCHMARK}_${HASH}_${TYPE}_p2p.res"
-echo $FILENAME
-echo "name,type,ranks,step,t_avg,time_inner,time_surface,time_update,time_last_iter,time_all,GUPs,view_size_elems,view_size(MB)" | tee $FILENAME 
+# TYPE="2x2"
+# FILENAME="${BENCHMARK}_${HASH}_${TYPE}_p2p.res"
+# echo $FILENAME
+# echo "name,type,ranks,step,t_avg,time_inner,time_surface,time_update,time_last_iter,time_all,GUPs,view_size_elems,view_size(MB)" | tee $FILENAME 
 
-# #run test over size
-SIZE=$DEFAULT_SIZE
-for S in $(seq 1 7); do 
-   for reps in $(seq 1 3); do
-      mpirun -x CUDA_VISIBLE_DEVICES=0,1 -np 4 -npernode 2 $VARS0 $VARS1 $VARS2 -host "$HOST1:2,$HOST2:2" ./$BENCHMARK -X $SIZE -Y $SIZE -Z $SIZE -N $ITERS | tee -a $FILENAME
-   done
-   let SIZE=$SIZE*2
-done
+# # #run test over size
+# SIZE=$DEFAULT_SIZE
+# for S in $(seq 1 7); do 
+#    for reps in $(seq 1 3); do
+#       mpirun -x CUDA_VISIBLE_DEVICES=0,1 -np 4 -npernode 2 $VARS0 $VARS1 $VARS2 -host "$HOST1:2,$HOST2:2" ./$BENCHMARK -X $SIZE -Y $SIZE -Z $SIZE -N $ITERS | tee -a $FILENAME
+#    done
+#    let SIZE=$SIZE*2
+# done
 
 TYPE="2x4"
 FILENAME="${BENCHMARK}_${HASH}_${TYPE}_p2p.res"
