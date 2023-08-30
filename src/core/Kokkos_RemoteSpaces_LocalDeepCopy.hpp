@@ -25,18 +25,6 @@ namespace Kokkos {
 namespace Experimental {
 namespace RemoteSpaces {
 
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-typedef NVSHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KRS_ENABLE_SHMEMSPACE
-typedef SHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KRS_ENABLE_MPISPACE
-typedef MPISpace DefaultRemoteMemorySpace;
-#endif
-#endif
-#endif
-
 /** \brief  A local deep copy between views of the default specialization,
  * compatible type, same non-zero rank.
  */
@@ -62,10 +50,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   // beginning of the local allocaton. We need to add the offset = sum of
   // offsets in all non-leading dimenions to the ptr to support the generic
   // case.
-  using src_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
-      typename ViewTraits<ST, SP...>::value_type, ViewTraits<ST, SP...>>;
-  using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
-      typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
+  using src_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
+                                    ViewTraits<ST, SP...>>;
+  using dst_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
+                                    ViewTraits<DT, DP...>>;
   if (src_rank != my_rank) {
     team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
@@ -104,10 +94,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
     static_assert(
         "local_deep_copy allows only one view with remote data access");
 
-  using src_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
-      typename ViewTraits<ST, SP...>::value_type, ViewTraits<ST, SP...>>;
-  using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
-      typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
+  using src_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
+                                    ViewTraits<ST, SP...>>;
+  using dst_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
+                                    ViewTraits<DT, DP...>>;
 
   // We use the data ptr explicitly thus expecting that a subview starts at the
   // beginning of the local allocaton. We need to add the offset = sum of

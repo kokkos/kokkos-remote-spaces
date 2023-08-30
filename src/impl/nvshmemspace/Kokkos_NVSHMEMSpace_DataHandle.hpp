@@ -51,22 +51,22 @@ struct NVSHMEMDataHandle {
 };
 
 template <class T, class Traits>
-struct NVSHMEMBlockDataHandle {
+struct BlockDataHandle {
   T *src;
   T *dst;
   size_t elems;
   int pe;
 
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMBlockDataHandle(T *src_, T *dst_, size_t elems_, int pe_)
+  BlockDataHandle(T *src_, T *dst_, size_t elems_, int pe_)
       : src(src_), dst(dst_), elems(elems_), pe(pe_) {}
 
   KOKKOS_INLINE_FUNCTION
-  NVSHMEMBlockDataHandle(NVSHMEMBlockDataHandle<T, Traits> const &arg)
+  BlockDataHandle(BlockDataHandle<T, Traits> const &arg)
       : src(arg.src), dst(arg.dst), elems(arg.elems), pe(arg.pe_) {}
 
   template <typename SrcTraits>
-  KOKKOS_INLINE_FUNCTION NVSHMEMBlockDataHandle(SrcTraits const &arg)
+  KOKKOS_INLINE_FUNCTION BlockDataHandle(SrcTraits const &arg)
       : src(arg.src), dst(arg.dst), elems(arg.elems), pe(arg.pe_) {}
 
   KOKKOS_INLINE_FUNCTION
