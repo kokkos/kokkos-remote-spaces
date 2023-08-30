@@ -22,11 +22,9 @@ void comm_init(int argc, char* argv[]) {
   attr.mpi_comm = &mpi_comm;
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
-
 }
 
-void comm_fini()
-{
+void comm_fini() {
 #ifdef KRS_ENABLE_SHMEMSPACE
   shmem_finalize();
 #endif

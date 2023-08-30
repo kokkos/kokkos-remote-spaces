@@ -24,7 +24,7 @@
 #include <comm.hpp>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using LocalView_t  = Kokkos::View<double***>;
+using LocalView_t   = Kokkos::View<double***>;
 using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
 using HostView_t    = typename RemoteView_t::HostMirror;
 
@@ -66,12 +66,12 @@ struct CommHelper {
 
     left = right = down = up = front = back = -1;
     x = y = z = 0;
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i (old Grid): %i %i %i MyPos: %i %i %i\n", nranks,
            me, nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
-    #endif
+#endif
   }
 };
 
@@ -138,16 +138,16 @@ struct System {
     my_lo_x            = 0;
     my_hi_x            = 0;
     N                  = 10000;
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG 
-    I                  = 10;
-    #else
-    I                  = N-1;
-    #endif
-    T0                 = 0.0;
-    dt                 = 0.1;
-    q                  = 1.0;
-    sigma              = 1.0;
-    P                  = 1.0;    
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+    I = 10;
+#else
+    I = N - 1;
+#endif
+    T0    = 0.0;
+    dt    = 0.1;
+    q     = 1.0;
+    sigma = 1.0;
+    P     = 1.0;
   }
 
   void setup_subdomain() {
@@ -185,10 +185,10 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
-    #endif
+#endif
     T   = RemoteView_t("System::T", dX, dY, dZ);
     T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
     dT  = LocalView_t("System::dT", dX, dY, dZ);
@@ -240,12 +240,12 @@ struct System {
 
   KOKKOS_FUNCTION
   void operator()(ComputeDT, int x, int y, int z) const {
-    double dT_xyz = 0.0;
-    double T_xyz  = T(x, y, z);
+    double dT_xyz    = 0.0;
+    double T_xyz     = T(x, y, z);
     int num_surfaces = 0;
 
     if (x > 0) {
-      dT_xyz += q * (T(x - 1, y, z) - T_xyz);      
+      dT_xyz += q * (T(x - 1, y, z) - T_xyz);
     } else {
       num_surfaces += 1;
       // Incoming Power
@@ -335,7 +335,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double GUPs = 0.0;
+    double GUPs     = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
     time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -349,28 +349,22 @@ struct System {
       time_compute += time_b - time_a;
       time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
-        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+      if ((t % I == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
         time_all += time - old_time;
         GUPs += 1e-9 * (dT.size() / time_compute);
-        #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
         if ((t % I == 0 || t == N) && (comm.me == 0)) {
-        #else
+#else
         if ((t == N) && (comm.me == 0)) {
-        #endif
-          printf("heat3D,KokkosRemoteSpaces,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
-            comm.nranks,
-            t,
-            T_ave,
-            0.0,
-            time_compute,
-            time_update,
-            time - old_time, /* time last iter */
-            time_all,        /* current runtime  */
-            GUPs/t,
-            X,
-            1e-6* (dT.size() * sizeof(double))
-          );  
+#endif
+          printf(
+              "heat3D,KokkosRemoteSpaces,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%"
+              "f\n",
+              comm.nranks, t, T_ave, 0.0, time_compute, time_update,
+              time - old_time, /* time last iter */
+              time_all,        /* current runtime  */
+              GUPs / t, X, 1e-6 * (dT.size() * sizeof(double)));
           old_time = time;
         }
       }

@@ -384,9 +384,10 @@ void test_localdeepcopy_withSubview(
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
         "Team", TeamPolicy_t(1, 1),
-        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team){
-            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-                team, v_R_subview_local, v_R_subview_next);});
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_local, v_R_subview_next);
+        });
   }
   RemoteSpace_t().fence();
   Kokkos::deep_copy(v_H, v_R);

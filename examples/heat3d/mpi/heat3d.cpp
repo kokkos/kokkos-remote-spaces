@@ -53,7 +53,7 @@ struct CommHelper {
 
   CommHelper(MPI_Comm comm_) {
     comm = comm_;
-    
+
     MPI_Comm_size(comm, &nranks);
     MPI_Comm_rank(comm, &me);
 
@@ -74,12 +74,12 @@ struct CommHelper {
     front = z == 0 ? -1 : me - nx * ny;
     back  = z == nz - 1 ? -1 : me + nx * ny;
 
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i Grid: %i %i %i MyPos: %i %i %i\n", nranks, me,
            nx, ny, nz, x, y, z);
     printf("Me: %i MyNeighs: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
-    #endif
+#endif
   }
 
   template <class ViewType>
@@ -157,25 +157,25 @@ struct System {
     X_lo = Y_lo = Z_lo = 0;
     X_hi = Y_hi = Z_hi = X;
     N                  = 10000;
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG 
-    I                  = 10;
-    #else
-    I                  = N-1;
-    #endif
-    T                  = Kokkos::View<double***>();
-    dT                 = Kokkos::View<double***>();
-    T0                 = 0.0;
-    dt                 = 0.1;
-    q                  = 1.0;
-    sigma              = 1.0;
-    P                  = 1.0;
-    E_left             = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_right            = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_up               = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_down             = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_front            = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_back             = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_bulk             = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+    I = 10;
+#else
+    I = N - 1;
+#endif
+    T       = Kokkos::View<double***>();
+    dT      = Kokkos::View<double***>();
+    T0      = 0.0;
+    dt      = 0.1;
+    q       = 1.0;
+    sigma   = 1.0;
+    P       = 1.0;
+    E_left  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_right = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_up    = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_down  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_front = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_back  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
+    E_bulk  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
   }
 
   void destroy_exec_spaces() {
@@ -202,10 +202,10 @@ struct System {
     Z_hi   = Z_lo + dZ;
     if (Z_hi > Z) Z_hi = Z;
 
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, X_lo, Y_lo, Z_lo,
            X_hi, Y_hi, Z_hi);
-    #endif
+#endif
     T  = Kokkos::View<double***>("System::T", X_hi - X_lo, Y_hi - Y_lo,
                                 Z_hi - Z_lo);
     dT = Kokkos::View<double***>("System::dT", T.extent(0), T.extent(1),
@@ -283,15 +283,15 @@ struct System {
     Kokkos::Timer timer;
     double old_time = 0.0;
     double time_all = 0.0;
-    double GUPs = 0.0;
+    double GUPs     = 0.0;
     double time_a, time_b, time_c, time_d;
     double time_inner, time_surface, time_update;
     time_inner = time_surface = time_update = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0;
       time_a = timer.seconds();
-      pack_T_halo(); //Overlap O1
-      compute_inner_dT(); //Overlap O1
+      pack_T_halo();       // Overlap O1
+      compute_inner_dT();  // Overlap O1
       Kokkos::fence();
       time_b = timer.seconds();
       exchange_T_halo();
@@ -308,24 +308,16 @@ struct System {
         double time = timer.seconds();
         time_all += time - old_time;
         GUPs += 1e-9 * (dT.size() / time_inner);
-        #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
         if ((t % I == 0 || t == N) && (comm.me == 0)) {
-        #else
+#else
         if ((t == N) && (comm.me == 0)) {
-        #endif
+#endif
           printf("heat3D,Kokkos+MPI,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
-            comm.nranks,
-            t,
-            T_ave,
-            time_inner,
-            time_surface,
-            time_update,
-            time - old_time, /* time last iter */
-            time_all,        /* current runtime  */
-            GUPs/t,
-            X,
-            1e-6* (X * sizeof(double))
-          );  
+                 comm.nranks, t, T_ave, time_inner, time_surface, time_update,
+                 time - old_time, /* time last iter */
+                 time_all,        /* current runtime  */
+                 GUPs / t, X, 1e-6 * (X * sizeof(double)));
           old_time = time;
         }
       }
@@ -583,8 +575,7 @@ struct System {
   struct UpdateT {
     Kokkos::View<double***> T, dT;
     double dt;
-    UpdateT(Kokkos::View<double***> T_, Kokkos::View<double***> dT_,
-             double dt_)
+    UpdateT(Kokkos::View<double***> T_, Kokkos::View<double***> dT_, double dt_)
         : T(T_), dT(dT_), dt(dt_) {}
     KOKKOS_FUNCTION
     void operator()(int x, int y, int z, double& sum_T) const {
@@ -596,9 +587,9 @@ struct System {
   double update_T() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
-    int X = T.extent(0);
-    int Y = T.extent(1);
-    int Z = T.extent(2);
+    int X       = T.extent(0);
+    int Y       = T.extent(1);
+    int Z       = T.extent(2);
     double my_T = 0.0;
     Kokkos::parallel_reduce(
         "UpdateT",
@@ -606,7 +597,7 @@ struct System {
             policy_t(E_bulk, {0, 0, 0}, {X, Y, Z}, {10, 10, 10}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         UpdateT(T, dT, dt), my_T);
-    double sum_T; 
+    double sum_T;
     MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM, comm.comm);
     return sum_T;
   }

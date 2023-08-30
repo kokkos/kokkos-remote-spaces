@@ -58,9 +58,10 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
     static_assert(
         "local_deep_copy allows only one view with remote data access");
 
-  //We use the data ptr explicitly thus expecting that a subview starts at the 
-  //beginning of the local allocaton. We need to add the offset = sum of offsets 
-  //in all non-leading dimenions to the ptr to support the generic case. 
+  // We use the data ptr explicitly thus expecting that a subview starts at the
+  // beginning of the local allocaton. We need to add the offset = sum of
+  // offsets in all non-leading dimenions to the ptr to support the generic
+  // case.
   using src_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
       typename ViewTraits<ST, SP...>::value_type, ViewTraits<ST, SP...>>;
   using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
@@ -108,9 +109,10 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   using dst_data_block_t = Kokkos::Impl::NVSHMEMBlockDataHandle<
       typename ViewTraits<DT, DP...>::value_type, ViewTraits<DT, DP...>>;
 
-  //We use the data ptr explicitly thus expecting that a subview starts at the 
-  //beginning of the local allocaton. We need to add the offset = sum of offsets 
-  //in all non-leading dimenions to the ptr to support the generic case. 
+  // We use the data ptr explicitly thus expecting that a subview starts at the
+  // beginning of the local allocaton. We need to add the offset = sum of
+  // offsets in all non-leading dimenions to the ptr to support the generic
+  // case.
   if (src_rank != my_rank) {
     src_data_block_t src_data =
         src_data_block_t(dst.data(), src.data(), src.span(), src_rank);

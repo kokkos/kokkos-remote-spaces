@@ -25,7 +25,7 @@
 #include <string>
 
 // Uncomment to enable device-aware MPI
-//#define CUDA_AWARE_MPI 
+//#define CUDA_AWARE_MPI
 
 #define CHECK_FOR_CORRECTNESS
 
@@ -46,15 +46,15 @@ struct CheckTag_put {};
 struct CheckTag_get {};
 
 // Exec policies
-using policy_init_t        = Kokkos::RangePolicy<InitTag, size_t>;
-using policy_update_t      = Kokkos::RangePolicy<UpdateTag, size_t>;
-using policy_update_put_t  = Kokkos::RangePolicy<UpdateTag_put, size_t>;
-using policy_update_get_t  = Kokkos::RangePolicy<UpdateTag_get, size_t>;
+using policy_init_t            = Kokkos::RangePolicy<InitTag, size_t>;
+using policy_update_t          = Kokkos::RangePolicy<UpdateTag, size_t>;
+using policy_update_put_t      = Kokkos::RangePolicy<UpdateTag_put, size_t>;
+using policy_update_get_t      = Kokkos::RangePolicy<UpdateTag_get, size_t>;
 using team_policy_get_update_t = Kokkos::TeamPolicy<UpdateTag_get, size_t>;
 using team_policy_put_update_t = Kokkos::TeamPolicy<UpdateTag_put, size_t>;
-using policy_check_t       = Kokkos::RangePolicy<CheckTag, size_t>;
-using policy_check_put_t   = Kokkos::RangePolicy<CheckTag_put, size_t>;
-using policy_check_get_t   = Kokkos::RangePolicy<CheckTag_get, size_t>;
+using policy_check_t           = Kokkos::RangePolicy<CheckTag, size_t>;
+using policy_check_put_t       = Kokkos::RangePolicy<CheckTag_put, size_t>;
+using policy_check_get_t       = Kokkos::RangePolicy<CheckTag_get, size_t>;
 
 // Default values
 #define default_Mode 0
@@ -230,10 +230,10 @@ struct Access<ViewType_t, typename std::enable_if_t<
       double bw   = gups * sizeof(double);
       if (rma_op == RMA_GET) {
         printf("access_overhead_p2p_get,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
-             modes[mode].c_str(), N, size, iters, time, gups, bw);
+               modes[mode].c_str(), N, size, iters, time, gups, bw);
       } else {
         printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
-             modes[mode].c_str(), N, size, iters, time, gups, bw);
+               modes[mode].c_str(), N, size, iters, time, gups, bw);
       }
     }
   }
@@ -264,11 +264,11 @@ struct Access_LDC<
   };
 
   KOKKOS_FUNCTION
-  void operator()(const size_t i) const { 
+  void operator()(const size_t i) const {
     double val1 = v_tmp(i);
     double val2 = v(i);
-    printf("debug: %li, %f, %f\n",i , val1, val2);
-   }
+    printf("debug: %li, %f, %f\n", i, val1, val2);
+  }
 
   KOKKOS_FUNCTION
   void operator()(const InitTag &, const size_t i) const { v(i) = my_rank; }
@@ -280,38 +280,37 @@ struct Access_LDC<
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag_put &, const size_t i) const {
-
     assert(v(i) == iters * 1.0);
   }
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, const size_t i) const {
-    v(i) += v_tmp(i);
-  }
+  void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i); }
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag_get &, typename team_policy_get_update_t::member_type team) const {
+  void operator()(const UpdateTag_get &,
+                  typename team_policy_get_update_t::member_type team) const {
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
       auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
       auto remote_range =
           Kokkos::Experimental::get_range(num_ranks * N, other_rank);
       auto v_subview_remote    = Kokkos::subview(v, remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, local_range);
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-          v_tmp_subview_local, v_subview_remote);
+      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
+                                                          v_subview_remote);
     });
   }
 
-    KOKKOS_FUNCTION
-  void operator()(const UpdateTag_put &, typename team_policy_put_update_t::member_type team) const {
+  KOKKOS_FUNCTION
+  void operator()(const UpdateTag_put &,
+                  typename team_policy_put_update_t::member_type team) const {
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
       auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
-      auto remote_range = 
+      auto remote_range =
           Kokkos::Experimental::get_range(num_ranks * N, other_rank);
       auto v_subview_remote    = Kokkos::subview(v, remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, local_range);
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(
-          v_subview_remote, v_tmp_subview_local);
+      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
+                                                          v_tmp_subview_local);
     });
   }
 
@@ -319,14 +318,15 @@ struct Access_LDC<
   void run() {
     Kokkos::Timer timer;
     double time_a, time_b;
-    time_a = time_b = 0;
-    double time     = 0;
+    time_a = time_b  = 0;
+    double time      = 0;
     auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t(local_range.first, local_range.second),
+    Kokkos::parallel_for("access_overhead-init",
+                         policy_init_t(local_range.first, local_range.second),
                          *this);
     Kokkos::fence();
-    MPI_Barrier(MPI_COMM_WORLD); 
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rma_op == RMA_GET) {
       for (int i = 0; i < iters; i++) {
@@ -335,9 +335,12 @@ struct Access_LDC<
           Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
                                *this);
           Kokkos::fence();
-          #ifdef KRS_ENABLE_DEBUG
-          Kokkos::parallel_for("printf values for debugging", Kokkos::RangePolicy(local_range.first, local_range.second), *this);
-          #endif
+#ifdef KRS_ENABLE_DEBUG
+          Kokkos::parallel_for(
+              "printf values for debugging",
+              Kokkos::RangePolicy(local_range.first, local_range.second),
+              *this);
+#endif
           Kokkos::parallel_for(
               "update", policy_update_t(local_range.first, local_range.second),
               *this);
@@ -371,7 +374,7 @@ struct Access_LDC<
       exit(1);
     }
 
-    #ifdef CHECK_FOR_CORRECTNESS
+#ifdef CHECK_FOR_CORRECTNESS
     if (rma_op == RMA_GET) {
       // check on rank 0
       if (my_rank == 0) {
@@ -389,7 +392,7 @@ struct Access_LDC<
         Kokkos::fence();
       }
     }
-    #endif
+#endif
 
     if (my_rank == 0) {
       double gups = 1e-9 * ((N * iters) / time);
@@ -397,10 +400,10 @@ struct Access_LDC<
       double bw   = gups * sizeof(double);
       if (rma_op == RMA_GET) {
         printf("access_overhead_p2p_get,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
-             modes[mode].c_str(), N, size, iters, time, gups, bw);
+               modes[mode].c_str(), N, size, iters, time, gups, bw);
       } else {
         printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
-             modes[mode].c_str(), N, size, iters, time, gups, bw);
+               modes[mode].c_str(), N, size, iters, time, gups, bw);
       }
     }
   }

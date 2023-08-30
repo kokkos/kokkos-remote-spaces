@@ -24,7 +24,7 @@
 #include <comm.hpp>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
-using LocalView_t  = Kokkos::View<double****>;
+using LocalView_t   = Kokkos::View<double****>;
 using RemoteView_t =
     Kokkos::View<double****, Kokkos::PartitionedLayoutLeft, RemoteSpace_t>;
 using HostView_t =
@@ -66,12 +66,12 @@ struct CommHelper {
     front = (z == 0) ? -1 : me - nx * ny;
     back  = (z == nz - 1) ? -1 : me + nx * ny;
 
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i Grid: %i %i %i MyPos: %i %i %i\n", nranks, me,
            nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
-    #endif
+#endif
   }
 };
 
@@ -135,16 +135,16 @@ struct System {
     Y_ra               = Y;
     Z_ra               = Z;
     N                  = 10000;
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG 
-    I                  = 10;
-    #else
-    I                  = N-1;
-    #endif
-    T0                 = 0.0;
-    dt                 = 0.1;
-    q                  = 1.0;
-    sigma              = 1.0;
-    P                  = 1.0;
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+    I = 10;
+#else
+    I = N - 1;
+#endif
+    T0    = 0.0;
+    dt    = 0.1;
+    q     = 1.0;
+    sigma = 1.0;
+    P     = 1.0;
   }
 
   void setup_subdomain() {
@@ -167,14 +167,13 @@ struct System {
     if (Z_hi > Z) Z_hi = Z;
     Z_ra = Z_hi - Z_lo;
 
-    #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, X_lo, Y_lo, Z_lo,
            X_hi, Y_hi, Z_hi);
-    #endif
+#endif
     T_h = HostView_t("Host::T", 1, dX, dY, dZ);
     T   = RemoteView_t("System::T", comm.nranks, dX, dY, dZ);
-    dT  = LocalView_t("System::dT", 1, T.extent(1), T.extent(2),
-                      T.extent(3));
+    dT  = LocalView_t("System::dT", 1, T.extent(1), T.extent(2), T.extent(3));
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
   }
@@ -427,7 +426,7 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double GUPs = 0.0;
+    double GUPs     = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
     time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
@@ -443,28 +442,22 @@ struct System {
       time_compute += time_b - time_a;
       time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
-        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+      if ((t % I == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
-        time_all += time - old_time;              
+        time_all += time - old_time;
         GUPs += 1e-9 * (dT.size() / time_compute);
-        #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
         if ((t % I == 0 || t == N) && (comm.me == 0)) {
-        #else
+#else
         if ((t == N) && (comm.me == 0)) {
-        #endif
-          printf("heat3D,KokkosRemoteSpaces_partitioned,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
-            comm.nranks,
-            t,
-            T_ave,
-            0.0,
-            time_compute,
-            time_update,
-            time - old_time, /* time last iter */
-            time_all,        /* current runtime  */
-            GUPs/t,
-            X,
-            1e-6* (dT.size() * sizeof(double))
-          );
+#endif
+          printf(
+              "heat3D,KokkosRemoteSpaces_partitioned,%i,%i,%lf,%lf,%lf,%lf,%lf,"
+              "%lf,%lf,%i,%f\n",
+              comm.nranks, t, T_ave, 0.0, time_compute, time_update,
+              time - old_time, /* time last iter */
+              time_all,        /* current runtime  */
+              GUPs / t, X, 1e-6 * (dT.size() * sizeof(double)));
           old_time = time;
         }
       }
