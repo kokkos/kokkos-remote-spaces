@@ -25,12 +25,56 @@
 /** \brief  View mapping for non-specialized data type and standard layout */
 
 namespace Kokkos {
-namespace Impl {
+namespace Experimental {
+
+KOKKOS_INLINE_FUNCTION
+size_t get_indexing_block_size(size_t size) {
+  int num_pes;
+  size_t block;
+  num_pes = Kokkos::Experimental::get_num_pes();
+  block   = (size + static_cast<size_t>(num_pes) - 1) / num_pes;
+  return block;
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> getRange(T size, int pe) {
+  T start, end;
+  T block = get_indexing_block_size(size);
+  start   = static_cast<T>(pe) * block;
+  end     = (static_cast<T>(pe) + 1) * block;
+
+  T num_pes = Kokkos::Experimental::get_num_pes();
+  if (size < num_pes) {
+    T diff = (num_pes * block) - size;
+    if (pe > num_pes - 1 - diff) end--;
+  } else {
+    if (pe == num_pes - 1) {
+      size_t diff = size - (num_pes - 1) * block;
+      end         = start + diff;
+    }
+  }
+  return Kokkos::pair<T, T>(start, end);
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_range(T size, int pe) {
+  return getRange(size, pe);
+}
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_local_range(T size) {
+  auto pe = Kokkos::Experimental::get_my_pe();
+  return getRange(size, pe);
+}
+
+}  // namespace Experimental
 
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
  * (sub-) view type
  */
+
+namespace Impl {
 
 template <class SrcTraits, class... Args>
 class ViewMapping<
@@ -200,7 +244,6 @@ class ViewMapping<
     dst.dim0_is_pe          = R0;
 
     dst.isSubView = true;
-    // printf("assign:%i, %i\n", dst.m_local_dim0, dst.m_offset_remote_dim);
 
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
@@ -954,7 +997,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         m_offset(),
         m_offset_remote_dim(0),
         m_local_dim0(0),
-        dim0_is_pe(0),
+        dim0_is_pe(1),
         isSubView(false) {
     m_num_pes = Kokkos::Experimental::get_num_pes();
     pe        = Kokkos::Experimental::get_my_pe();

@@ -21,79 +21,71 @@
 
 #include <Kokkos_Core.hpp>
 
-/*--------------------------------------------------------------------------*/
-
 namespace Kokkos {
 namespace Impl {
 
 template <>
 class SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
-    : public SharedAllocationRecord<void, void> {
+    : public SharedAllocationRecordCommon<Kokkos::Experimental::SHMEMSpace> {
  private:
   friend Kokkos::Experimental::SHMEMSpace;
+  friend class SharedAllocationRecordCommon<Kokkos::Experimental::SHMEMSpace>;
 
-  typedef SharedAllocationRecord<void, void> RecordBase;
+  using base_t = SharedAllocationRecordCommon<Kokkos::Experimental::SHMEMSpace>;
+  using RecordBase = SharedAllocationRecord<void, void>;
 
-  SharedAllocationRecord(const SharedAllocationRecord &) = delete;
-  SharedAllocationRecord &operator=(const SharedAllocationRecord &) = delete;
+  SharedAllocationRecord(const SharedAllocationRecord&) = delete;
+  SharedAllocationRecord& operator=(const SharedAllocationRecord&) = delete;
 
-  static void deallocate(RecordBase *);
-
-  /**\brief  Root record for tracked allocations from this SHMEMSpace instance
-   */
+#ifdef KOKKOS_ENABLE_DEBUG
+  /**\brief  Root record for tracked allocations from this HostSpace instance */
   static RecordBase s_root_record;
+#endif
 
   const Kokkos::Experimental::SHMEMSpace m_space;
 
  protected:
   ~SharedAllocationRecord();
-
   SharedAllocationRecord() = default;
 
+  // This constructor does not forward to the one without exec_space arg
+  // in order to work around https://github.com/kokkos/kokkos/issues/5258
+  // This constructor is templated so I can't just put it into the cpp file
+  // like the other constructor.
   template <typename ExecutionSpace>
   SharedAllocationRecord(
-      const ExecutionSpace &execution_space,
-      const Kokkos::Experimental::SHMEMSpace &arg_space,
-      const std::string &arg_label, const size_t arg_alloc_size,
-      const RecordBase::function_type arg_dealloc = &deallocate);
+      const ExecutionSpace& /* exec_space*/,
+      const Kokkos::Experimental::SHMEMSpace& arg_space,
+      const std::string& arg_label, const size_t arg_alloc_size,
+      const RecordBase::function_type arg_dealloc = &deallocate)
+      : base_t(
+#ifdef KOKKOS_ENABLE_DEBUG
+            &SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace,
+                                    void>::s_root_record,
+#endif
+            Impl::checked_allocation_with_header(arg_space, arg_label,
+                                                 arg_alloc_size),
+            sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
+            arg_label),
+        m_space(arg_space) {
+    this->base_t::_fill_host_accessible_header_info(*RecordBase::m_alloc_ptr,
+                                                    arg_label);
+  }
 
   SharedAllocationRecord(
-      const Kokkos::Experimental::SHMEMSpace &arg_space,
-      const std::string &arg_label, const size_t arg_alloc_size,
+      const Kokkos::Experimental::SHMEMSpace& arg_space,
+      const std::string& arg_label, const size_t arg_alloc_size,
       const RecordBase::function_type arg_dealloc = &deallocate);
 
  public:
-  inline std::string get_label() const {
-    return std::string(RecordBase::head()->m_label);
+  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord* allocate(
+      const Kokkos::Experimental::SHMEMSpace& arg_space,
+      const std::string& arg_label, const size_t arg_alloc_size) {
+    KOKKOS_IF_ON_HOST((return new SharedAllocationRecord(arg_space, arg_label,
+                                                         arg_alloc_size);))
+    KOKKOS_IF_ON_DEVICE(((void)arg_space; (void)arg_label; (void)arg_alloc_size;
+                         return nullptr;))
   }
-
-  KOKKOS_INLINE_FUNCTION static SharedAllocationRecord *allocate(
-      const Kokkos::Experimental::SHMEMSpace &arg_space,
-      const std::string &arg_label, const size_t arg_alloc_size) {
-#if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
-    return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
-#else
-    return (SharedAllocationRecord *)0;
-#endif
-  }
-
-  /**\brief  Allocate tracked memory in the space */
-  static void *allocate_tracked(
-      const Kokkos::Experimental::SHMEMSpace &arg_space,
-      const std::string &arg_label, const size_t arg_alloc_size);
-
-  /**\brief  Reallocate tracked memory in the space */
-  static void *reallocate_tracked(void *const arg_alloc_ptr,
-                                  const size_t arg_alloc_size);
-
-  /**\brief  Deallocate tracked memory in the space */
-  static void deallocate_tracked(void *const arg_alloc_ptr);
-
-  static SharedAllocationRecord *get_record(void *arg_alloc_ptr);
-
-  static void print_records(std::ostream &,
-                            const Kokkos::Experimental::SHMEMSpace &,
-                            bool detail = false);
 };
 
 }  // namespace Impl

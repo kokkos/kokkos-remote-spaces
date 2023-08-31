@@ -29,7 +29,6 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 #include <shmem.h>
-/*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
 namespace Experimental {
@@ -66,19 +65,36 @@ class SHMEMSpace {
 
   explicit SHMEMSpace(const MPI_Comm &);
 
+  /**\brief  Allocate untracked memory in the space */
   void *allocate(const size_t arg_alloc_size) const;
+  void *allocate(const char *arg_label, const size_t arg_alloc_size,
+                 const size_t arg_logical_size = 0) const;
 
+  /**\brief  Deallocate untracked memory in the space */
   void deallocate(void *const arg_alloc_ptr, const size_t arg_alloc_size) const;
+  void deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                  const size_t arg_alloc_size,
+                  const size_t arg_logical_size = 0) const;
 
-  void *allocate(const int *gids, const int &arg_local_alloc_size) const;
+ private:
+  template <class, class, class, class>
+  friend class Kokkos::Experimental::LogicalMemorySpace;
 
-  void deallocate(const int *gids, void *const arg_alloc_ptr,
-                  const size_t arg_alloc_size) const;
+  void *impl_allocate(const char *arg_label, const size_t arg_alloc_size,
+                      const size_t arg_logical_size = 0,
+                      const Kokkos::Tools::SpaceHandle =
+                          Kokkos::Tools::make_space_handle(name())) const;
+  void impl_deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                       const size_t arg_alloc_size,
+                       const size_t arg_logical_size = 0,
+                       const Kokkos::Tools::SpaceHandle =
+                           Kokkos::Tools::make_space_handle(name())) const;
 
+ public:
   /**\brief Return Name of the MemorySpace */
   static constexpr const char *name() { return m_name; }
 
-  void fence();
+  void fence() const;
 
   int allocation_mode;
   int64_t extent;
@@ -94,8 +110,6 @@ class SHMEMSpace {
 
 size_t get_num_pes();
 size_t get_my_pe();
-size_t get_indexing_block_size(size_t size);
-std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 
 }  // namespace Experimental
 }  // namespace Kokkos
@@ -146,13 +160,14 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
 
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
-#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_SHMEMSpace_Ops.hpp>
+#include <Kokkos_SHMEMSpace_BlockOps.hpp>
 #include <Kokkos_SHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_SHMEMSpace_DataHandle.hpp>
+#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_SHMEMSpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_SHMEMSPACE_HPP

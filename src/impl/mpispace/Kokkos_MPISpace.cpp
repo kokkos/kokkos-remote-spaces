@@ -127,34 +127,6 @@ size_t get_my_pe() {
   return rank;
 }
 
-KOKKOS_FUNCTION
-size_t get_indexing_block_size(size_t size) {
-  size_t num_pes, block;
-  num_pes = get_num_pes();
-  block   = (size + num_pes - 1) / num_pes;
-  return block;
-}
-
-std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
-  size_t start, end;
-  size_t block = get_indexing_block_size(size);
-  start        = pe * block;
-  end          = (pe + 1) * block;
-
-  size_t num_pes = get_num_pes();
-
-  if (size < num_pes) {
-    size_t diff = (num_pes * block) - size;
-    if (pe > num_pes - 1 - diff) end--;
-  } else {
-    if (pe == num_pes - 1) {
-      size_t diff = size - (num_pes - 1) * block;
-      end         = start + diff;
-    }
-    end--;
-  }
-  return std::make_pair(start, end);
-}
 }  // namespace Experimental
 
 namespace Impl {

@@ -93,7 +93,9 @@ void run_1(Args_t& args) {
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_barrier_all();  // Not sure why this impacts perf
+#endif
 
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
@@ -137,7 +139,9 @@ void run_2(Args_t& args) {
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_barrier_all();  // Not sure why this impacts perf
+#endif
 
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
@@ -182,7 +186,9 @@ void run_3(Args_t& args) {
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_barrier_all();  // Not sure why this impacts perf
+#endif
 
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {

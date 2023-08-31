@@ -68,58 +68,6 @@ int get_num_pes() { return nvshmem_n_pes(); }
 KOKKOS_FUNCTION
 int get_my_pe() { return nvshmem_my_pe(); }
 
-KOKKOS_FUNCTION
-size_t get_indexing_block_size(size_t size) {
-  int num_pes;
-  size_t block;
-  num_pes = get_num_pes();
-  block   = (size + static_cast<size_t>(num_pes) - 1) / num_pes;
-  return block;
-}
-
-template <typename T>
-KOKKOS_FUNCTION Kokkos::pair<T, T> getRange(T size, int pe) {
-  T start, end;
-  T block = get_indexing_block_size(size);
-  start   = static_cast<T>(pe) * block;
-  end     = (static_cast<T>(pe) + 1) * block;
-
-  T num_pes = get_num_pes();
-  if (size < num_pes) {
-    T diff = (num_pes * block) - size;
-    if (pe > num_pes - 1 - diff) end--;
-  } else {
-    if (pe == num_pes - 1) {
-      size_t diff = size - (num_pes - 1) * block;
-      end         = start + diff;
-    }
-  }
-  return Kokkos::pair<T, T>(start, end);
-}
-
-template <typename T>
-KOKKOS_FUNCTION Kokkos::pair<T, T> get_range(T size, int pe) {
-  return getRange(size, pe);
-}
-
-template <typename T>
-KOKKOS_FUNCTION Kokkos::pair<T, T> get_local_range(T size) {
-  auto pe = get_my_pe();
-  return getRange(size, pe);
-}
-
-template KOKKOS_FUNCTION Kokkos::pair<size_t, size_t> get_range<size_t>(
-    size_t size, int p);
-template KOKKOS_FUNCTION Kokkos::pair<size_t, size_t> get_local_range<size_t>(
-    size_t size);
-template KOKKOS_FUNCTION Kokkos::pair<size_t, size_t> getRange<size_t>(
-    size_t size, int pe);
-
-template KOKKOS_FUNCTION Kokkos::pair<int, int> get_range<int>(int size,
-                                                               int pe);
-template KOKKOS_FUNCTION Kokkos::pair<int, int> get_local_range<int>(int size);
-template KOKKOS_FUNCTION Kokkos::pair<int, int> getRange<int>(int size, int pe);
-
 }  // namespace Experimental
 
 namespace Impl {

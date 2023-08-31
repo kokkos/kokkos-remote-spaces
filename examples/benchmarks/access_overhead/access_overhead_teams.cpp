@@ -148,7 +148,9 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
     Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
                          *this);
     Kokkos::fence();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
     nvshmem_barrier_all();  // Not sure why this impacts perf
+#endif
 
     auto policy = policy_update_t(ls, ts, 1);
 
@@ -227,7 +229,9 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
                          *this);
 
     Kokkos::fence();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
     nvshmem_barrier_all();  // Not sure why this impacts perf
+#endif
 
     auto policy = policy_update_t(ls, ts, 1);
     for (int i = 0; i < iters; i++) {

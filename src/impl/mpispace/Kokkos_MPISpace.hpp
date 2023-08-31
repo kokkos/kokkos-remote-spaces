@@ -98,8 +98,6 @@ class MPISpace {
 
 size_t get_num_pes();
 size_t get_my_pe();
-size_t get_indexing_block_size(size_t size);
-std::pair<size_t, size_t> getRange(size_t size, size_t pe);
 
 }  // namespace Experimental
 }  // namespace Kokkos
@@ -148,15 +146,17 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
 }  // namespace Impl
 }  // namespace Kokkos
 
+#include <Kokkos_RemoteSpaces_Error.hpp>
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
-#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_MPISpace_Ops.hpp>
+#include <Kokkos_MPISpace_BlockOps.hpp>
 #include <Kokkos_MPISpace_AllocationRecord.hpp>
 #include <Kokkos_MPISpace_DataHandle.hpp>
+#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
 #include <Kokkos_MPISpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_MPISPACE_HPP

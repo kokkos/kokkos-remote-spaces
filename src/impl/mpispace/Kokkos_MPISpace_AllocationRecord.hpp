@@ -20,8 +20,6 @@
 
 #include <Kokkos_Core.hpp>
 
-/*--------------------------------------------------------------------------*/
-
 namespace Kokkos {
 namespace Impl {
 

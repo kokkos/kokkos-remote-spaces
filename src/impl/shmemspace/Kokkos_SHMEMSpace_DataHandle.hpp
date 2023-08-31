@@ -35,9 +35,6 @@ struct SHMEMDataHandle {
   KOKKOS_INLINE_FUNCTION
   SHMEMDataHandle(SHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
-  template <typename SrcTraits>
-  KOKKOS_INLINE_FUNCTION SHMEMDataHandle(SrcTraits const &arg) : ptr(arg.ptr) {}
-
   template <typename iType>
   KOKKOS_INLINE_FUNCTION SHMEMDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {
