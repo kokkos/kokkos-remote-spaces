@@ -59,16 +59,28 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   if (src_rank != my_rank) {
     team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      src_data_block_t src_data =
+#ifdef KRS_ENABLE_MPISPACE
+      src_data_block_t data_block = src_data_block_t(
+          dst.data(), src.impl_map().handle().loc.win,
+          src.impl_map().handle().loc.offset, src.span(), src_rank);
+#else
+      src_data_block_t data_block =
           src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
-      src_data.get();
+#endif
+      data_block.get();
     });
   } else if (dst_rank != my_rank) {
     team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      dst_data_block_t dst_data =
+#ifdef KRS_ENABLE_MPISPACE
+      dst_data_block_t data_block = dst_data_block_t(
+          src.data(), dst.impl_map().handle().loc.win,
+          dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+#else
+      dst_data_block_t data_block =
           dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
-      dst_data.put();
+#endif
+      data_block.put();
     });
   } else {
     // Data resides within the node, copy as usual
@@ -106,13 +118,25 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   // offsets in all non-leading dimenions to the ptr to support the generic
   // case.
   if (src_rank != my_rank) {
-    src_data_block_t src_data =
+#ifdef KRS_ENABLE_MPISPACE
+    src_data_block_t data_block = src_data_block_t(
+        dst.data(), src.impl_map().handle().loc.win,
+        src.impl_map().handle().loc.offset, src.span(), src_rank);
+#else
+    src_data_block_t data_block =
         src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
-    src_data.get();
+#endif
+    data_block.get();
   } else if (dst_rank != my_rank) {
-    dst_data_block_t dst_data =
+#ifdef KRS_ENABLE_MPISPACE
+    dst_data_block_t data_block = dst_data_block_t(
+        src.data(), dst.impl_map().handle().loc.win,
+        dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+#else
+    dst_data_block_t data_block =
         dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
-    dst_data.put();
+#endif
+    data_block.put();
   } else {
     // Data resides within the node, copy as usual
     for (size_t i = 0; i < src.span(); ++i) dst.data()[i] = src.data()[i];

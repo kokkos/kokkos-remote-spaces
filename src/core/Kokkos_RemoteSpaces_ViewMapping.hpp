@@ -248,12 +248,11 @@ class ViewMapping<
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
-        src.m_handle,
+        src.m_handle, src.m_handle.loc.win,
         src.m_offset(0, extents.domain_offset(1), extents.domain_offset(2),
                      extents.domain_offset(3), extents.domain_offset(4),
                      extents.domain_offset(5), extents.domain_offset(6),
-                     extents.domain_offset(7)),
-        src.m_handle.win);
+                     extents.domain_offset(7)));
 #else
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
@@ -437,6 +436,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION constexpr pointer_type data() const {
     return m_handle.ptr;
   }
+
+  /** \brief  Query raw pointer to memory */
+  KOKKOS_INLINE_FUNCTION handle_type handle() const { return m_handle; }
 
   //----------------------------------------
   // The View class performs all rank and bounds checking before
@@ -1055,9 +1057,16 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
       typename Traits::array_layout const &arg_layout)
       : m_offset_remote_dim(0),
+#ifdef KRS_ENABLE_MPISPACE
         m_handle(
             ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
-                .value) {
+                .value)
+#else
+        m_handle(
+            ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
+                .value)
+#endif
+  {
     typedef typename Traits::value_type value_type;
     typedef std::integral_constant<
         unsigned, Kokkos::Impl::ViewCtorProp<P...>::allow_padding

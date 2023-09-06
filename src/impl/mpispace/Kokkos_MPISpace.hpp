@@ -29,7 +29,6 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <mpi.h>
 #include <vector>
-/*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
 namespace Experimental {
@@ -66,19 +65,36 @@ class MPISpace {
 
   explicit MPISpace(const MPI_Comm &);
 
+  /**\brief  Allocate untracked memory in the space */
   void *allocate(const size_t arg_alloc_size) const;
+  void *allocate(const char *arg_label, const size_t arg_alloc_size,
+                 const size_t arg_logical_size = 0) const;
 
+  /**\brief  Deallocate untracked memory in the space */
   void deallocate(void *const arg_alloc_ptr, const size_t arg_alloc_size) const;
+  void deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                  const size_t arg_alloc_size,
+                  const size_t arg_logical_size = 0) const;
 
-  void *allocate(const int *gids, const int &arg_local_alloc_size) const;
+ private:
+  template <class, class, class, class>
+  friend class Kokkos::Experimental::LogicalMemorySpace;
 
-  void deallocate(const int *gids, void *const arg_alloc_ptr,
-                  const size_t arg_alloc_size) const;
+  void *impl_allocate(const char *arg_label, const size_t arg_alloc_size,
+                      const size_t arg_logical_size = 0,
+                      const Kokkos::Tools::SpaceHandle =
+                          Kokkos::Tools::make_space_handle(name())) const;
+  void impl_deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                       const size_t arg_alloc_size,
+                       const size_t arg_logical_size = 0,
+                       const Kokkos::Tools::SpaceHandle =
+                           Kokkos::Tools::make_space_handle(name())) const;
 
+ public:
   /**\brief Return Name of the MemorySpace */
   static constexpr const char *name() { return m_name; }
 
-  void fence();
+  void fence() const;
 
   int *rank_list;
   int allocation_mode;
@@ -143,10 +159,32 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
   enum { deepcopy = true };
 };
 
+// MPI locality based on an MPI window and offset
+typedef struct MPIAccessLocation {
+  mutable MPI_Win win;
+  size_t offset;
+  KOKKOS_INLINE_FUNCTION
+  MPIAccessLocation() {
+    win    = MPI_WIN_NULL;
+    offset = 0;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  MPIAccessLocation(MPI_Win win_, size_t offset_) {
+    win    = win_;
+    offset = offset_;
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void operator=(const MPIAccessLocation &val) {
+    win    = val.win;
+    offset = val.offset;
+  }
+} MPIAccessLocation;
+
 }  // namespace Impl
 }  // namespace Kokkos
 
-#include <Kokkos_RemoteSpaces_Error.hpp>
 #include <Kokkos_RemoteSpaces_ViewLayout.hpp>
 #include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>

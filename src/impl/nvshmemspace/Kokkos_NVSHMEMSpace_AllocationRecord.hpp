@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_NVSHMEM_ALLOCREC_HPP
-#define KOKKOS_NVSHMEM_ALLOCREC_HPP
+#ifndef KOKKOS_REMOTESPACES_NVSHMEM_ALLOCREC_HPP
+#define KOKKOS_REMOTESPACES_NVSHMEM_ALLOCREC_HPP
 
 #include <Kokkos_Core.hpp>
 
@@ -99,4 +99,4 @@ class SharedAllocationRecord<Kokkos::Experimental::NVSHMEMSpace, void>
 }  // namespace Impl
 }  // namespace Kokkos
 
-#endif  // KOKKOS_NVSHMEM_ALLOCREC_HPP
+#endif  // KOKKOS_REMOTESPACES_NVSHMEM_ALLOCREC_HPP

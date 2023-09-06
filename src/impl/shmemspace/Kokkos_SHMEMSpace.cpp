@@ -20,8 +20,6 @@
 #include <Kokkos_SHMEMSpace.hpp>
 #include <Kokkos_RemoteSpaces_Error.hpp>
 #include <shmem.h>
-//----------------------------------------------------------------------------
-//----------------------------------------------------------------------------
 
 namespace Kokkos {
 namespace Experimental {

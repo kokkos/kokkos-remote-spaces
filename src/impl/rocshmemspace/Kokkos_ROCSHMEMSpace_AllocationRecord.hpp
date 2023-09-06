@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_ROCSHMEM_ALLOCREC_HPP
-#define KOKKOS_ROCSHMEM_ALLOCREC_HPP
+#ifndef KOKKOS_REMOTESPACES_ROCSHMEM_ALLOCREC_HPP
+#define KOKKOS_REMOTESPACES_ROCSHMEM_ALLOCREC_HPP
 
 #include <Kokkos_Core.hpp>
 
@@ -101,4 +101,4 @@ class SharedAllocationRecord<Kokkos::Experimental::ROCSHMEMSpace, void>
 }  // namespace Impl
 }  // namespace Kokkos
 
-#endif  // KOKKOS_ROCSHMEM_ALLOCREC_HPP
+#endif  // KOKKOS_REMOTESPACES_ROCSHMEM_ALLOCREC_HPP

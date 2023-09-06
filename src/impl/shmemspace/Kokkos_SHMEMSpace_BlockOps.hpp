@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
-#define KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
+#ifndef KOKKOS_REMOTESPACES_SHMEM_BLOCK_OPS_HPP
+#define KOKKOS_REMOTESPACES_SHMEM_BLOCK_OPS_HPP
 
 #include <shmem.h>
 #include <type_traits>
@@ -94,4 +94,4 @@ struct SHMEMBlockDataElement<T, Traits> {
 }  // namespace Impl
 }  // namespace Kokkos
 
-#endif  // KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
+#endif  // KOKKOS_REMOTESPACES_SHMEM_BLOCK_OPS_HPP

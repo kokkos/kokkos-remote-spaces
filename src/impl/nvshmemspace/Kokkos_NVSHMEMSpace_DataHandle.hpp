@@ -35,10 +35,6 @@ struct NVSHMEMDataHandle {
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
-  template <typename SrcTraits>
-  KOKKOS_INLINE_FUNCTION NVSHMEMDataHandle(SrcTraits const &arg)
-      : ptr(arg.ptr) {}
-
   template <typename iType>
   KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {

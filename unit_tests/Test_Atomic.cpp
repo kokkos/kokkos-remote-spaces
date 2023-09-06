@@ -123,9 +123,6 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
 }
 
 TEST(TEST_CATEGORY, test_atomic_globalview) {
-#ifdef KOKKOS_ENABLE_MPISPACE
-// TODO: Requires implementing atomic RMA support in MPISpace
-#else
   // 1D
   test_atomic_globalview1D<int>(0);
   test_atomic_globalview1D<int>(1);
@@ -140,7 +137,6 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview3D<int>(1, 1, 1);
   test_atomic_globalview3D<int>(255, 1024, 3);
   test_atomic_globalview3D<int>(3, 33, 1024);
-#endif
 }
 
 #endif /* TEST_ATOMIC_GLOBALVIEW_HPP_ */

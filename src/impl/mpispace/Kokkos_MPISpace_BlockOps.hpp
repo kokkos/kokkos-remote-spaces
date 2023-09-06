@@ -16,8 +16,8 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
-#define KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
+#ifndef KOKKOS_REMOTESPACES_MPISPACE_BLOCK_OPS_HPP
+#define KOKKOS_REMOTESPACES_MPISPACE_BLOCK_OPS_HPP
 
 #include <shmem.h>
 #include <type_traits>
@@ -25,45 +25,61 @@
 namespace Kokkos {
 namespace Impl {
 
-#define KOKKOS_REMOTESPACES_PUT(type, op)                  \
-  static KOKKOS_INLINE_FUNCTION void shmem_block_type_put( \
-      type *dst, const type *src, size_t nelems, int pe) { \
-    op(dst, src, nelems, pe);                              \
+#define KOKKOS_REMOTESPACES_PUT(type, mpi_type)                                \
+  static KOKKOS_INLINE_FUNCTION void mpi_block_type_put(                       \
+      const type *ptr, const size_t offset, const size_t nelems, const int pe, \
+      const MPI_Win &win) {                                                    \
+    assert(win != MPI_WIN_NULL);                                               \
+    int _typesize;                                                             \
+    MPI_Request request;                                                       \
+    MPI_Type_size(mpi_type, &_typesize);                                       \
+    MPI_Rput(ptr, nelems, mpi_type, pe,                                        \
+             sizeof(SharedAllocationHeader) + offset * _typesize, nelems,      \
+             mpi_type, win, &request);                                         \
+    MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
-KOKKOS_REMOTESPACES_PUT(char, shmem_char_put)
-KOKKOS_REMOTESPACES_PUT(unsigned char, shmem_uchar_put)
-KOKKOS_REMOTESPACES_PUT(short, shmem_short_put)
-KOKKOS_REMOTESPACES_PUT(unsigned short, shmem_ushort_put)
-KOKKOS_REMOTESPACES_PUT(int, shmem_int_put)
-KOKKOS_REMOTESPACES_PUT(unsigned int, shmem_uint_put)
-KOKKOS_REMOTESPACES_PUT(long, shmem_long_put)
-KOKKOS_REMOTESPACES_PUT(unsigned long, shmem_ulong_put)
-KOKKOS_REMOTESPACES_PUT(long long, shmem_longlong_put)
-KOKKOS_REMOTESPACES_PUT(unsigned long long, shmem_ulonglong_put)
-KOKKOS_REMOTESPACES_PUT(float, shmem_float_put)
-KOKKOS_REMOTESPACES_PUT(double, shmem_double_put)
+KOKKOS_REMOTESPACES_PUT(char, MPI_SIGNED_CHAR)
+KOKKOS_REMOTESPACES_PUT(unsigned char, MPI_UNSIGNED_CHAR)
+KOKKOS_REMOTESPACES_PUT(short, MPI_SHORT)
+KOKKOS_REMOTESPACES_PUT(unsigned short, MPI_UNSIGNED_SHORT)
+KOKKOS_REMOTESPACES_PUT(int, MPI_INT)
+KOKKOS_REMOTESPACES_PUT(unsigned int, MPI_UNSIGNED)
+KOKKOS_REMOTESPACES_PUT(long, MPI_INT64_T)
+KOKKOS_REMOTESPACES_PUT(long long, MPI_LONG_LONG)
+KOKKOS_REMOTESPACES_PUT(unsigned long long, MPI_UNSIGNED_LONG_LONG)
+KOKKOS_REMOTESPACES_PUT(unsigned long, MPI_UNSIGNED_LONG)
+KOKKOS_REMOTESPACES_PUT(float, MPI_FLOAT)
+KOKKOS_REMOTESPACES_PUT(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_PUT
 
-#define KOKKOS_REMOTESPACES_GET(type, op)                  \
-  static KOKKOS_INLINE_FUNCTION void shmem_block_type_get( \
-      type *dst, const type *src, size_t nelems, int pe) { \
-    op(dst, src, nelems, pe);                              \
+#define KOKKOS_REMOTESPACES_GET(type, mpi_type)                           \
+  static KOKKOS_INLINE_FUNCTION void mpi_block_type_get(                  \
+      type *ptr, const size_t offset, const size_t nelems, const int pe,  \
+      const MPI_Win &win) {                                               \
+    assert(win != MPI_WIN_NULL);                                          \
+    int _typesize;                                                        \
+    MPI_Request request;                                                  \
+    MPI_Type_size(mpi_type, &_typesize);                                  \
+    MPI_Rget(ptr, nelems, mpi_type, pe,                                   \
+             sizeof(SharedAllocationHeader) + offset * _typesize, nelems, \
+             mpi_type, win, &request);                                    \
+    MPI_Wait(&request, MPI_STATUS_IGNORE);                                \
   }
 
-KOKKOS_REMOTESPACES_GET(char, shmem_char_get)
-KOKKOS_REMOTESPACES_GET(unsigned char, shmem_uchar_get)
-KOKKOS_REMOTESPACES_GET(short, shmem_short_get)
-KOKKOS_REMOTESPACES_GET(unsigned short, shmem_ushort_get)
-KOKKOS_REMOTESPACES_GET(int, shmem_int_get)
-KOKKOS_REMOTESPACES_GET(unsigned int, shmem_uint_get)
-KOKKOS_REMOTESPACES_GET(long, shmem_long_get)
-KOKKOS_REMOTESPACES_GET(unsigned long, shmem_ulong_get)
-KOKKOS_REMOTESPACES_GET(long long, shmem_longlong_get)
-KOKKOS_REMOTESPACES_GET(unsigned long long, shmem_ulonglong_get)
-KOKKOS_REMOTESPACES_GET(float, shmem_float_get)
-KOKKOS_REMOTESPACES_GET(double, shmem_double_get)
+KOKKOS_REMOTESPACES_GET(char, MPI_SIGNED_CHAR)
+KOKKOS_REMOTESPACES_GET(unsigned char, MPI_UNSIGNED_CHAR)
+KOKKOS_REMOTESPACES_GET(short, MPI_SHORT)
+KOKKOS_REMOTESPACES_GET(unsigned short, MPI_UNSIGNED_SHORT)
+KOKKOS_REMOTESPACES_GET(int, MPI_INT)
+KOKKOS_REMOTESPACES_GET(unsigned int, MPI_UNSIGNED)
+KOKKOS_REMOTESPACES_GET(long, MPI_INT64_T)
+KOKKOS_REMOTESPACES_GET(long long, MPI_LONG_LONG)
+KOKKOS_REMOTESPACES_GET(unsigned long long, MPI_UNSIGNED_LONG_LONG)
+KOKKOS_REMOTESPACES_GET(unsigned long, MPI_UNSIGNED_LONG)
+KOKKOS_REMOTESPACES_GET(float, MPI_FLOAT)
+KOKKOS_REMOTESPACES_GET(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_GET
 
@@ -73,25 +89,26 @@ struct MPIBlockDataElement {};
 // Atomic Operators
 template <class T, class Traits>
 struct MPIBlockDataElement<T, Traits> {
+  const MPI_Win win;
+  T *ptr;
+  int offset;
+  int pe;
+  size_t nelems;
   typedef const T const_value_type;
   typedef T non_const_value_type;
-  T *src;
-  T *dst;
-  size_t nelems;
-  int pe;
 
   KOKKOS_INLINE_FUNCTION
-  MPIBlockDataElement(T *src_, T *dst_, size_t size_, int pe_)
-      : src(src_), dst(dst_), nelems(size_), pe(pe_) {}
+  MPIBlockDataElement(T *ptr_, MPI_Win win_, int pe_, size_t i_, size_t size_)
+      : win(win_), ptr(ptr_), offset(i_), pe(pe_), nelems(size_) {}
 
   KOKKOS_INLINE_FUNCTION
-  void put() const { shmem_block_type_put(dst, src, nelems, pe); }
+  void put() const { mpi_block_type_put(ptr, offset, nelems, pe, win); }
 
   KOKKOS_INLINE_FUNCTION
-  void get() const { shmem_block_type_get(dst, src, nelems, pe); }
+  void get() const { mpi_block_type_get(ptr, offset, nelems, pe, win); }
 };
 
 }  // namespace Impl
 }  // namespace Kokkos
 
-#endif  // KOKKOS_REMOTESPACES_shmem_BLOCK_OPS_HPP
+#endif  // KOKKOS_REMOTESPACES_MPISPACE_BLOCK_OPS_HPP
