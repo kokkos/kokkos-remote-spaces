@@ -16,6 +16,9 @@
 //
 //@HEADER
 
+#ifndef KOKKOS_REMOTESPACES_ERROR_HPP
+#define KOKKOS_REMOTESPACES_ERROR_HPP
+
 namespace Kokkos {
 namespace Impl {
 namespace Experimental {
@@ -93,8 +96,41 @@ class RemoteSpacesMemoryAllocationFailure : public std::bad_alloc {
     return m_failure_mode;
   }
 
-  void print_error_message(std::ostream &o) const;
-  [[nodiscard]] std::string get_error_message() const;
+  void print_error_message(std::ostream &o) const {
+    o << "Allocation of size " << Impl::human_memory_size(m_attempted_size);
+    o << " failed";
+    switch (m_failure_mode) {
+      case FailureMode::OutOfMemoryError:
+        o << ", likely due to insufficient memory.";
+        break;
+      case FailureMode::AllocationNotAligned:
+        o << " because the allocation was improperly aligned.";
+        break;
+      case FailureMode::InvalidAllocationSize:
+        o << " because the requested allocation size is not a valid size for "
+             "the"
+             " requested allocation mechanism (it's probably too large).";
+        break;
+      case FailureMode::Unknown: o << " because of an unknown error.";
+    }
+    o << "  (The allocation mechanism was ";
+    switch (m_mechanism) {
+      case AllocationMechanism::SHMEMMALLOC: o << "shmem_malloc()."; break;
+      case AllocationMechanism::NVSHMEMMALLOC: o << "nvshmem_malloc()."; break;
+      case AllocationMechanism::ROCSHMEMMALLOC:
+        o << "rocshmem_malloc().";
+        break;
+      case AllocationMechanism::MPIWINALLOC: o << "MPI_Win_allocate().";
+    }
+    append_additional_error_information(o);
+    o << ")" << std::endl;
+  }
+
+  [[nodiscard]] std::string get_error_message() const {
+    std::ostringstream out;
+    print_error_message(out);
+    return out.str();
+  }
 
   virtual void append_additional_error_information(std::ostream &) const {}
 };
@@ -102,3 +138,5 @@ class RemoteSpacesMemoryAllocationFailure : public std::bad_alloc {
 }  // namespace Experimental
 }  // namespace Impl
 }  // namespace Kokkos
+
+#endif  // KOKKOS_REMOTESPACES_ERROR_HPP
