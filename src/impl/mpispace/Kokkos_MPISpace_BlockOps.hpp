@@ -33,9 +33,10 @@ namespace Impl {
     int _typesize;                                                             \
     MPI_Request request;                                                       \
     MPI_Type_size(mpi_type, &_typesize);                                       \
-    MPI_Rput(ptr, nelems, mpi_type, pe,                                        \
-             sizeof(SharedAllocationHeader) + offset * _typesize, nelems,      \
-             mpi_type, win, &request);                                         \
+    const void *src_adr = ptr + offset;                                        \
+    size_t win_offset   = sizeof(SharedAllocationHeader) + offset * _typesize; \
+    MPI_Rput(src_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
+             &request);                                                        \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
@@ -54,18 +55,19 @@ KOKKOS_REMOTESPACES_PUT(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_PUT
 
-#define KOKKOS_REMOTESPACES_GET(type, mpi_type)                           \
-  static KOKKOS_INLINE_FUNCTION void mpi_block_type_get(                  \
-      type *ptr, const size_t offset, const size_t nelems, const int pe,  \
-      const MPI_Win &win) {                                               \
-    assert(win != MPI_WIN_NULL);                                          \
-    int _typesize;                                                        \
-    MPI_Request request;                                                  \
-    MPI_Type_size(mpi_type, &_typesize);                                  \
-    MPI_Rget(ptr, nelems, mpi_type, pe,                                   \
-             sizeof(SharedAllocationHeader) + offset * _typesize, nelems, \
-             mpi_type, win, &request);                                    \
-    MPI_Wait(&request, MPI_STATUS_IGNORE);                                \
+#define KOKKOS_REMOTESPACES_GET(type, mpi_type)                                \
+  static KOKKOS_INLINE_FUNCTION void mpi_block_type_get(                       \
+      type *ptr, const size_t offset, const size_t nelems, const int pe,       \
+      const MPI_Win &win) {                                                    \
+    assert(win != MPI_WIN_NULL);                                               \
+    int _typesize;                                                             \
+    MPI_Request request;                                                       \
+    MPI_Type_size(mpi_type, &_typesize);                                       \
+    void *dst_adr     = ptr + offset;                                          \
+    size_t win_offset = sizeof(SharedAllocationHeader) + offset * _typesize;   \
+    MPI_Rget(dst_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
+             &request);                                                        \
+    MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
   }
 
 KOKKOS_REMOTESPACES_GET(char, MPI_SIGNED_CHAR)

@@ -1057,15 +1057,10 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       Kokkos::Impl::ViewCtorProp<P...> const &arg_prop,
       typename Traits::array_layout const &arg_layout)
       : m_offset_remote_dim(0),
-#ifdef KRS_ENABLE_MPISPACE
         m_handle(
             ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
                 .value)
-#else
-        m_handle(
-            ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
-                .value)
-#endif
+
   {
     typedef typename Traits::value_type value_type;
     typedef std::integral_constant<

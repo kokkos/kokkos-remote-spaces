@@ -47,45 +47,36 @@ struct MPIDataHandle {
   }
 
   KOKKOS_INLINE_FUNCTION
-  MPIDataHandle *operator+(size_t &offset) {
-    ptr += offset;
-    loc.offset += offset;
+  MPIDataHandle operator+(size_t &offset) {
+    return MPIDataHandle(ptr += offset, loc.offset += offset);
   }
 };
 
 template <class T, class Traits>
 struct BlockDataHandle {
   T *ptr;
-  MPIAccessLocation remote_loc;
+  MPIAccessLocation loc;
   size_t pe;
   size_t elems;
 
   KOKKOS_INLINE_FUNCTION
-  BlockDataHandle() : elems(0) {}
-
-  KOKKOS_INLINE_FUNCTION
   BlockDataHandle(T *ptr_, MPI_Win win_, size_t offset_, size_t elems_,
                   size_t pe_)
-      : ptr(ptr_), remote_loc(win_, offset_), elems(elems_), pe(pe_) {}
+      : ptr(ptr_), loc(win_, offset_), elems(elems_), pe(pe_) {}
 
   KOKKOS_INLINE_FUNCTION
   BlockDataHandle(BlockDataHandle<T, Traits> const &arg)
-      : ptr(arg.ptr),
-        remote_loc(arg.remote_loc),
-        elems(arg.elems),
-        pe(arg.pe) {}
+      : ptr(arg.ptr), loc(arg.loc), elems(arg.elems), pe(arg.pe) {}
 
   KOKKOS_INLINE_FUNCTION
   void get() {
-    MPIBlockDataElement<T, Traits> element(ptr, remote_loc.win, pe,
-                                           remote_loc.offset, elems);
+    MPIBlockDataElement<T, Traits> element(ptr, loc.win, pe, loc.offset, elems);
     element.get();
   }
 
   KOKKOS_INLINE_FUNCTION
   void put() {
-    MPIBlockDataElement<T, Traits> element(ptr, remote_loc.win, pe,
-                                           remote_loc.offset, elems);
+    MPIBlockDataElement<T, Traits> element(ptr, loc.win, pe, loc.offset, elems);
     element.put();
   }
 };
