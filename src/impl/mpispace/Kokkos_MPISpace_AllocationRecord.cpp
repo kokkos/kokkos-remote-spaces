@@ -39,12 +39,14 @@ SharedAllocationRecord<Kokkos::Experimental::MPISpace,
 SharedAllocationHeader *_do_allocation(
     Kokkos::Experimental::MPISpace const &space, std::string const &label,
     size_t alloc_size) {
+  using MemAllocFailure =
+      Kokkos::Impl::Experimental::RemoteSpacesMemoryAllocationFailure;
   try {
     return reinterpret_cast<SharedAllocationHeader *>(
         space.allocate(alloc_size));
-  } catch (Experimental::RawMemoryAllocationFailure const &failure) {
-    if (failure.failure_mode() == Experimental::RawMemoryAllocationFailure::
-                                      FailureMode::AllocationNotAligned) {
+  } catch (MemAllocFailure const &failure) {
+    if (failure.failure_mode() ==
+        MemAllocFailure::FailureMode::AllocationNotAligned) {
       // TODO: delete the misaligned memory
     }
 
