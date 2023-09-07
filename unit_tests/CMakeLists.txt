@@ -15,10 +15,7 @@ SET(NAME KokkosRemote_TestAll)
 
 if (KRS_ENABLE_MPISPACE)
   FILE(GLOB TEST_SRCS *.cpp)
-  # Todo: check if this works
-  list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Subview\\.cpp$")
   list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Atomic\\.cpp$")
-  message(${TEST_SRCS})
 else()
   FILE(GLOB TEST_SRCS *.cpp)
 endif()
