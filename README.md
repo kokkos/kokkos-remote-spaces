@@ -107,7 +107,7 @@ find_package(KokkosRemote REQUIRED)
 
 add_executable(MatVec matvec.cpp)
 target_link_libraries(MatVec PRIVATE \
-         Kokkos::kokkoskernels Kokkos::kokkosremote)
+         Kokkos::kokkoskernels Kokkos::kokkosremotespaces)
 ```
 
 This cmake build fike can be used as

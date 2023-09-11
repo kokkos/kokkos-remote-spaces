@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.12)
 
-project(KokkosRemote
+project(KokkosRemoteSpaces
   LANGUAGES CXX
   VERSION 0.1.0)
 
@@ -108,58 +108,58 @@ if (KRS_ENABLE_RACERLIB)
   list(APPEND HEADERS ${DIR_HDRS})
 endif()
 
-add_library(kokkosremote ${SOURCES} ${HEADERS})
-add_library(Kokkos::kokkosremote ALIAS kokkosremote)
-target_link_libraries(kokkosremote PUBLIC Kokkos::kokkos)
+add_library(kokkosremotespaces ${SOURCES} ${HEADERS})
+add_library(Kokkos::kokkosremotespaces ALIAS kokkosremotespaces)
+target_link_libraries(kokkosremotespaces PUBLIC Kokkos::kokkos)
 
 foreach(DIR ${SOURCE_DIRS})
-  target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${DIR}>)
+  target_include_directories(kokkosremotespaces PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${DIR}>)
   foreach(BACKEND_NAME ${PUBLIC_DEPS})
-    target_compile_definitions(kokkosremote PUBLIC KRS_ENABLE_${BACKEND_NAME})
+    target_compile_definitions(kokkosremotespaces PUBLIC KRS_ENABLE_${BACKEND_NAME})
   endforeach()
 endforeach()
 
 if (KRS_ENABLE_RACERLIB)
-  target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib>)
-  target_compile_definitions(kokkosremote PUBLIC KRS_ENABLE_RACERLIB)
+  target_include_directories(kokkosremotespaces PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/features/racerlib>)
+  target_compile_definitions(kokkosremotespaces PUBLIC KRS_ENABLE_RACERLIB)
 endif()
 
-target_include_directories(kokkosremote PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/core>)
-target_include_directories(kokkosremote PUBLIC $<INSTALL_INTERFACE:include>)
+target_include_directories(kokkosremotespaces PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/core>)
+target_include_directories(kokkosremotespaces PUBLIC $<INSTALL_INTERFACE:include>)
 
 if(KRS_ENABLE_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
- target_compile_definitions(kokkosremote PUBLIC KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
+ target_compile_definitions(kokkosremotespaces PUBLIC KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
  message(STATUS "Enabled build mode: debug")
 endif()
 
 if (PRIVATE_DEPS)
-  target_link_libraries(kokkosremote PRIVATE ${PRIVATE_DEPS})
+  target_link_libraries(kokkosremotespaces PRIVATE ${PRIVATE_DEPS})
 endif()
 if (PUBLIC_DEPS)
-  target_link_libraries(kokkosremote PUBLIC ${PUBLIC_DEPS})
+  target_link_libraries(kokkosremotespaces PUBLIC ${PUBLIC_DEPS})
 endif()
 
 if (KRS_ENABLE_NVSHMEMSPACE)
-  target_link_libraries(kokkosremote PRIVATE "-lnvidia-ml")
+  target_link_libraries(kokkosremotespaces PRIVATE "-lnvidia-ml")
 endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-  KokkosRemoteConfig.cmake.in
-  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfig.cmake"
+  KokkosRemoteSpacesConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteSpacesConfig.cmake"
   INSTALL_DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake
 )
 write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfigVersion.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteSpacesConfigVersion.cmake"
   VERSION "${KokkosRemote_VERSION}"
   COMPATIBILITY AnyNewerVersion
 )
 
 install(FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfig.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteConfigVersion.cmake"
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote)
+  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteSpacesConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/KokkosRemoteSpacesConfigVersion.cmake"
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemoteSpaces)
 
 install(FILES
   ${HEADERS}
@@ -167,17 +167,17 @@ install(FILES
 )
 
 install(
-  TARGETS kokkosremote ${PUBLIC_DEPS}
-  EXPORT KokkosRemoteTargets
+  TARGETS kokkosremotespaces ${PUBLIC_DEPS}
+  EXPORT KokkosRemoteSpacesTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(EXPORT
-  KokkosRemoteTargets
+  KokkosRemoteSpacesTargets
   NAMESPACE Kokkos::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemote
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemoteSpaces
 )
 
 IF (KRS_ENABLE_EXAMPLES)

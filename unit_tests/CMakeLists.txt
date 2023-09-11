@@ -11,7 +11,7 @@ if(NOT googletest_POPULATED)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
 
-SET(NAME KokkosRemote_TestAll)
+SET(NAME KokkosRemoteSpaces_TestAll)
 
 if (KRS_ENABLE_MPISPACE)
   FILE(GLOB TEST_SRCS *.cpp)
@@ -22,5 +22,5 @@ endif()
 
 add_executable(${NAME} ${TEST_SRCS})
 
-target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremote)
+target_link_libraries(${NAME} PRIVATE Kokkos::kokkosremotespaces)
 target_link_libraries(${NAME} PRIVATE gtest_main)
