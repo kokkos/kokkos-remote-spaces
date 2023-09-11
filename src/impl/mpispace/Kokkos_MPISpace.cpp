@@ -16,9 +16,7 @@
 //
 //@HEADER
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_MPISpace.hpp>
-#include <Kokkos_RemoteSpaces_Error.hpp>
 #include <csignal>
 #include <mpi.h>
 

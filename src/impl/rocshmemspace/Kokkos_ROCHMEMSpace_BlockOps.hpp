@@ -16,10 +16,10 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_REMOTESPACES_ROCSHMEM_BLOCK_OPS_HPP
-#define KOKKOS_REMOTESPACES_ROCSHMEM_BLOCK_OPS_HPP
+#ifndef KOKKOS_REMOTESPACES_NVSHMEM_BLOCK_OPS_HPP
+#define KOKKOS_REMOTESPACES_NVSHMEM_BLOCK_OPS_HPP
 
-#include <roc_shmem.h>
+#include <nvshmem.h>
 #include <type_traits>
 
 namespace Kokkos {
@@ -31,18 +31,18 @@ namespace Impl {
     op(dst, src, nelems, pe);                              \
   }
 
-KOKKOS_REMOTESPACES_PUT(char, roc_shmem_char_put)
-KOKKOS_REMOTESPACES_PUT(unsigned char, roc_shmem_uchar_put)
-KOKKOS_REMOTESPACES_PUT(short, roc_shmem_short_put)
-KOKKOS_REMOTESPACES_PUT(unsigned short, roc_shmem_ushort_put)
-KOKKOS_REMOTESPACES_PUT(int, roc_shmem_int_put)
-KOKKOS_REMOTESPACES_PUT(unsigned int, roc_shmem_uint_put)
-KOKKOS_REMOTESPACES_PUT(long, roc_shmem_long_put)
-KOKKOS_REMOTESPACES_PUT(unsigned long, roc_shmem_ulong_put)
-KOKKOS_REMOTESPACES_PUT(long long, roc_shmem_longlong_put)
-KOKKOS_REMOTESPACES_PUT(unsigned long long, roc_shmem_ulonglong_put)
-KOKKOS_REMOTESPACES_PUT(float, roc_shmem_float_put)
-KOKKOS_REMOTESPACES_PUT(double, roc_shmem_double_put)
+KOKKOS_REMOTESPACES_PUT(char, nvshmem_char_put)
+KOKKOS_REMOTESPACES_PUT(unsigned char, nvshmem_uchar_put)
+KOKKOS_REMOTESPACES_PUT(short, nvshmem_short_put)
+KOKKOS_REMOTESPACES_PUT(unsigned short, nvshmem_ushort_put)
+KOKKOS_REMOTESPACES_PUT(int, nvshmem_int_put)
+KOKKOS_REMOTESPACES_PUT(unsigned int, nvshmem_uint_put)
+KOKKOS_REMOTESPACES_PUT(long, nvshmem_long_put)
+KOKKOS_REMOTESPACES_PUT(unsigned long, nvshmem_ulong_put)
+KOKKOS_REMOTESPACES_PUT(long long, nvshmem_longlong_put)
+KOKKOS_REMOTESPACES_PUT(unsigned long long, nvshmem_ulonglong_put)
+KOKKOS_REMOTESPACES_PUT(float, nvshmem_float_put)
+KOKKOS_REMOTESPACES_PUT(double, nvshmem_double_put)
 
 #undef KOKKOS_REMOTESPACES_PUT
 
@@ -52,27 +52,27 @@ KOKKOS_REMOTESPACES_PUT(double, roc_shmem_double_put)
     op(dst, src, nelems, pe);                              \
   }
 
-KOKKOS_REMOTESPACES_GET(char, roc_shmem_char_get)
-KOKKOS_REMOTESPACES_GET(unsigned char, roc_shmem_uchar_get)
-KOKKOS_REMOTESPACES_GET(short, roc_shmem_short_get)
-KOKKOS_REMOTESPACES_GET(unsigned short, roc_shmem_ushort_get)
-KOKKOS_REMOTESPACES_GET(int, roc_shmem_int_get)
-KOKKOS_REMOTESPACES_GET(unsigned int, roc_shmem_uint_get)
-KOKKOS_REMOTESPACES_GET(long, roc_shmem_long_get)
-KOKKOS_REMOTESPACES_GET(unsigned long, roc_shmem_ulong_get)
-KOKKOS_REMOTESPACES_GET(long long, roc_shmem_longlong_get)
-KOKKOS_REMOTESPACES_GET(unsigned long long, roc_shmem_ulonglong_get)
-KOKKOS_REMOTESPACES_GET(float, roc_shmem_float_get)
-KOKKOS_REMOTESPACES_GET(double, roc_shmem_double_get)
+KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get)
+KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get)
+KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get)
+KOKKOS_REMOTESPACES_GET(unsigned short, nvshmem_ushort_get)
+KOKKOS_REMOTESPACES_GET(int, nvshmem_int_get)
+KOKKOS_REMOTESPACES_GET(unsigned int, nvshmem_uint_get)
+KOKKOS_REMOTESPACES_GET(long, nvshmem_long_get)
+KOKKOS_REMOTESPACES_GET(unsigned long, nvshmem_ulong_get)
+KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get)
+KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get)
+KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get)
+KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get)
 
 #undef KOKKOS_REMOTESPACES_GET
 
 template <class T, class Traits, typename Enable = void>
-struct ROCSHMEMBlockDataElement {};
+struct NVSHMEMBlockDataElement {};
 
 // Atomic Operators
 template <class T, class Traits>
-struct ROCSHMEMBlockDataElement<T, Traits> {
+struct NVSHMEMBlockDataElement<T, Traits> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *src;
@@ -81,7 +81,7 @@ struct ROCSHMEMBlockDataElement<T, Traits> {
   int pe;
 
   KOKKOS_INLINE_FUNCTION
-  ROCSHMEMBlockDataElement(T *src_, T *dst_, size_t size_, int pe_)
+  NVSHMEMBlockDataElement(T *src_, T *dst_, size_t size_, int pe_)
       : src(src_), dst(dst_), nelems(size_), pe(pe_) {}
 
   KOKKOS_INLINE_FUNCTION
@@ -94,4 +94,4 @@ struct ROCSHMEMBlockDataElement<T, Traits> {
 }  // namespace Impl
 }  // namespace Kokkos
 
-#endif  // KOKKOS_REMOTESPACES_ROCSHMEM_BLOCK_OPS_HPP
+#endif  // KOKKOS_REMOTESPACES_NVSHMEM_BLOCK_OPS_HPP

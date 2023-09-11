@@ -16,9 +16,7 @@
 //
 //@HEADER
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_SHMEMSpace.hpp>
-#include <Kokkos_RemoteSpaces_Error.hpp>
 #include <shmem.h>
 
 namespace Kokkos {
