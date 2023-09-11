@@ -32,7 +32,23 @@ void ROCSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
 
 void ROCSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
-void *ROCSHMEMSpace::allocate(const size_t arg_alloc_size) const {
+void *SHMEMSpace::allocate(const size_t arg_alloc_size) const {
+  return allocate("[unlabeled]", arg_alloc_size);
+}
+
+void *SHMEMSpace::allocate(const char *arg_label, const size_t arg_alloc_size,
+                           const size_t
+
+                               arg_logical_size) const {
+  return impl_allocate(arg_label, arg_alloc_size, arg_logical_size);
+}
+
+void *ROCSHMEMSpace::impl_allocate(
+    const char *arg_label, const size_t arg_alloc_size,
+    const size_t arg_logical_size,
+    const Kokkos::Tools::SpaceHandle arg_handle) const {
+  const size_t reported_size =
+      (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
   static_assert(sizeof(void *) == sizeof(uintptr_t),
                 "Error sizeof(void*) != sizeof(uintptr_t)");
 
@@ -40,21 +56,90 @@ void *ROCSHMEMSpace::allocate(const size_t arg_alloc_size) const {
       Kokkos::Impl::is_integral_power_of_two(Kokkos::Impl::MEMORY_ALIGNMENT),
       "Memory alignment must be power of two");
 
-  void *ptr = 0;
+  constexpr uintptr_t alignment      = Kokkos::Impl::MEMORY_ALIGNMENT;
+  constexpr uintptr_t alignment_mask = alignment - 1;
+
+  void *ptr = nullptr;
+
   if (arg_alloc_size) {
+    // Over-allocate to and round up to guarantee proper alignment.
+    size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
+
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       int num_pes = roc_shmem_n_pes();
       int my_id   = roc_shmem_my_pe();
       ptr         = roc_shmem_malloc(arg_alloc_size);
     } else {
-      Kokkos::abort("ROCSHMEMSpace only supports symmetric allocation policy.");
+      Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
     }
+
+    if (ptr) {
+      auto address = reinterpret_cast<uintptr_t>(ptr);
+
+      // offset enough to record the alloc_ptr
+      address += sizeof(void *);
+      uintptr_t rem    = address % alignment;
+      uintptr_t offset = rem ? (alignment - rem) : 0u;
+      address += offset;
+      ptr = reinterpret_cast<void *>(address);
+      // record the alloc'd pointer
+      address -= sizeof(void *);
+      *reinterpret_cast<void **>(address) = ptr;
+    }
+  }
+
+  using MemAllocFailure =
+      Kokkos::Impl::Experimental::RemoteSpacesMemoryAllocationFailure;
+  using MemAllocFailureMode = Kokkos::Impl::Experimental::
+      RemoteSpacesMemoryAllocationFailure::FailureMode;
+
+  if ((ptr == nullptr) || (reinterpret_cast<uintptr_t>(ptr) == ~uintptr_t(0)) ||
+      (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)) {
+    MemAllocFailureMode failure_mode =
+        MemAllocFailureMode::AllocationNotAligned;
+    if (ptr == nullptr) {
+      failure_mode = MemAllocFailureMode::OutOfMemoryError;
+    }
+
+    MemAllocFailure::AllocationMechanism alloc_mec =
+        MemAllocFailure::AllocationMechanism::ROCSHMEMMALLOC;
+    throw MemAllocFailure(arg_alloc_size, alignment, failure_mode, alloc_mec);
+  }
+
+  if (Kokkos::Profiling::profileLibraryLoaded()) {
+    Kokkos::Profiling::allocateData(arg_handle, arg_label, ptr, reported_size);
   }
   return ptr;
 }
 
-void ROCSHMEMSpace::deallocate(void *const arg_alloc_ptr, const size_t) const {
-  roc_shmem_free(arg_alloc_ptr);
+void ROCSHMEMSpace::deallocate(void *const arg_alloc_ptr,
+                               const size_t arg_alloc_size) const {
+  deallocate("[unlabeled]", arg_alloc_ptr, arg_alloc_size);
+}
+
+void ROCSHMEMSpace::deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                               const size_t arg_alloc_size,
+                               const size_t
+
+                                   arg_logical_size) const {
+  impl_deallocate(arg_label, arg_alloc_ptr, arg_alloc_size, arg_logical_size);
+}
+
+void ROCSHMEMSpace::impl_deallocate(
+    const char *arg_label, void *const arg_alloc_ptr,
+    const size_t arg_alloc_size, const size_t arg_logical_size,
+    const Kokkos::Tools::SpaceHandle arg_handle) const {
+  if (arg_alloc_ptr) {
+    Kokkos::fence("HostSpace::impl_deallocate before free");
+    fence();
+    size_t reported_size =
+        (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
+    if (Kokkos::Profiling::profileLibraryLoaded()) {
+      Kokkos::Profiling::deallocateData(arg_handle, arg_label, arg_alloc_ptr,
+                                        reported_size);
+    }
+    roc_shmem_free(arg_alloc_ptr);
+  }
 }
 
 void ROCSHMEMSpace::fence() {
@@ -67,35 +152,6 @@ size_t get_num_pes() { return roc_shmem_n_pes(); }
 
 KOKKOS_FUNCTION
 size_t get_my_pe() { return roc_shmem_my_pe(); }
-
-KOKKOS_FUNCTION
-size_t get_indexing_block_size(size_t size) {
-  size_t num_pes, block;
-  num_pes = get_num_pes();
-  block   = (size + num_pes - 1) / num_pes;
-  return block;
-}
-
-std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
-  size_t start, end;
-  size_t block = get_indexing_block_size(size);
-  start        = pe * block;
-  end          = (pe + 1) * block;
-
-  size_t num_pes = get_num_pes();
-
-  if (size < num_pes) {
-    size_t diff = (num_pes * block) - size;
-    if (pe > num_pes - 1 - diff) end--;
-  } else {
-    if (pe == num_pes - 1) {
-      size_t diff = size - (num_pes - 1) * block;
-      end         = start + diff;
-    }
-    end--;
-  }
-  return std::make_pair(start, end);
-}
 
 }  // namespace Experimental
 

@@ -21,42 +21,12 @@
 #include <mpi.h>
 #include <assert.h>
 
-template <class ExecSpace>
-struct SpaceInstance {
-  static ExecSpace create() { return ExecSpace(); }
-  static void destroy(ExecSpace&) {}
-  static bool overlap() { return false; }
-};
-
-#ifndef KOKKOS_ENABLE_DEBUG
-#ifdef KOKKOS_ENABLE_CUDA
-template <>
-struct SpaceInstance<Kokkos::Cuda> {
-  static Kokkos::Cuda create() {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-    return Kokkos::Cuda(stream);
-  }
-  static void destroy(Kokkos::Cuda& space) {
-    cudaStream_t stream = space.cuda_stream();
-    cudaStreamDestroy(stream);
-  }
-  static bool overlap() { /* returns true if you can overlap */
-    bool value          = true;
-    auto local_rank_str = std::getenv("CUDA_LAUNCH_BLOCKING");
-    if (local_rank_str) {
-      value = (std::stoi(local_rank_str) == 0);
-    }
-    return value;
-  }
-};
-#endif /* KOKKOS_ENABLE_CUDA */
-#endif /* KOKKOS_ENABLE_DEBUG */
+#include <comm.hpp>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using LocalView_t   = Kokkos::View<double***>;
 using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
 using HostView_t    = typename RemoteView_t::HostMirror;
-// Kokkos::View<double ***, Kokkos::HostSpace>;
 
 struct CommHelper {
   MPI_Comm comm;
@@ -96,11 +66,12 @@ struct CommHelper {
 
     left = right = down = up = front = back = -1;
     x = y = z = 0;
-
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("NumRanks: %i Me: %i (old Grid): %i %i %i MyPos: %i %i %i\n", nranks,
            me, nx, ny, nz, x, y, z);
     printf("Me: %d MyNeighbors: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
+#endif
   }
 };
 
@@ -134,10 +105,9 @@ struct System {
   int I;
 
   // Temperature and delta Temperature
-  RemoteView_t T, dT;
+  RemoteView_t T;
+  LocalView_t dT;
   HostView_t T_h;
-
-  Kokkos::DefaultExecutionSpace E_bulk;
 
   // Initial Temmperature
   double T0;
@@ -168,19 +138,16 @@ struct System {
     my_lo_x            = 0;
     my_hi_x            = 0;
     N                  = 10000;
-    I                  = 100;
-    T_h                = HostView_t();
-    T                  = RemoteView_t();
-    dT                 = RemoteView_t();
-    T0                 = 0.0;
-    dt                 = 0.1;
-    q                  = 1.0;
-    sigma              = 1.0;
-    P                  = 1.0;
-    E_bulk             = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-  }
-  void destroy_exec_spaces() {
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_bulk);
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+    I = 10;
+#else
+    I = N - 1;
+#endif
+    T0    = 0.0;
+    dt    = 0.1;
+    q     = 1.0;
+    sigma = 1.0;
+    P     = 1.0;
   }
 
   void setup_subdomain() {
@@ -218,11 +185,13 @@ struct System {
     my_lo_x          = local_range.first;
     my_hi_x          = local_range.second + 1;
 
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
+#endif
     T   = RemoteView_t("System::T", dX, dY, dZ);
     T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
-    dT  = RemoteView_t("System::dT", dX, dY, dZ);
+    dT  = LocalView_t("System::dT", dX, dY, dZ);
 
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
@@ -266,91 +235,17 @@ struct System {
     return true;
   }
 
-  // only computethe inner updates
-  struct ComputeInnerDT {};
-  KOKKOS_FUNCTION
-  void operator()(ComputeInnerDT, int x, int y, int z) const {
-    double dT_xyz = 0.0;
-    double T_xyz  = T(x, y, z);
-    dT_xyz += q * (T(x - 1, y, z) - T_xyz);
-    dT_xyz += q * (T(x + 1, y, z) - T_xyz);
-    dT_xyz += q * (T(x, y - 1, z) - T_xyz);
-    dT_xyz += q * (T(x, y + 1, z) - T_xyz);
-    dT_xyz += q * (T(x, y, z - 1) - T_xyz);
-    dT_xyz += q * (T(x, y, z + 1) - T_xyz);
-    dT(x, y, z) = dT_xyz;
-  }
-
-  void compute_inner_dT() {
-    using policy_t =
-        Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeInnerDT, int>;
-    Kokkos::parallel_for(
-        "ComputeInnerDT",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x + 1, 1, 1}, {my_hi_x - 1, Y - 1, Z - 1}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-  }
-
   // compute both inner and outer updates. This function is suitable for both.
-  struct ComputeAllDT {};
+  struct ComputeDT {};
 
   KOKKOS_FUNCTION
-  void operator()(ComputeAllDT, int x, int y, int z) const {
-    double dT_xyz = 0.0;
-    double T_xyz  = T(x, y, z);
-    // printf("begin    computeAllDT with x,y,z=(%i,%i,%i)\n", x, y, z);
+  void operator()(ComputeDT, int x, int y, int z) const {
+    double dT_xyz    = 0.0;
+    double T_xyz     = T(x, y, z);
     int num_surfaces = 0;
-// # if LIKELY_IN_IF
-#if 0
-    if (x == 0) {
-      num_surfaces += 1;
-      // Incoming Power
-      if(X_lo == 0) dT_xyz += P;
-    }
-    else {
-      dT_xyz += q * (T(x-1,y  ,z  ) - T_xyz);
-      // printf("x access computeAllDT with x,y,z=(%i,%i,%i)\n", x, y, z);
-    }
 
-    if (x == X-1) {
-      num_surfaces += 1;
-    }
-    else {
-      dT_xyz += q * (T(x+1,y  ,z  ) - T_xyz);
-    }
-
-    if (y == 0) {
-      num_surfaces += 1;
-    }
-    else {
-      dT_xyz += q * (T(x  ,y-1,z  ) - T_xyz);
-    }
-
-    if (y == Y-1) {
-      num_surfaces += 1;
-    }
-    else {
-      dT_xyz += q * (T(x  ,y+1,z  ) - T_xyz);
-    }
-
-    if (z == 0) {
-      num_surfaces += 1;
-    }
-    else {
-      dT_xyz += q * (T(x  ,y  ,z-1) - T_xyz);
-    }
-
-    if (z == Z-1) {
-      num_surfaces += 1;
-    }
-    else {
-      dT_xyz += q * (T(x  ,y  ,z+1) - T_xyz);
-    }
-#else
     if (x > 0) {
       dT_xyz += q * (T(x - 1, y, z) - T_xyz);
-      // printf("x access computeAllDT with x,y,z=(%i,%i,%i)\n", x, y, z);
     } else {
       num_surfaces += 1;
       // Incoming Power
@@ -386,80 +281,30 @@ struct System {
     } else {
       num_surfaces += 1;
     }
-#endif /* LIKELY_IN_IF */
 
     // radiation
     dT_xyz -= sigma * T_xyz * T_xyz * T_xyz * T_xyz * num_surfaces;
 
     dT(x, y, z) = dT_xyz;
-    // double saved = dT(x,y,z);
-    // printf("conclude computeAllDT with x,y,z=(%i,%i,%i) (%lf) (%lf)\n", x, y,
-    // z, dT_xyz, saved);
   }
 
-  void compute_outer_dT() {
-    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeAllDT, int>;
-    // left
+  void compute_dT() {
+    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeDT, int>;
     Kokkos::parallel_for(
-        "ComputeAllDTLeft",
+        "ComputeDT",
         Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x, 0, 0}, {my_lo_x + 1, Y, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    // right
-    Kokkos::parallel_for(
-        "ComputeAllDTRight",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_hi_x - 1, 0, 0}, {my_hi_x, Y, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    // bottom
-    Kokkos::parallel_for(
-        "ComputeAllDTBottom",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x + 1, 0, 0}, {my_hi_x - 1, 1, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    // top
-    Kokkos::parallel_for(
-        "ComputeAllDTTop",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x + 1, Y - 1, 0}, {my_hi_x - 1, Y, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    // front
-    Kokkos::parallel_for(
-        "ComputeAllDTFront",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x + 1, 0 + 1, 0}, {my_hi_x - 1, Y - 1, 1}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    // back
-    Kokkos::parallel_for(
-        "ComputeAllDTBack",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x + 1, 0 + 1, Z - 1},
-                     {my_hi_x - 1, Y - 1, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-  }
-
-  void compute_all_dT() {
-    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeAllDT, int>;
-    Kokkos::parallel_for(
-        "ComputeAllDT",
-        Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {16, 8, 8}),
+            policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {16, 8, 8}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         *this);
   }
 
   // Some compilers have deduction issues if this were just a tagget operator
   // So it is instead a full Functor
-  struct computeT {
-    RemoteView_t T, dT;
+  struct updateT {
+    RemoteView_t T;
+    LocalView_t dT;
     double dt;
-    computeT(RemoteView_t T_, RemoteView_t dT_, double dt_)
+    updateT(RemoteView_t T_, LocalView_t dT_, double dt_)
         : T(T_), dT(dT_), dt(dt_) {}
     KOKKOS_FUNCTION
     void operator()(int x, int y, int z, double& sum_T) const {
@@ -468,19 +313,19 @@ struct System {
     }
   };
 
-  double compute_T() {
+  double update_T() {
     using policy_t =
         Kokkos::MDRangePolicy<Kokkos::Rank<3>, Kokkos::IndexType<int>>;
     double my_T;
     Kokkos::parallel_reduce(
         "ComputeT",
         Kokkos::Experimental::require(
-            policy_t(E_bulk, {my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {10, 10, 10}),
+            policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {10, 10, 10}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        computeT(T, dT, dt), my_T);
+        updateT(T, dT, dt), my_T);
     double sum_T;
     RemoteSpace_t().fence();
-    Kokkos::DefaultExecutionSpace().fence();
+    Kokkos::fence();
     MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM,
                   comm.comm); /* also a barrier */
     return sum_T;
@@ -490,71 +335,51 @@ struct System {
   void timestep() {
     Kokkos::Timer timer;
     double old_time = 0.0;
-    double time_a, time_c, time_d;
-    double time_compute, time_all;
-    time_all = time_compute = 0.0;
+    double GUPs     = 0.0;
+    double time_a, time_b, time_c, time_update, time_compute, time_all;
+    time_all = time_update = time_compute = 0.0;
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */
       time_a = timer.seconds();
-      compute_all_dT();
+      compute_dT();
       RemoteSpace_t().fence();
-      Kokkos::DefaultExecutionSpace().fence();
+      time_b       = timer.seconds();
+      double T_ave = update_T();
       time_c       = timer.seconds();
-      double T_ave = compute_T();
-      time_d       = timer.seconds();
-      time_all += time_c - time_a;
-      time_compute += time_d - time_c;
+      time_compute += time_b - time_a;
+      time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
       if ((t % I == 0 || t == N) && (comm.me == 0)) {
         double time = timer.seconds();
-        printf("%d T=%lf Time (%lf %lf)\n", t, T_ave, time, time - old_time);
-        printf("     inner + surface: %lf compute: %lf\n", time_all,
-               time_compute);
-        old_time = time;
+        time_all += time - old_time;
+        GUPs += 1e-9 * (dT.size() / time_compute);
+#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+        if ((t % I == 0 || t == N) && (comm.me == 0)) {
+#else
+        if ((t == N) && (comm.me == 0)) {
+#endif
+          printf(
+              "heat3D,KokkosRemoteSpaces,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%"
+              "f\n",
+              comm.nranks, t, T_ave, 0.0, time_compute, time_update,
+              time - old_time, /* time last iter */
+              time_all,        /* current runtime  */
+              GUPs / t, X, 1e-6 * (dT.size() * sizeof(double)));
+          old_time = time;
+        }
       }
     }
   }
 };
 
 int main(int argc, char* argv[]) {
-  int mpi_thread_level_available;
-  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
-
-#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
-  mpi_thread_level_required = MPI_THREAD_SINGLE;
-#endif
-
-  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
-                  &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-#endif
-
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm      = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
-
+  comm_init(argc, argv);
   Kokkos::initialize(argc, argv);
   {
     System sys(MPI_COMM_WORLD);
-
     if (sys.check_args(argc, argv)) sys.timestep();
-    sys.destroy_exec_spaces();
   }
   Kokkos::finalize();
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
+  comm_fini();
   return 0;
 }

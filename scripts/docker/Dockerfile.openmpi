@@ -94,7 +94,7 @@ RUN export KOKKOS_SOURCE_DIR=${SOURCE_DIR}/kokkos && \
     export KOKKOS_INSTALL_DIR=${INSTALL_DIR}/kokkos && \
     cd ${SOURCE_DIR} && git clone https://github.com/kokkos/kokkos && \
     cd kokkos && \
-    git checkout 4.0.00 && \
+    git checkout 4.1.00 && \
     mkdir -p ${KOKKOS_BUILD_DIR} && \
     cd ${KOKKOS_BUILD_DIR} && \
     cmake -DCMAKE_BUILD_TYPE=Release \

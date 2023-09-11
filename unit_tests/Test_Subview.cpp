@@ -216,7 +216,7 @@ void test_subview3D_DCCopiesSubviewAccess(int i1, int i2, int i3) {
 
 TEST(TEST_CATEGORY, test_subview) {
   // 1D subview - Subview with GlobalLayout
-  /*test_subview1D<int>(20);
+  test_subview1D<int>(20);
   test_subview1D<float>(555);
   test_subview1D<double>(123);
 
@@ -234,7 +234,7 @@ TEST(TEST_CATEGORY, test_subview) {
   // deep_copy accessing the subview directly
   test_subview3D_DCCopiesSubviewAccess<int>(20, 20, 20);
   test_subview3D_DCCopiesSubviewAccess<float>(55, 11, 13);
-  test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23);*/
+  test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23);
 }
 
 #endif /* TEST_SUBVIEW_HPP_ */

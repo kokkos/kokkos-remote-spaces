@@ -25,87 +25,56 @@
 /** \brief  View mapping for non-specialized data type and standard layout */
 
 namespace Kokkos {
-
 namespace Experimental {
 
-template <typename T>
-std::pair<size_t, size_t> get_range(
-    T &v, size_t pe,
-    typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
-  static_assert(!(std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutStride>::value),
-                "get_local_range over partitioned layouts are not allowed");
-
-  // JC: Error out also in this case as we need to access the original dim0 of
-  // the View and not the rounded dim0 of the View. Fix would need to add
-  // get_mapping to View
-  static_assert((std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutRight>::value ||
-                 std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutLeft>::value ||
-                 std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutStride>::value),
-                "get_local_range overload currently unsupported");
-
-  size_t extent_dim0 = v.extent(0);
-  return getRange(extent_dim0, pe);
+KOKKOS_INLINE_FUNCTION
+size_t get_indexing_block_size(size_t size) {
+  int num_pes;
+  size_t block;
+  num_pes = Kokkos::Experimental::get_num_pes();
+  block   = (size + static_cast<size_t>(num_pes) - 1) / num_pes;
+  return block;
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_local_range(
-    T &v,
-    typename std::enable_if<!std::is_integral<T>::value>::type * = nullptr) {
-  static_assert(!(std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutRight>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutLeft>::value ||
-                  std::is_same<typename T::traits::array_layout,
-                               Kokkos::PartitionedLayoutStride>::value),
-                "get_local_range over partitioned layouts are not allowed");
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> getRange(T size, int pe) {
+  T start, end;
+  T block = get_indexing_block_size(size);
+  start   = static_cast<T>(pe) * block;
+  end     = (static_cast<T>(pe) + 1) * block;
 
-  // JC: Error out also in this case as we need to access the original dim0 of
-  // the View and not the rounded dim0 of the View. Fix would need to add
-  // get_mapping to View
-  static_assert((std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutRight>::value ||
-                 std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutLeft>::value ||
-                 std::is_same<typename T::traits::array_layout,
-                              Kokkos::PartitionedLayoutStride>::value),
-                "get_local_range overload currently unsupported");
-
-  size_t pe          = get_my_pe();
-  size_t extent_dim0 = v.extent(0);
-  return getRange(extent_dim0, pe);
+  T num_pes = Kokkos::Experimental::get_num_pes();
+  if (size < num_pes) {
+    T diff = (num_pes * block) - size;
+    if (pe > num_pes - 1 - diff) end--;
+  } else {
+    if (pe == num_pes - 1) {
+      size_t diff = size - (num_pes - 1) * block;
+      end         = start + diff;
+    }
+  }
+  return Kokkos::pair<T, T>(start, end);
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_range(
-    T size, size_t pe,
-    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_range(T size, int pe) {
   return getRange(size, pe);
 }
 
 template <typename T>
-std::pair<size_t, size_t> get_local_range(
-    T size,
-    typename std::enable_if<std::is_integral<T>::value>::type * = nullptr) {
-  size_t pe = get_my_pe();
+KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_local_range(T size) {
+  auto pe = Kokkos::Experimental::get_my_pe();
   return getRange(size, pe);
 }
 
 }  // namespace Experimental
 
-namespace Impl {
-
 /*
  * ViewMapping class used by View copy-ctr and subview() to specialize new
  * (sub-) view type
  */
+
+namespace Impl {
 
 template <class SrcTraits, class... Args>
 class ViewMapping<
@@ -274,15 +243,16 @@ class ViewMapping<
     dst.m_offset_remote_dim = extents.domain_offset(0);
     dst.dim0_is_pe          = R0;
 
+    dst.isSubView = true;
+
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
-        src.m_handle,
+        src.m_handle, src.m_handle.loc.win,
         src.m_offset(0, extents.domain_offset(1), extents.domain_offset(2),
                      extents.domain_offset(3), extents.domain_offset(4),
                      extents.domain_offset(5), extents.domain_offset(6),
-                     extents.domain_offset(7)),
-        src.m_handle.win);
+                     extents.domain_offset(7)));
 #else
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
         src.m_handle,
@@ -329,6 +299,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   // subview ctr. Default is set to 1 as a direct view construction
   // with a partitioned layout always expects dim0 to be rank id
   size_t dim0_is_pe;
+
+  bool isSubView = false;
 
   int m_num_pes;
   int pe;
@@ -464,6 +436,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION constexpr pointer_type data() const {
     return m_handle.ptr;
   }
+
+  /** \brief  Query raw pointer to memory */
+  KOKKOS_INLINE_FUNCTION handle_type handle() const { return m_handle; }
 
   //----------------------------------------
   // The View class performs all rank and bounds checking before
@@ -814,25 +789,35 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   // Implements global views
 
   struct dim0_offsets {
-    size_t pe, offset;
+    int pe;
+    size_t offset;
   };
 
   // TODO: move this to kokkos::view_offset (new template specialization
   // on RemoteSpace space type for all default layouts and also one for
   // all partitioned laytouts. Wait for mdspan.)
-  template <typename I0, typename T = Traits>
+  template <typename I0>
   KOKKOS_INLINE_FUNCTION dim0_offsets
   compute_dim0_offsets(const I0 &_i0) const {
-    size_t target_pe, dim0_mod, i0;
+    int target_pe;
+    size_t dim0_mod, i0;
     i0 = static_cast<size_t>(_i0);
     assert(m_local_dim0);
-    target_pe = i0 / m_local_dim0;
+    target_pe = static_cast<int>(i0 / m_local_dim0);
     dim0_mod  = i0 % m_local_dim0;
     return {target_pe, dim0_mod};
   }
 
-  template <typename I0, typename T = Traits>
+  KOKKOS_INLINE_FUNCTION int get_owning_pe() const {
+    // If subview with a valid m_offset_remote_dim,
+    // compute the corresponding PE
+    if (isSubView) return compute_dim0_offsets(m_offset_remote_dim).pe;
+    // Else, return the current PE as the current PE is the owner
+    // of the local allocation
+    return pe;
+  }
 
+  template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0,
       typename std::enable_if<
@@ -1014,7 +999,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         m_offset(),
         m_offset_remote_dim(0),
         m_local_dim0(0),
-        dim0_is_pe(1) {
+        dim0_is_pe(1),
+        isSubView(false) {
     m_num_pes = Kokkos::Experimental::get_num_pes();
     pe        = Kokkos::Experimental::get_my_pe();
   }
@@ -1026,7 +1012,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_local_dim0(rhs.m_local_dim0),
-        dim0_is_pe(rhs.dim0_is_pe) {}
+        dim0_is_pe(rhs.dim0_is_pe),
+        isSubView(rhs.isSubView) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(const ViewMapping &rhs) {
     m_handle            = rhs.m_handle;
@@ -1036,6 +1023,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     m_local_dim0        = rhs.m_local_dim0;
     dim0_is_pe          = rhs.dim0_is_pe;
     pe                  = rhs.pe;
+    isSubView           = rhs.isSubView;
     return *this;
   }
 
@@ -1046,7 +1034,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
         pe(rhs.pe),
         m_offset_remote_dim(rhs.m_offset_remote_dim),
         m_local_dim0(rhs.m_local_dim0),
-        dim0_is_pe(0) {}
+        dim0_is_pe(rhs.dim0_is_pe),
+        isSubView(rhs.isSubView) {}
 
   KOKKOS_INLINE_FUNCTION ViewMapping &operator=(ViewMapping &&rhs) {
     m_handle            = rhs.m_handle;
@@ -1056,6 +1045,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
     m_offset_remote_dim = rhs.m_offset_remote_dim;
     m_local_dim0        = rhs.m_local_dim0;
     dim0_is_pe          = rhs.dim0_is_pe;
+    isSubView           = rhs.isSubView;
     return *this;
   }
 
@@ -1069,7 +1059,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       : m_offset_remote_dim(0),
         m_handle(
             ((Kokkos::Impl::ViewCtorProp<void, pointer_type> const &)arg_prop)
-                .value) {
+                .value)
+
+  {
     typedef typename Traits::value_type value_type;
     typedef std::integral_constant<
         unsigned, Kokkos::Impl::ViewCtorProp<P...>::allow_padding

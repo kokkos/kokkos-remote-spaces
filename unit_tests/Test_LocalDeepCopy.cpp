@@ -24,13 +24,16 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+enum flavor : int { with_team, without_team };
+enum block_ops : int { get_op, put_op };
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t, class Space_A, class Space_B>
-void test_localdeepcopy(
-    typename std::enable_if<(std::is_same<Space_A, Kokkos::HostSpace>::value &&
-                             std::is_same<Space_B, RemoteSpace_t>::value)>::type
-        * = nullptr) {
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == with_team)> * = nullptr) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -52,7 +55,7 @@ void test_localdeepcopy(
                              [&](const int i) { v_R(my_rank, 0) = 0x123; });
 
         team.team_barrier();
-        Kokkos::single(Kokkos::PerThread(team), [&]() {
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy,
                                                               v_R);
         });
@@ -62,12 +65,85 @@ void test_localdeepcopy(
   ASSERT_EQ(0x123, v_H(0, 0));
 }
 
-template <class Data_t, class Space_A, class Space_B>
-void test_localdeepcopy(
-    int i1,
-    typename std::enable_if<(std::is_same<Space_A, Kokkos::HostSpace>::value &&
-                             std::is_same<Space_B, RemoteSpace_t>::value)>::type
-        * = nullptr) {
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == without_team)> * = nullptr) {
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+
+  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, 1);
+
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, 1);
+  ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, 1);
+
+  Kokkos::parallel_for(
+      "Team", TeamPolicy_t(1, Kokkos::AUTO),
+      KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 1),
+                             [&](const int i) { v_R(my_rank, 0) = 0x123; });
+
+        team.team_barrier();
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
+        });
+      });
+
+  RemoteSpace_t().fence();
+
+  Kokkos::deep_copy(v_H, v_R_cpy);
+  ASSERT_EQ(0x123, v_H(0, 0));
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(int i1,
+                        typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == with_team)> * = nullptr) {
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+
+  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1);
+
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, i1);
+  ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, i1);
+
+  Kokkos::parallel_for(
+      "Team", TeamPolicy_t(1, Kokkos::AUTO),
+      KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 1),
+                             [&](const int i) {
+                               for (int j = 0; j < i1; ++j)
+                                 v_R(my_rank, j) = 0x123;
+                             });
+        team.team_barrier();
+        Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy, v_R);
+      });
+
+  Kokkos::deep_copy(v_H, v_R_cpy);
+  for (int j = 0; j < i1; ++j) ASSERT_EQ(0x123, v_H(0, j));
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(int i1,
+                        typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == without_team)> * = nullptr) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -92,7 +168,7 @@ void test_localdeepcopy(
                              });
 
         team.team_barrier();
-        Kokkos::single(Kokkos::PerThread(team), [&]() {
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
@@ -101,12 +177,12 @@ void test_localdeepcopy(
   for (int j = 0; j < i1; ++j) ASSERT_EQ(0x123, v_H(0, j));
 }
 
-template <class Data_t, class Space_A, class Space_B>
-void test_localdeepcopy(
-    int i1, int i2,
-    typename std::enable_if<(std::is_same<Space_A, Kokkos::HostSpace>::value &&
-                             std::is_same<Space_B, RemoteSpace_t>::value)>::type
-        * = nullptr) {
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(int i1, int i2,
+                        typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == without_team)> * = nullptr) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -132,7 +208,7 @@ void test_localdeepcopy(
                              });
 
         team.team_barrier();
-        Kokkos::single(Kokkos::PerThread(team), [&]() {
+        Kokkos::single(Kokkos::PerTeam(team), [&]() {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_R_cpy, v_R);
         });
       });
@@ -142,21 +218,412 @@ void test_localdeepcopy(
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
 }
 
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+void test_localdeepcopy(int i1, int i2,
+                        typename std::enable_if_t<
+                            (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+                             std::is_same<Space_B, RemoteSpace_t>::value &&
+                             is_enabled_team == with_team)> * = nullptr) {
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+
+  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1, i2);
+
+  ViewRemote_t v_R     = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+  ViewRemote_t v_R_cpy = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+
+  Kokkos::parallel_for(
+      "Team", TeamPolicy_t(1, Kokkos::AUTO),
+      KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, 1),
+                             [&](const int i) {
+                               for (int j = 0; j < i1; ++j)
+                                 for (int k = 0; k < i2; ++k)
+                                   v_R(my_rank, j, k) = 0x123;
+                             });
+
+        team.team_barrier();
+        Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy, v_R);
+      });
+
+  Kokkos::deep_copy(v_H, v_R_cpy);
+  for (int i = 0; i < i1; ++i)
+    for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          int block_op_type>
+void test_localdeepcopy_withSubview(
+    int i1, int i2,
+    typename std::enable_if_t<
+        (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+         std::is_same<Space_B, RemoteSpace_t>::value &&
+         is_enabled_team == without_team && block_op_type == get_op)> * =
+        nullptr) {
+  int my_rank;
+  int prev_rank, next_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
+  next_rank = (my_rank + 1) % num_ranks;
+
+  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+
+  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1, i2);
+
+  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+
+  auto next_range  = Kokkos::Experimental::get_range(num_ranks, next_rank);
+  auto prev_range  = Kokkos::Experimental::get_range(num_ranks, prev_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(num_ranks);
+  auto v_R_subview_prev =
+      Kokkos::subview(v_R, prev_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_next =
+      Kokkos::subview(v_R, next_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_local =
+      Kokkos::subview(v_R, local_range, Kokkos::ALL, Kokkos::ALL);
+
+  Kokkos::parallel_for(
+      "Init", i1, KOKKOS_LAMBDA(const int i) {
+        for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
+      });
+  RemoteSpace_t().fence();
+
+  // Copy from next
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::single(Kokkos::PerTeam(team), [&]() {
+            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+                v_R_subview_local, v_R_subview_next);
+          });
+        });
+  }
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 == 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(next_rank, v_H(0, i, j));
+  }
+
+  // Copy from previous
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::single(Kokkos::PerTeam(team), [&]() {
+            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+                v_R_subview_local, v_R_subview_prev);
+          });
+        });
+  }
+
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 == 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(prev_rank, v_H(0, i, j));
+  }
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          int block_op_type>
+void test_localdeepcopy_withSubview(
+    int i1, int i2,
+    typename std::enable_if_t<(
+        std::is_same<Space_A, Kokkos::HostSpace>::value &&
+        std::is_same<Space_B, RemoteSpace_t>::value &&
+        is_enabled_team == with_team && block_op_type == get_op)> * = nullptr) {
+  int my_rank;
+  int prev_rank, next_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
+  next_rank = (my_rank + 1) % num_ranks;
+
+  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+
+  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1, i2);
+
+  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+
+  auto next_range  = Kokkos::Experimental::get_range(num_ranks, next_rank);
+  auto prev_range  = Kokkos::Experimental::get_range(num_ranks, prev_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(num_ranks);
+  auto v_R_subview_prev =
+      Kokkos::subview(v_R, prev_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_next =
+      Kokkos::subview(v_R, next_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_local =
+      Kokkos::subview(v_R, local_range, Kokkos::ALL, Kokkos::ALL);
+
+  Kokkos::parallel_for(
+      "Init", i1, KOKKOS_LAMBDA(const int i) {
+        for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
+      });
+  RemoteSpace_t().fence();
+
+  // Copy from next
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_local, v_R_subview_next);
+        });
+  }
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 == 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(next_rank, v_H(0, i, j));
+  }
+
+  // Copy from previous
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_local, v_R_subview_prev);
+        });
+  }
+
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 == 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(prev_rank, v_H(0, i, j));
+  }
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          int block_op_type>
+void test_localdeepcopy_withSubview(
+    int i1, int i2,
+    typename std::enable_if_t<
+        (std::is_same<Space_A, Kokkos::HostSpace>::value &&
+         std::is_same<Space_B, RemoteSpace_t>::value &&
+         is_enabled_team == without_team && block_op_type == put_op)> * =
+        nullptr) {
+  int my_rank;
+  int prev_rank, next_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
+  next_rank = (my_rank + 1) % num_ranks;
+
+  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+
+  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1, i2);
+
+  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+
+  auto next_range  = Kokkos::Experimental::get_range(num_ranks, next_rank);
+  auto prev_range  = Kokkos::Experimental::get_range(num_ranks, prev_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(num_ranks);
+  auto v_R_subview_prev =
+      Kokkos::subview(v_R, prev_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_next =
+      Kokkos::subview(v_R, next_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_local =
+      Kokkos::subview(v_R, local_range, Kokkos::ALL, Kokkos::ALL);
+
+  Kokkos::parallel_for(
+      "Init", i1, KOKKOS_LAMBDA(const int i) {
+        for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
+      });
+  RemoteSpace_t().fence();
+
+  // Put to next
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::single(Kokkos::PerTeam(team), [&]() {
+            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+                v_R_subview_next, v_R_subview_local);
+          });
+        });
+  }
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 != 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(prev_rank, v_H(0, i, j));
+  }
+
+  // Put to previous
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::single(Kokkos::PerTeam(team), [&]() {
+            Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+                v_R_subview_prev, v_R_subview_local);
+          });
+        });
+  }
+
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 != 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(next_rank, v_H(0, i, j));
+  }
+}
+
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          int block_op_type>
+void test_localdeepcopy_withSubview(
+    int i1, int i2,
+    typename std::enable_if_t<(
+        std::is_same<Space_A, Kokkos::HostSpace>::value &&
+        std::is_same<Space_B, RemoteSpace_t>::value &&
+        is_enabled_team == with_team && block_op_type == put_op)> * = nullptr) {
+  int my_rank;
+  int prev_rank, next_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+  prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
+  next_rank = (my_rank + 1) % num_ranks;
+
+  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+
+  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewHost_t   = typename ViewRemote_t::HostMirror;
+  using TeamPolicy_t = Kokkos::TeamPolicy<>;
+
+  ViewHost_t v_H("HostView", 1, i1, i2);
+
+  ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+
+  auto next_range  = Kokkos::Experimental::get_range(num_ranks, next_rank);
+  auto prev_range  = Kokkos::Experimental::get_range(num_ranks, prev_rank);
+  auto local_range = Kokkos::Experimental::get_local_range(num_ranks);
+  auto v_R_subview_prev =
+      Kokkos::subview(v_R, prev_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_next =
+      Kokkos::subview(v_R, next_range, Kokkos::ALL, Kokkos::ALL);
+  auto v_R_subview_local =
+      Kokkos::subview(v_R, local_range, Kokkos::ALL, Kokkos::ALL);
+
+  Kokkos::parallel_for(
+      "Init", i1, KOKKOS_LAMBDA(const int i) {
+        for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
+      });
+  RemoteSpace_t().fence();
+
+  // Put to next
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_next, v_R_subview_local);
+        });
+  }
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 != 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(prev_rank, v_H(0, i, j));
+  }
+
+  // Put to previous
+  if (my_rank % 2 == 0) {
+    Kokkos::parallel_for(
+        "Team", TeamPolicy_t(1, 1),
+        KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
+          Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+              team, v_R_subview_prev, v_R_subview_local);
+        });
+  }
+
+  RemoteSpace_t().fence();
+  Kokkos::deep_copy(v_H, v_R);
+  if (my_rank % 2 != 0) {
+    for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) ASSERT_EQ(next_rank, v_H(0, i, j));
+  }
+}
+
 TEST(TEST_CATEGORY, test_localdeepcopy) {
   // Scalar
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t>();
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>();
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>();
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>();
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>();
+
+  // Scalar with Teams
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>();
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>();
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>();
 
   // 1D
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(50);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(150);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(1500);
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>(50);
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>(
+      150);
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>(
+      1500);
+
+  // 1D with Teams
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>(50);
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>(150);
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>(1500);
 
   // 2D
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(50, 20);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(150, 99);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(1500, 2199);
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>(50,
+                                                                          20);
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>(
+      150, 99);
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>(
+      1500, 2199);
+
+  // 2D with Teams
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>(50, 20);
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>(150,
+                                                                           99);
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>(1500,
+                                                                          2199);
+
+  // 2D with Subviews (get block transfer)
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
+                                 without_team, get_op>(10, 10);
+
+  // 2D with Teams and Subviews (get block transfer)
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
+                                 with_team, get_op>(10, 10);
+
+  // 2D with Subviews (put block transfer)
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
+                                 without_team, put_op>(10, 10);
+
+  // 2D with Teams and Subviews (put block transfer)
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
+                                 with_team, put_op>(10, 10);
 }
 
 #endif /* TEST_LOCAL_DEEP_COPY_HPP_ */

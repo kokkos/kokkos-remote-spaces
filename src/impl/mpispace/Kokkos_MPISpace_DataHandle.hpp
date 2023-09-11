@@ -25,34 +25,60 @@ namespace Impl {
 template <class T, class Traits>
 struct MPIDataHandle {
   T *ptr;
-  mutable MPI_Win win;
-  size_t win_offset;
+  MPIAccessLocation loc;
 
   KOKKOS_INLINE_FUNCTION
-  MPIDataHandle() : ptr(NULL), win(MPI_WIN_NULL), win_offset(0) {}
+  MPIDataHandle() : ptr(NULL), loc(MPI_WIN_NULL, 0) {}
 
   KOKKOS_INLINE_FUNCTION
-  MPIDataHandle(T *ptr_, MPI_Win &win_, size_t offset_ = 0)
-      : ptr(ptr_), win(win_), win_offset(offset_) {}
+  MPIDataHandle(T *ptr_, MPI_Win win_ = MPI_WIN_NULL, size_t offset_ = 0)
+      : ptr(ptr_ + offset_), loc(win_, offset_) {}
 
   KOKKOS_INLINE_FUNCTION
   MPIDataHandle(MPIDataHandle<T, Traits> const &arg)
-      : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
-
-  template <typename SrcTraits>
-  KOKKOS_INLINE_FUNCTION MPIDataHandle(SrcTraits const &arg)
-      : ptr(arg.ptr), win(arg.win), win_offset(arg.win_offset) {}
+      : ptr(arg.ptr), loc(arg.loc) {}
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION MPIDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {
-    assert(win != MPI_WIN_NULL);
-    MPIDataElement<T, Traits> element(&win, pe, i + win_offset);
+    assert(loc.win != MPI_WIN_NULL);
+    MPIDataElement<T, Traits> element(&loc.win, pe, i + loc.offset);
     return element;
   }
 
   KOKKOS_INLINE_FUNCTION
-  T *operator+(size_t &offset) const { return ptr + offset; }
+  MPIDataHandle operator+(size_t &offset) {
+    return MPIDataHandle(ptr += offset, loc.offset += offset);
+  }
+};
+
+template <class T, class Traits>
+struct BlockDataHandle {
+  T *ptr;
+  MPIAccessLocation loc;
+  size_t pe;
+  size_t elems;
+
+  KOKKOS_INLINE_FUNCTION
+  BlockDataHandle(T *ptr_, MPI_Win win_, size_t offset_, size_t elems_,
+                  size_t pe_)
+      : ptr(ptr_), loc(win_, offset_), elems(elems_), pe(pe_) {}
+
+  KOKKOS_INLINE_FUNCTION
+  BlockDataHandle(BlockDataHandle<T, Traits> const &arg)
+      : ptr(arg.ptr), loc(arg.loc), elems(arg.elems), pe(arg.pe) {}
+
+  KOKKOS_INLINE_FUNCTION
+  void get() {
+    MPIBlockDataElement<T, Traits> element(ptr, loc.win, pe, loc.offset, elems);
+    element.get();
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void put() {
+    MPIBlockDataElement<T, Traits> element(ptr, loc.win, pe, loc.offset, elems);
+    element.put();
+  }
 };
 
 template <class Traits>
@@ -81,6 +107,12 @@ struct ViewDataHandle<
   KOKKOS_INLINE_FUNCTION static handle_type assign(
       SrcHandleType const arg_data_ptr, size_t offset) {
     return handle_type(arg_data_ptr + offset);
+  }
+
+  template <class SrcHandleType>
+  KOKKOS_INLINE_FUNCTION static handle_type assign(
+      SrcHandleType const arg_data_ptr, MPI_Win win, size_t offset) {
+    return handle_type(arg_data_ptr.ptr, win, offset);
   }
 
   template <class SrcHandleType>

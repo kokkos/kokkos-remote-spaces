@@ -39,7 +39,7 @@ pipeline {
                                 -DKRS_ENABLE_TESTS=ON \
                                 -DCMAKE_CXX_FLAGS=-Werror \
                               .. && \
-                              make -j8 && cd unit_tests && mpirun -np 2 ./KokkosRemote_TestAll'''
+                              make -j8 && cd unit_tests && mpirun -np 2 ./KokkosRemoteSpaces_TestAll'''
                     }
                 }
             }

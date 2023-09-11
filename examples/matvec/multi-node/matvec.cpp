@@ -38,8 +38,8 @@ using VectorHost_r_t =
 
 using VectorHost_t = Kokkos::View<VALUE_T *, Kokkos::HostSpace>;
 using MatrixHost_t = Kokkos::View<VALUE_T **, Kokkos::HostSpace>;
-using Vector_t     = Kokkos::View<VALUE_T *, Kokkos::CudaSpace>;
-using Matrix_t     = Kokkos::View<VALUE_T **, Kokkos::CudaSpace>;
+using Vector_t     = Kokkos::View<VALUE_T *>;
+using Matrix_t     = Kokkos::View<VALUE_T **>;
 
 int main(int argc, char *argv[]) {
   int mpi_thread_level_available;
@@ -95,8 +95,11 @@ int main(int argc, char *argv[]) {
     Kokkos::deep_copy(b_h, 0.0);
     Kokkos::deep_copy(x_h, 1.0);
 
-    auto A = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), A_h);
-    auto b = Kokkos::create_mirror_view_and_copy(Kokkos::CudaSpace(), b_h);
+    using DeviceMemorySpace =
+        typename Kokkos::DefaultExecutionSpace::memory_space;
+
+    auto A = Kokkos::create_mirror_view_and_copy(DeviceMemorySpace{}, A_h);
+    auto b = Kokkos::create_mirror_view_and_copy(DeviceMemorySpace{}, b_h);
 
     // Copy host device data into global vector
     Kokkos::deep_copy(x, x_h);

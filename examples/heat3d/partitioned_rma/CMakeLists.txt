@@ -1,4 +1,4 @@
 add_executable(partitioned_heat3d heat3d.cpp)
-target_link_libraries(partitioned_heat3d PRIVATE Kokkos::kokkosremote)
+target_link_libraries(partitioned_heat3d PRIVATE Kokkos::kokkosremotespaces)
 target_include_directories(partitioned_heat3d PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(partitioned_heat3d PRIVATE KRS_ENABLE_NVSHMEM_PTR)

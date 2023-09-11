@@ -25,18 +25,6 @@ namespace Kokkos {
 namespace Experimental {
 namespace RemoteSpaces {
 
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-typedef NVSHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KRS_ENABLE_SHMEMSPACE
-typedef SHMEMSpace DefaultRemoteMemorySpace;
-#else
-#ifdef KRS_ENABLE_MPISPACE
-typedef MPISpace DefaultRemoteMemorySpace;
-#endif
-#endif
-#endif
-
 /** \brief  A local deep copy between views of the default specialization,
  * compatible type, same non-zero rank.
  */
@@ -50,8 +38,55 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
-                       [&](const int &i) { dst.data()[i] = src.data()[i]; });
+  int src_rank = src.impl_map().get_owning_pe();
+  int dst_rank = dst.impl_map().get_owning_pe();
+  int my_rank  = get_my_pe();
+
+  if (src_rank != my_rank && dst_rank != my_rank)
+    static_assert(
+        "local_deep_copy allows only one view with remote data access");
+
+  // We use the data ptr explicitly thus expecting that a subview starts at the
+  // beginning of the local allocaton. We need to add the offset = sum of
+  // offsets in all non-leading dimenions to the ptr to support the generic
+  // case.
+  using src_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
+                                    ViewTraits<ST, SP...>>;
+  using dst_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
+                                    ViewTraits<DT, DP...>>;
+  if (src_rank != my_rank) {
+    team.team_barrier();
+    Kokkos::single(Kokkos::PerTeam(team), [&]() {
+#ifdef KRS_ENABLE_MPISPACE
+      src_data_block_t data_block = src_data_block_t(
+          dst.data(), src.impl_map().handle().loc.win,
+          src.impl_map().handle().loc.offset, src.span(), src_rank);
+#else
+      src_data_block_t data_block =
+          src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+#endif
+      data_block.get();
+    });
+  } else if (dst_rank != my_rank) {
+    team.team_barrier();
+    Kokkos::single(Kokkos::PerTeam(team), [&]() {
+#ifdef KRS_ENABLE_MPISPACE
+      dst_data_block_t data_block = dst_data_block_t(
+          src.data(), dst.impl_map().handle().loc.win,
+          dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+#else
+      dst_data_block_t data_block =
+          dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+#endif
+      data_block.put();
+    });
+  } else {
+    // Data resides within the node, copy as usual
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
+                         [&](const int &i) { dst.data()[i] = src.data()[i]; });
+  }
 }
 
 template <class DT, class... DP, class ST, class... SP>
@@ -63,8 +98,48 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  for (size_t i = 0; i < src.span(); ++i) {
-    dst.data()[i] = src.data()[i];
+  int src_rank = src.impl_map().get_owning_pe();
+  int dst_rank = dst.impl_map().get_owning_pe();
+  int my_rank  = get_my_pe();
+
+  if (src_rank != my_rank && dst_rank != my_rank)
+    static_assert(
+        "local_deep_copy allows only one view with remote data access");
+
+  using src_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
+                                    ViewTraits<ST, SP...>>;
+  using dst_data_block_t =
+      Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
+                                    ViewTraits<DT, DP...>>;
+
+  // We use the data ptr explicitly thus expecting that a subview starts at the
+  // beginning of the local allocaton. We need to add the offset = sum of
+  // offsets in all non-leading dimenions to the ptr to support the generic
+  // case.
+  if (src_rank != my_rank) {
+#ifdef KRS_ENABLE_MPISPACE
+    src_data_block_t data_block = src_data_block_t(
+        dst.data(), src.impl_map().handle().loc.win,
+        src.impl_map().handle().loc.offset, src.span(), src_rank);
+#else
+    src_data_block_t data_block =
+        src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+#endif
+    data_block.get();
+  } else if (dst_rank != my_rank) {
+#ifdef KRS_ENABLE_MPISPACE
+    dst_data_block_t data_block = dst_data_block_t(
+        src.data(), dst.impl_map().handle().loc.win,
+        dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+#else
+    dst_data_block_t data_block =
+        dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+#endif
+    data_block.put();
+  } else {
+    // Data resides within the node, copy as usual
+    for (size_t i = 0; i < src.span(); ++i) dst.data()[i] = src.data()[i];
   }
 }
 
@@ -96,7 +171,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 }
 
 // Accepts (team, src_view, dst_view)
-
 template <class TeamType, class DT, class... DP, class ST, class... SP>
 void KOKKOS_INLINE_FUNCTION local_deep_copy(
     const TeamType &team, const View<DT, DP...> &dst,
@@ -360,8 +434,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   }
 }
 
-// Accepts (src_view, dst_view)
-
 template <class DT, class... DP, class ST, class... SP>
 void KOKKOS_INLINE_FUNCTION local_deep_copy(
     const View<DT, DP...> &dst, const View<ST, SP...> &src,
@@ -376,12 +448,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   if (dst.data() == nullptr) {
     return;
   }
-
-  const size_t N = dst.extent(0);
-
-  for (size_t i = 0; i < N; ++i) {
-    dst(i) = src(i);
-  }
+  Kokkos::Experimental::RemoteSpaces::local_deep_copy_contiguous(dst, src);
 }
 
 template <class DT, class... DP, class ST, class... SP>

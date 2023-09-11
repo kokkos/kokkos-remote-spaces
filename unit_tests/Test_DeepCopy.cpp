@@ -24,6 +24,12 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+/*
+  Deep_copy can move data residing on the local node
+  We need to take the dim0 offset into account to support deep_copying
+  between memory spaces.
+*/
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
 template <class Data_t, class Space_A, class Space_B>
@@ -128,6 +134,8 @@ void test_deepcopy(
   Kokkos::parallel_for(
       "Team", 1,
       KOKKOS_LAMBDA(const int i) { assert(v_R(my_rank, 0) == (Data_t)0x123); });
+
+  Kokkos::fence();
 }
 
 template <class Data_t, class Space_A, class Space_B>
@@ -153,6 +161,8 @@ void test_deepcopy(
   Kokkos::parallel_for(
       "Team", i1,
       KOKKOS_LAMBDA(const int i) { assert(v_R(my_rank, i) == (Data_t)0x123); });
+
+  Kokkos::fence();
 }
 
 template <class Data_t, class Space_A, class Space_B>
@@ -183,6 +193,7 @@ void test_deepcopy(
         for (int j = 0; j < i2; ++j)
           assert(v_R(my_rank, i, j) == (Data_t)0x123);
       });
+  Kokkos::fence();
 }
 
 TEST(TEST_CATEGORY, test_deepcopy) {

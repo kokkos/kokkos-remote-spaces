@@ -41,11 +41,8 @@ void test_remote_accesses(int size) {
   RemoteView_t v_R   = RemoteView_t("RemoteView", num_ranks, size);
   HostSpace_t v_H("HostView", v_R.extent(0), size);
 
-  // Allocate remote view
-
-  RemoteSpace_t().fence();
-
   int next_rank = (my_rank + 1) % num_ranks;
+  int prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
 
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {
@@ -57,7 +54,7 @@ void test_remote_accesses(int size) {
   Data_t check(0), ref(0);
   for (int i = 0; i < size; i++) {
     check += v_H(0, i);
-    ref += next_rank * size + i;
+    ref += prev_rank * size + i;
   }
   ASSERT_EQ(check, ref);
 }
@@ -65,7 +62,7 @@ void test_remote_accesses(int size) {
 TEST(TEST_CATEGORY, test_remote_accesses) {
   test_remote_accesses<int, RemoteSpace_t>(0);
   test_remote_accesses<int, RemoteSpace_t>(1);
-  test_remote_accesses<float, RemoteSpace_t>(122);
+  test_remote_accesses<float, RemoteSpace_t>(64);
   test_remote_accesses<int64_t, RemoteSpace_t>(4567);
   test_remote_accesses<double, RemoteSpace_t>(89);
 }

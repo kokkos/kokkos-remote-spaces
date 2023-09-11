@@ -35,10 +35,6 @@ struct NVSHMEMDataHandle {
   KOKKOS_INLINE_FUNCTION
   NVSHMEMDataHandle(NVSHMEMDataHandle<T, Traits> const &arg) : ptr(arg.ptr) {}
 
-  template <typename SrcTraits>
-  KOKKOS_INLINE_FUNCTION NVSHMEMDataHandle(SrcTraits const &arg)
-      : ptr(arg.ptr) {}
-
   template <typename iType>
   KOKKOS_INLINE_FUNCTION NVSHMEMDataElement<T, Traits> operator()(
       const int &pe, const iType &i) const {
@@ -48,6 +44,38 @@ struct NVSHMEMDataHandle {
 
   KOKKOS_INLINE_FUNCTION
   T *operator+(size_t &offset) const { return ptr + offset; }
+};
+
+template <class T, class Traits>
+struct BlockDataHandle {
+  T *src;
+  T *dst;
+  size_t elems;
+  int pe;
+
+  KOKKOS_INLINE_FUNCTION
+  BlockDataHandle(T *src_, T *dst_, size_t elems_, int pe_)
+      : src(src_), dst(dst_), elems(elems_), pe(pe_) {}
+
+  KOKKOS_INLINE_FUNCTION
+  BlockDataHandle(BlockDataHandle<T, Traits> const &arg)
+      : src(arg.src), dst(arg.dst), elems(arg.elems), pe(arg.pe_) {}
+
+  template <typename SrcTraits>
+  KOKKOS_INLINE_FUNCTION BlockDataHandle(SrcTraits const &arg)
+      : src(arg.src), dst(arg.dst), elems(arg.elems), pe(arg.pe_) {}
+
+  KOKKOS_INLINE_FUNCTION
+  void get() {
+    NVSHMEMBlockDataElement<T, Traits> element(src, dst, elems, pe);
+    element.get();
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void put() {
+    NVSHMEMBlockDataElement<T, Traits> element(src, dst, elems, pe);
+    element.put();
+  }
 };
 
 template <class Traits>

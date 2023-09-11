@@ -43,9 +43,10 @@ void test_scalar_reduce_1D(int dim0) {
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
-    v_h(i) = (Data_t)local_range.first + i;
+    v_h(i) = static_cast<Data_t>(local_range.first + i);
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t().fence();
 
   Data_t gsum = 0;
 
@@ -74,9 +75,11 @@ void test_scalar_reduce_2D(int dim0, int dim1) {
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
-      v_h(i, j) = (Data_t)(local_range.first + i) * v_h.extent(1) + j;
+      v_h(i, j) =
+          static_cast<Data_t>(local_range.first + i) * v_h.extent(1) + j;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t().fence();
 
   Data_t gsum = 0;
 
@@ -98,30 +101,23 @@ void test_scalar_reduce_partitioned_1D(int dim1) {
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_3D_t =
-      Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewRemote_2D_t =
-      Kokkos::View<Data_t *, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
+      Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
 
-  ViewRemote_3D_t v =
-      ViewRemote_3D_t("RemoteView", num_ranks /*dim0*/, dim1 / num_ranks);
-  ViewHost_3D_t v_h("HostView", 1 /*dim0*/, v.extent(1) /*dim1*/);
-
-  auto v_sub =
-      Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1), Kokkos::ALL);
-
-  // Use a more sophisticated function to partition data if needed but may come
-  // at the expense of operator cost. Here we rely on that KRS internally
-  // allocates (dim1+num_ranks)/num_ranks symetrically.
   size_t dim1_block = dim1 / num_ranks;
   size_t block      = dim1_block;
   size_t start      = my_rank * block;
 
-  // Init
-  for (int i = 0; i < dim1_block; ++i) v_h(0, i) = (Data_t)start + i;
+  ViewRemote_2D_t v =
+      ViewRemote_2D_t("RemoteView", num_ranks /*dim0*/, dim1_block);
 
-  Kokkos::deep_copy(v_sub, v_h);
+  // Init
+  Kokkos::parallel_for(
+      "Local init", block, KOKKOS_LAMBDA(const int i) {
+        v(my_rank, i) = static_cast<Data_t>(start + i);
+      });
+
+  RemoteSpace_t().fence();
 
   Data_t gsum = 0;
   Kokkos::parallel_reduce(
@@ -134,7 +130,7 @@ void test_scalar_reduce_partitioned_1D(int dim1) {
       },
       gsum);
 
-  size_t total = dim1_block * num_ranks;
+  size_t total = block * num_ranks;
   ASSERT_EQ((total - 1) * (total) / 2, gsum);
 }
 
@@ -147,28 +143,25 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
 
   using ViewRemote_3D_t =
       Kokkos::View<Data_t ***, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
-  using ViewRemote_2D_t =
-      Kokkos::View<Data_t **, Kokkos::PartitionedLayoutRight, RemoteSpace_t>;
   using ViewHost_3D_t = typename ViewRemote_3D_t::HostMirror;
-
-  ViewRemote_3D_t v =
-      ViewRemote_3D_t("RemoteView", num_ranks /*dim0*/, dim1 / num_ranks, dim2);
-  ViewHost_3D_t v_h("HostView", 1 /*dim0*/, v.extent(1) /*dim1*/,
-                    v.extent(2) /*dim2*/);
-
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
 
   size_t dim1_block = dim1 / num_ranks;
   size_t block      = dim1_block * dim2;
   size_t start      = my_rank * block;
 
-  // Init
+  ViewRemote_3D_t v =
+      ViewRemote_3D_t("RemoteView", num_ranks /*dim0*/, dim1_block, dim2);
+
+  ViewHost_3D_t v_h = ViewHost_3D_t("HostView", 1 /*dim0*/, dim1_block, dim2);
+
+  auto v_sub = Kokkos::subview(v, Kokkos::pair(my_rank, my_rank + 1),
+                               Kokkos::ALL, Kokkos::ALL);
   for (int i = 0; i < dim1_block; ++i)
     for (int j = 0; j < v_h.extent(2); ++j)
       v_h(0, i, j) = (Data_t)start + i * dim2 + j;
-
   Kokkos::deep_copy(v_sub, v_h);
+
+  RemoteSpace_t().fence();
 
   Data_t gsum = 0;
   Kokkos::parallel_reduce(
@@ -177,16 +170,20 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
         size_t pe, index;
         pe    = i / dim1_block;
         index = i % dim1_block;
-        for (int j = 0; j < dim2; ++j) lsum += v(pe, index, j);
+
+        for (int j = 0; j < v.extent(2); ++j) {
+          int tmp = v(pe, index, j);
+          lsum += v(pe, index, j);
+        }
       },
       gsum);
 
-  size_t total = dim1_block * num_ranks * dim2;
+  size_t total = block * num_ranks;
   ASSERT_EQ((total - 1) * (total) / 2, gsum);
 }
 
 TEST(TEST_CATEGORY, test_reduce) {
-  // Param 1: array size
+  // Params: array size
 
   // Scalar reduce
   test_scalar_reduce_1D<int>(0);

@@ -16,7 +16,6 @@
 //
 //@HEADER
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_MPISpace.hpp>
 #include <csignal>
 #include <mpi.h>
@@ -37,6 +36,22 @@ void MPISpace::impl_set_allocation_mode(const int allocation_mode_) {
 void MPISpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
 void *MPISpace::allocate(const size_t arg_alloc_size) const {
+  return allocate("[unlabeled]", arg_alloc_size);
+}
+
+void *MPISpace::allocate(const char *arg_label, const size_t arg_alloc_size,
+                         const size_t
+
+                             arg_logical_size) const {
+  return impl_allocate(arg_label, arg_alloc_size, arg_logical_size);
+}
+
+void *MPISpace::impl_allocate(
+    const char *arg_label, const size_t arg_alloc_size,
+    const size_t arg_logical_size,
+    const Kokkos::Tools::SpaceHandle arg_handle) const {
+  const size_t reported_size =
+      (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
   static_assert(sizeof(void *) == sizeof(uintptr_t),
                 "Error sizeof(void*) != sizeof(uintptr_t)");
 
@@ -44,11 +59,18 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
       Kokkos::Impl::is_integral_power_of_two(Kokkos::Impl::MEMORY_ALIGNMENT),
       "Memory alignment must be power of two");
 
-  void *ptr = 0;
+  constexpr uintptr_t alignment      = Kokkos::Impl::MEMORY_ALIGNMENT;
+  constexpr uintptr_t alignment_mask = alignment - 1;
+
+  void *ptr = nullptr;
+
   if (arg_alloc_size) {
+    // Over-allocate to and round up to guarantee proper alignment.
+    size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
+
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       current_win = MPI_WIN_NULL;
-      MPI_Win_allocate(arg_alloc_size, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
+      MPI_Win_allocate(size_padded, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
                        &current_win);
 
       assert(current_win != MPI_WIN_NULL);
@@ -70,41 +92,92 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
       Kokkos::abort("MPISpace only supports symmetric allocation policy.");
     }
   }
+  using MemAllocFailure =
+      Kokkos::Impl::Experimental::RemoteSpacesMemoryAllocationFailure;
+  using MemAllocFailureMode = Kokkos::Impl::Experimental::
+      RemoteSpacesMemoryAllocationFailure::FailureMode;
+
+  if ((ptr == nullptr) || (reinterpret_cast<uintptr_t>(ptr) == ~uintptr_t(0))
+      // MPI_Win_allocate may allocate non-alligned to
+      // Kokkos::Impl::MEMORY_ALIGNMENT
+      // ||
+      // (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)*/
+  ) {
+    MemAllocFailureMode failure_mode =
+        MemAllocFailureMode::AllocationNotAligned;
+    if (ptr == nullptr) {
+      failure_mode = MemAllocFailureMode::OutOfMemoryError;
+    }
+    MemAllocFailure::AllocationMechanism alloc_mec =
+        MemAllocFailure::AllocationMechanism::MPIWINALLOC;
+    throw MemAllocFailure(arg_alloc_size, alignment, failure_mode, alloc_mec);
+  }
+
+  if (Kokkos::Profiling::profileLibraryLoaded()) {
+    Kokkos::Profiling::allocateData(arg_handle, arg_label, ptr, reported_size);
+  }
   return ptr;
 }
 
-void MPISpace::deallocate(void *const, const size_t) const {
-  int last_valid;
-  for (last_valid = 0; last_valid < mpi_windows.size(); ++last_valid) {
-    if (mpi_windows[last_valid] == MPI_WIN_NULL) break;
-  }
-
-  last_valid--;
-  for (int i = 0; i < mpi_windows.size(); ++i) {
-    if (mpi_windows[i] == current_win) {
-      mpi_windows[i]          = mpi_windows[last_valid];
-      mpi_windows[last_valid] = MPI_WIN_NULL;
-      break;
-    }
-  }
-
-  assert(current_win != MPI_WIN_NULL);
-  MPI_Win_unlock_all(current_win);
-  MPI_Win_free(&current_win);
-
-  // We pass a mempory space instance do multiple Views thus
-  // setting "current_win = MPI_WIN_NULL;" will result in a wrong handle if
-  // subsequent view runs out of scope
-  // Fixme: The following only works when views are allocated sequentially
-  // We need a thread-safe map to associate views and windows
-
-  if (last_valid != 0)
-    current_win = mpi_windows[last_valid - 1];
-  else
-    current_win = MPI_WIN_NULL;
+void MPISpace::deallocate(void *const arg_alloc_ptr,
+                          const size_t arg_alloc_size) const {
+  deallocate("[unlabeled]", arg_alloc_ptr, arg_alloc_size);
 }
 
-void MPISpace::fence() {
+void MPISpace::deallocate(const char *arg_label, void *const arg_alloc_ptr,
+                          const size_t arg_alloc_size,
+                          const size_t
+
+                              arg_logical_size) const {
+  impl_deallocate(arg_label, arg_alloc_ptr, arg_alloc_size, arg_logical_size);
+}
+
+void MPISpace::impl_deallocate(
+    const char *arg_label, void *const arg_alloc_ptr,
+    const size_t arg_alloc_size, const size_t arg_logical_size,
+    const Kokkos::Tools::SpaceHandle arg_handle) const {
+  if (arg_alloc_ptr) {
+    Kokkos::fence("HostSpace::impl_deallocate before free");
+    fence();
+    size_t reported_size =
+        (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
+    if (Kokkos::Profiling::profileLibraryLoaded()) {
+      Kokkos::Profiling::deallocateData(arg_handle, arg_label, arg_alloc_ptr,
+                                        reported_size);
+    }
+
+    int last_valid;
+    for (last_valid = 0; last_valid < mpi_windows.size(); ++last_valid) {
+      if (mpi_windows[last_valid] == MPI_WIN_NULL) break;
+    }
+
+    last_valid--;
+    for (int i = 0; i < mpi_windows.size(); ++i) {
+      if (mpi_windows[i] == current_win) {
+        mpi_windows[i]          = mpi_windows[last_valid];
+        mpi_windows[last_valid] = MPI_WIN_NULL;
+        break;
+      }
+    }
+
+    assert(current_win != MPI_WIN_NULL);
+    MPI_Win_unlock_all(current_win);
+    MPI_Win_free(&current_win);
+
+    // We pass a mempory space instance do multiple Views thus
+    // setting "current_win = MPI_WIN_NULL;" will result in a wrong handle if
+    // subsequent view runs out of scope
+    // Fixme: The following only works when views are allocated sequentially
+    // We need a thread-safe map to associate views and windows
+
+    if (last_valid != 0)
+      current_win = mpi_windows[last_valid - 1];
+    else
+      current_win = MPI_WIN_NULL;
+  }
+}
+
+void MPISpace::fence() const {
   for (int i = 0; i < mpi_windows.size(); i++) {
     if (mpi_windows[i] != MPI_WIN_NULL) {
       MPI_Win_flush_all(mpi_windows[i]);
@@ -127,34 +200,6 @@ size_t get_my_pe() {
   return rank;
 }
 
-KOKKOS_FUNCTION
-size_t get_indexing_block_size(size_t size) {
-  size_t num_pes, block;
-  num_pes = get_num_pes();
-  block   = (size + num_pes - 1) / num_pes;
-  return block;
-}
-
-std::pair<size_t, size_t> getRange(size_t size, size_t pe) {
-  size_t start, end;
-  size_t block = get_indexing_block_size(size);
-  start        = pe * block;
-  end          = (pe + 1) * block;
-
-  size_t num_pes = get_num_pes();
-
-  if (size < num_pes) {
-    size_t diff = (num_pes * block) - size;
-    if (pe > num_pes - 1 - diff) end--;
-  } else {
-    if (pe == num_pes - 1) {
-      size_t diff = size - (num_pes - 1) * block;
-      end         = start + diff;
-    }
-    end--;
-  }
-  return std::make_pair(start, end);
-}
 }  // namespace Experimental
 
 namespace Impl {
