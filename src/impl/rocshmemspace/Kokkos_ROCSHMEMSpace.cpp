@@ -72,20 +72,6 @@ void *ROCSHMEMSpace::impl_allocate(
     } else {
       Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
     }
-
-    if (ptr) {
-      auto address = reinterpret_cast<uintptr_t>(ptr);
-
-      // offset enough to record the alloc_ptr
-      address += sizeof(void *);
-      uintptr_t rem    = address % alignment;
-      uintptr_t offset = rem ? (alignment - rem) : 0u;
-      address += offset;
-      ptr = reinterpret_cast<void *>(address);
-      // record the alloc'd pointer
-      address -= sizeof(void *);
-      *reinterpret_cast<void **>(address) = ptr;
-    }
   }
 
   using MemAllocFailure =

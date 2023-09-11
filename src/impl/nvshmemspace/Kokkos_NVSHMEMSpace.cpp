@@ -32,14 +32,14 @@ void NVSHMEMSpace::impl_set_allocation_mode(const int allocation_mode_) {
 
 void NVSHMEMSpace::impl_set_extent(const int64_t extent_) { extent = extent_; }
 
-void *SHMEMSpace::allocate(const size_t arg_alloc_size) const {
+void *NVSHMEMSpace::allocate(const size_t arg_alloc_size) const {
   return allocate("[unlabeled]", arg_alloc_size);
 }
 
-void *SHMEMSpace::allocate(const char *arg_label, const size_t arg_alloc_size,
-                           const size_t
+void *NVSHMEMSpace::allocate(const char *arg_label, const size_t arg_alloc_size,
+                             const size_t
 
-                               arg_logical_size) const {
+                                 arg_logical_size) const {
   return impl_allocate(arg_label, arg_alloc_size, arg_logical_size);
 }
 
@@ -71,20 +71,6 @@ void *NVSHMEMSpace::impl_allocate(
       ptr         = nvshmem_malloc(arg_alloc_size);
     } else {
       Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
-    }
-
-    if (ptr) {
-      auto address = reinterpret_cast<uintptr_t>(ptr);
-
-      // offset enough to record the alloc_ptr
-      address += sizeof(void *);
-      uintptr_t rem    = address % alignment;
-      uintptr_t offset = rem ? (alignment - rem) : 0u;
-      address += offset;
-      ptr = reinterpret_cast<void *>(address);
-      // record the alloc'd pointer
-      address -= sizeof(void *);
-      *reinterpret_cast<void **>(address) = ptr;
     }
   }
 
@@ -131,7 +117,7 @@ void NVSHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
+    Kokkos::Experimental::NVSHMEMSpace().fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
