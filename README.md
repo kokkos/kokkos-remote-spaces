@@ -119,5 +119,4 @@ cmake .. -DKokkosKernels_ROOT=$KokkosKernels_INSTALL_PATH -DKokkosRemote_ROOT=$K
 *Note: Kokkos Remote Spaces is in an experimental development stage.*
 
 ### Contact
-Jan Ciesko, Engineering Lead,
-jciesko@sandia.gov
+Jan Ciesko, jciesko@sandia.gov
