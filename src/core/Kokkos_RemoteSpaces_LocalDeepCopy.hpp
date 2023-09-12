@@ -75,7 +75,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 #ifdef KRS_ENABLE_MPISPACE
       dst_data_block_t data_block = dst_data_block_t(
           src.data(), dst.impl_map().handle().loc.win,
-          dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+          dst.impl_map().handle().loc.offset, dst.span(), dst_rank);
 #else
       dst_data_block_t data_block =
           dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
@@ -131,7 +131,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 #ifdef KRS_ENABLE_MPISPACE
     dst_data_block_t data_block = dst_data_block_t(
         src.data(), dst.impl_map().handle().loc.win,
-        dst.impl_map().handle().loc.offset, dst.span(), src_rank);
+        dst.impl_map().handle().loc.offset, dst.span(), dst_rank);
 #else
     dst_data_block_t data_block =
         dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);

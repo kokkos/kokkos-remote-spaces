@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_SUBVIEW_HPP_
-#define TEST_SUBVIEW_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -236,5 +231,3 @@ TEST(TEST_CATEGORY, test_subview) {
   test_subview3D_DCCopiesSubviewAccess<float>(55, 11, 13);
   test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23);
 }
-
-#endif /* TEST_SUBVIEW_HPP_ */

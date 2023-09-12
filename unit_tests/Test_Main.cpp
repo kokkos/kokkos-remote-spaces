@@ -19,7 +19,6 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 
 int main(int argc, char *argv[]) {

@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_REFCOUNTING_HPP_
-#define TEST_REFCOUNTING_HPP_
-
-#include <gtest/gtest.h>
-#include <mpi.h>
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
+#include <gtest/gtest.h>
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -45,5 +40,3 @@ TEST(TEST_CATEGORY, test_reference_counting) {
   test_reference_counting<int, RemoteMemSpace>();
   test_reference_counting<double, RemoteMemSpace>();
 }
-
-#endif /* TEST_REFCOUNTING_HPP_ */

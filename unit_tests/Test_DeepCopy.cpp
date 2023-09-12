@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_DEEP_COPY_HPP_
-#define TEST_DEEP_COPY_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 /*
   Deep_copy can move data residing on the local node
@@ -221,5 +216,3 @@ TEST(TEST_CATEGORY, test_deepcopy) {
   test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(100, 300);
   test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(100, 300);
 }
-
-#endif /* TEST_DEEP_COPY_HPP_ */
