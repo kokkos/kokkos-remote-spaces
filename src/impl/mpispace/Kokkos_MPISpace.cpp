@@ -92,6 +92,7 @@ void *MPISpace::impl_allocate(
       Kokkos::abort("MPISpace only supports symmetric allocation policy.");
     }
   }
+
   using MemAllocFailure =
       Kokkos::Impl::Experimental::RemoteSpacesMemoryAllocationFailure;
   using MemAllocFailureMode = Kokkos::Impl::Experimental::
@@ -178,6 +179,7 @@ void MPISpace::impl_deallocate(
 }
 
 void MPISpace::fence() const {
+  Kokkos::fence();
   for (int i = 0; i < mpi_windows.size(); i++) {
     if (mpi_windows[i] != MPI_WIN_NULL) {
       MPI_Win_flush_all(mpi_windows[i]);

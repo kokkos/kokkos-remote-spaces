@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_ALLOCATION_HPP_
-#define TEST_ALLOCATION_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -80,5 +75,3 @@ TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
   test_allocate_symmetric_remote_view_by_rank<int *******, RemoteMemSpace>(
       9, 10, 7, 2, 1, 1);
 }
-
-#endif /* TEST_ALLOCATION_HPP_ */

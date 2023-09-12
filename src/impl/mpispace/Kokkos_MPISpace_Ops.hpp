@@ -253,7 +253,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp += val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -262,7 +262,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp -= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -271,7 +271,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp *= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -280,7 +280,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp /= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -289,7 +289,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp %= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -298,7 +298,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp &= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -307,7 +307,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp ^= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -316,7 +316,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp |= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -325,7 +325,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp <<= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -334,7 +334,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp >>= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -343,147 +343,147 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp + val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp - val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp * val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp / val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp % val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator!() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return !tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&&(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp && val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator||(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp || val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp & val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp | val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp ^ val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator~() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return ~tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp << val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>(const unsigned int &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp >> val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator==(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp == val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator!=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp != val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp >= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp <= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp < val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp > val;
   }
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }
@@ -564,7 +564,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp += val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -573,7 +573,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp -= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -582,7 +582,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp *= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -591,7 +591,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp /= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -600,7 +600,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp %= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -609,7 +609,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp &= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -618,7 +618,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp ^= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -627,7 +627,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp |= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -636,7 +636,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp <<= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -645,7 +645,7 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     tmp >>= val;
     mpi_type_p(tmp, offset, pe, *win);
@@ -654,147 +654,147 @@ struct MPIDataElement<
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp + val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator-(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp - val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp * val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator/(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp / val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator%(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp % val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator!() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return !tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&&(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp && val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator||(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp || val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator&(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp & val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator|(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp | val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator^(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp ^ val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator~() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return ~tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp << val;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator>>(const unsigned int &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp >> val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator==(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp == val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator!=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp != val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp >= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<=(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp <= val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator<(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp < val;
   }
 
   KOKKOS_INLINE_FUNCTION
   bool operator>(const_value_type &val) const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp > val;
   }
 
   KOKKOS_INLINE_FUNCTION
   operator const_value_type() const {
-    T tmp = T();
+    T tmp;
     mpi_type_g(tmp, offset, pe, *win);
     return tmp;
   }

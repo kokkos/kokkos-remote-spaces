@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_REMOTE_ACCESS_HPP_
-#define TEST_REMOTE_ACCESS_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -66,5 +61,3 @@ TEST(TEST_CATEGORY, test_remote_accesses) {
   test_remote_accesses<int64_t, RemoteSpace_t>(4567);
   test_remote_accesses<double, RemoteSpace_t>(89);
 }
-
-#endif /* TEST_REMOTE_ACCESS_HPP_ */

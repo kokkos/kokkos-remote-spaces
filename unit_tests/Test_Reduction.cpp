@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_SUBVIEW_HPP_
-#define TEST_SUBVIEW_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -204,5 +199,3 @@ TEST(TEST_CATEGORY, test_reduce) {
   test_scalar_reduce_partitioned_2D<int>(4, 2);
   test_scalar_reduce_partitioned_2D<double>(773, 3);
 }
-
-#endif /* TEST_SUBVIEW_HPP_ */

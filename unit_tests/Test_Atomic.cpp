@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_ATOMIC_GLOBALVIEW_HPP_
-#define TEST_ATOMIC_GLOBALVIEW_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -138,5 +133,3 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview3D<int>(255, 1024, 3);
   test_atomic_globalview3D<int>(3, 33, 1024);
 }
-
-#endif /* TEST_ATOMIC_GLOBALVIEW_HPP_ */

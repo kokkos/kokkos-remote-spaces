@@ -16,13 +16,8 @@
 //
 //@HEADER
 
-#ifndef TEST_PARTITIONED_SUBVIEW_HPP_
-#define TEST_PARTITIONED_SUBVIEW_HPP_
-
-#include <Kokkos_Core.hpp>
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 #define VAL 123
 
@@ -304,5 +299,3 @@ TEST(TEST_CATEGORY, test_partitioned_subview) {
                                              Kokkos::PartitionedLayoutLeft>(50,
                                                                             77);
 }
-
-#endif /* TEST_PARTITIONED_SUBVIEW_HPP_ */
