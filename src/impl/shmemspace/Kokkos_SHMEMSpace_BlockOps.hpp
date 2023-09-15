@@ -70,7 +70,6 @@ KOKKOS_REMOTESPACES_GET(double, shmem_double_get)
 template <class T, class Traits, typename Enable = void>
 struct SHMEMBlockDataElement {};
 
-// Atomic Operators
 template <class T, class Traits>
 struct SHMEMBlockDataElement<T, Traits> {
   typedef const T const_value_type;

@@ -88,7 +88,6 @@ KOKKOS_REMOTESPACES_GET(double, MPI_DOUBLE)
 template <class T, class Traits, typename Enable = void>
 struct MPIBlockDataElement {};
 
-// Atomic Operators
 template <class T, class Traits>
 struct MPIBlockDataElement<T, Traits> {
   const MPI_Win win;

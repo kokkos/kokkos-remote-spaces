@@ -24,7 +24,7 @@
 #include <type_traits>
 #include <string>
 
-//#define ACCESS_LDC_USE_MULTI_LDC
+#define ACCESS_LDC_USE_MULTI_LDC
 //#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
 
 #define CHECK_FOR_CORRECTNESS
@@ -481,9 +481,6 @@ struct Access_LDC<
           Kokkos::pair(remote_range.first + start_offset,
                        remote_range.first + start_offset + team_block);
 
-      printf("%li,%li,%li,%li\n", local_range.first, local_range.second,
-             remote_range.first, remote_range.second);
-
       // Construct team subviews
       auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, team_local_range);
@@ -524,9 +521,6 @@ struct Access_LDC<
       auto team_remote_range =
           Kokkos::pair(remote_range.first + start_offset,
                        remote_range.first + start_offset + team_block);
-
-      printf("%li,%li,%li,%li\n", local_range.first, local_range.second,
-             remote_range.first, remote_range.second);
 
       // Construct team subviews
       auto v_subview_remote    = Kokkos::subview(v_tmp, team_remote_range);
@@ -597,6 +591,8 @@ struct Access_LDC<
     time_a = time_b  = 0;
     double time      = 0;
     auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
+    auto remote_range =
+        Kokkos::Experimental::get_range(num_ranks * N, other_rank);
 
     Kokkos::parallel_for("access_overhead-init",
                          policy_init_t(local_range.first, local_range.second),
@@ -617,11 +613,12 @@ struct Access_LDC<
                                *this);
 #endif
           Kokkos::fence();
-#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
           Kokkos::parallel_for(
               "printf values for debugging",
               Kokkos::RangePolicy(local_range.first, local_range.second),
               *this);
+          Kokkos::fence();
 #endif
           Kokkos::parallel_for(
               "update", policy_update_t(local_range.first, local_range.second),
@@ -633,6 +630,7 @@ struct Access_LDC<
           RemoteSpace_t().fence();
         }
       }
+
     } else if (rma_op == RMA_PUT) {
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
@@ -646,7 +644,7 @@ struct Access_LDC<
                                *this);
 #endif
           Kokkos::fence();
-#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
           Kokkos::parallel_for(
               "printf values for debugging",
               Kokkos::RangePolicy(local_range.first, local_range.second),
@@ -659,6 +657,7 @@ struct Access_LDC<
           RemoteSpace_t().fence();
           time_b = timer.seconds();
           time += time_b - time_a;
+
         } else {
           RemoteSpace_t().fence();
         }

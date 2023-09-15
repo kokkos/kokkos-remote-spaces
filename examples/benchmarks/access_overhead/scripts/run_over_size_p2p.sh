@@ -15,8 +15,8 @@ FILENAME="${BENCHMARK}_${HASH}_p2p.res"
 echo $FILENAME
 echo "name,type,N,size,iters,time,gups,bw" | tee $FILENAME 
 VARS0="--bind-to core --map-by socket -x CUDA_VISIBLE_DEVICES=0,1"
-VARS1="-x UCX_WARN_UNUSED_ENV_VARS=n  -x HCOLL_RCACHE=^ucs -x \
-LD_LIBRARY_PATH=/projects/ppc64le-pwr9-rhel8/tpls/cuda/12.0.0/gcc/12.2.0/base/rantbbm/lib64/:$LD_LIBRARY_PATH -x NVSHMEM_SYMMETRIC_SIZE=1073741824"
+VARS1=" -x UCX_WARN_UNUSED_ENV_VARS=n  -x HCOLL_RCACHE=^ucs -x \
+LD_LIBRARY_PATH=/projects/ppc64le-pwr9-rhel8/tpls/cuda/12.0.0/gcc/12.2.0/base/rantbbm/lib64/:$LD_LIBRARY_PATH" # -x NVSHMEM_SYMMETRIC_SIZE=1073741824"
 
 #MPI + Kokkos
 let SIZE=$DEFAULT_SIZE
