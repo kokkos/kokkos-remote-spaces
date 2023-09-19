@@ -15,9 +15,10 @@ option(KRS_ENABLE_NVSHMEMSPACE "Whether to build with NVSHMEM space" OFF)
 option(KRS_ENABLE_ROCSHMEMSPACE "Whether to build with ROCSHMEM space" OFF)
 option(KRS_ENABLE_SHMEMSPACE "Whether to build with SHMEMS space" OFF)
 option(KRS_ENABLE_MPISPACE "Whether to build with MPI space" OFF)
-option(KRS_ENABLE_EXAMPLES "Whether to enable tests" OFF)
-option(KRS_ENABLE_TESTS "Whether to enable tests" OFF)
 option(KRS_ENABLE_DEBUG "Whether to enable debugging output" OFF)
+option(KRS_ENABLE_BENCHMARKS "Whether to build  benchmarks" OFF)
+option(KRS_ENABLE_APPLICATIONS "Whether to build applications" OFF)
+option(KRS_ENABLE_TESTS "Whether to build tests" OFF)
 
 set(SOURCE_DIRS)
 set(PUBLIC_DEPS)
@@ -180,8 +181,12 @@ install(EXPORT
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KokkosRemoteSpaces
 )
 
-IF (KRS_ENABLE_EXAMPLES)
-  add_subdirectory(examples)
+IF (KRS_ENABLE_BENCHMARKS)
+  add_subdirectory(benchmarks)
+ENDIF()
+
+IF (KRS_ENABLE_APPLICATIONS)
+  add_subdirectory(applications)
 ENDIF()
 
 IF (KRS_ENABLE_TESTS)
