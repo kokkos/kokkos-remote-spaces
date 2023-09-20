@@ -21,6 +21,7 @@
 
 enum flavor : int { with_team, without_team };
 enum block_ops : int { get_op, put_op };
+enum team_sizes : int { big = 32, small = 12, very_small = 3 };
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
@@ -151,7 +152,7 @@ void test_localdeepcopy_withSubview(
   // Copy from next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
-        "Team", TeamPolicy_t(1, 1),
+        "Team", TeamPolicy_t(team_sizes::big, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(
               team, v_R_subview_local, v_R_subview_next);
@@ -168,7 +169,7 @@ void test_localdeepcopy_withSubview(
   // Copy from previous
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
-        "Team", TeamPolicy_t(1, 1),
+        "Team", TeamPolicy_t(team_sizes::small, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(
               team, v_R_subview_local, v_R_subview_prev);
@@ -310,7 +311,7 @@ void test_localdeepcopy_withSubview(
   // Put to next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
-        "Team", TeamPolicy_t(1, 1),
+        "Team", TeamPolicy_t(team_sizes::small, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(
               team, v_R_subview_next, v_R_subview_local);
@@ -326,7 +327,7 @@ void test_localdeepcopy_withSubview(
   // Put to previous
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
-        "Team", TeamPolicy_t(1, 1),
+        "Team", TeamPolicy_t(team_sizes::very_small, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(
               team, v_R_subview_prev, v_R_subview_local);

@@ -540,8 +540,8 @@ struct Access_LDC<
         Kokkos::Experimental::get_range(num_ranks * N, other_rank);
     auto v_subview_remote    = Kokkos::subview(v, remote_range);
     auto v_tmp_subview_local = Kokkos::subview(v_tmp, local_range);
-    Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
-                                                        v_subview_remote);
+    Kokkos::Experimental::RemoteSpaces::local_deep_copy(
+        team, v_tmp_subview_local, v_subview_remote);
   }
 
   KOKKOS_FUNCTION
@@ -552,7 +552,7 @@ struct Access_LDC<
         Kokkos::Experimental::get_range(num_ranks * N, other_rank);
     auto v_subview_remote    = Kokkos::subview(v_tmp, remote_range);
     auto v_tmp_subview_local = Kokkos::subview(v, local_range);
-    Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
+    Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_subview_remote,
                                                         v_tmp_subview_local);
   }
 #else  // Single LDC

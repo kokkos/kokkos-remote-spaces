@@ -25,6 +25,32 @@ namespace Kokkos {
 namespace Experimental {
 namespace RemoteSpaces {
 
+template <class T, class P>
+auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
+  if constexpr (T::traits::dimension::rank == 0) {
+    return view;
+  } else if constexpr (T::traits::dimension::rank == 1) {
+    return Kokkos::subview(view, r);
+  } else if constexpr (T::traits::dimension::rank == 2) {
+    return Kokkos::subview(view, r, Kokkos::ALL);
+  } else if constexpr (T::traits::dimension::rank == 3) {
+    return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL);
+  } else if constexpr (T::traits::dimension::rank == 4) {
+    return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+  } else if constexpr (T::traits::dimension::rank == 5) {
+    return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
+                           Kokkos::ALL);
+  } else if constexpr (T::traits::dimension::rank == 6) {
+    return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
+                           Kokkos::ALL, Kokkos::ALL);
+  } else if constexpr (T::traits::dimension::rank == 7) {
+    return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
+                           Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+  } else {
+    static_assert("Unsupported view type");
+  }
+}
+
 /** \brief  A local deep copy between views of the default specialization,
  * compatible type, same non-zero rank.
  */
@@ -42,30 +68,54 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   int dst_rank = dst.impl_map().get_owning_pe();
   int my_rank  = get_my_pe();
 
-  if (src_rank != my_rank && dst_rank != my_rank)
-    static_assert(
-        "local_deep_copy allows only one view with remote data access");
+  if (src_rank != my_rank && dst_rank != my_rank) {
+    // Both views are remote, copy as through view accessor (TODO)
+    static_assert("local_deep_copy for provided views is supported");
+  }
 
-  // We use the data ptr explicitly thus expecting that a subview starts at the
-  // beginning of the local allocaton. We need to add the offset = sum of
-  // offsets in all non-leading dimenions to the ptr to support the generic
-  // case.
+  if (dst_rank == my_rank && src_rank == my_rank) {
+    // Both views are local, copy as array operation
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
+                         [&](const int &i) { dst.data()[i] = src.data()[i]; });
+    return;
+  }
+
   using src_data_block_t =
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
                                     ViewTraits<ST, SP...>>;
   using dst_data_block_t =
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
                                     ViewTraits<DT, DP...>>;
+
+  using size_type = typename ViewTraits<DT, DP...>::size_type;
+
+  auto league_size = team.league_size();
+  auto team_ID     = team.league_rank();
+
+  // Construct per-team range
+  auto team_block     = (dst.extent(0)) / league_size;
+  auto team_block_mod = (dst.extent(0)) % league_size;
+  auto start_offset   = team_ID * team_block;
+  team_block =
+      team_ID == league_size - 1 ? team_block + team_block_mod : team_block;
+  auto team_range = Kokkos::pair(size_type(start_offset),
+                                 size_type(start_offset + team_block));
+
+  // Construct per-team subviews
+  auto src_subview = get_local_subview(src, team_range);
+  auto dst_subview = get_local_subview(dst, team_range);
+
   if (src_rank != my_rank) {
     team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       src_data_block_t data_block = src_data_block_t(
-          dst.data(), src.impl_map().handle().loc.win,
-          src.impl_map().handle().loc.offset, src.span(), src_rank);
+          dst_subview.data(), src_subview.impl_map().handle().loc.win,
+          src_subview.impl_map().handle().loc.offset, src_subview.span(),
+          src_rank);
 #else
       src_data_block_t data_block =
-          src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+          src_data_block_t(dst_subview.data(), src_subview.data(), src_subview.span(), src_rank);
 #endif
       data_block.get();
     });
@@ -74,18 +124,17 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       dst_data_block_t data_block = dst_data_block_t(
-          src.data(), dst.impl_map().handle().loc.win,
-          dst.impl_map().handle().loc.offset, dst.span(), dst_rank);
+          src_subview.data(), dst_subview.impl_map().handle().loc.win,
+          dst_subview.impl_map().handle().loc.offset, dst_subview.span(),
+          dst_rank);
 #else
-      dst_data_block_t data_block =
-          dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+      src_data_block_t data_block =
+          src_data_block_t(dst_subview.data(), src_subview.data(), src_subview.span(), dst_rank);
 #endif
       data_block.put();
     });
   } else {
-    // Data resides within the node, copy as usual
-    Kokkos::parallel_for(Kokkos::TeamThreadRange(team, src.span()),
-                         [&](const int &i) { dst.data()[i] = src.data()[i]; });
+    static_assert("Unable to determine view data location");
   }
 }
 
@@ -102,9 +151,16 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   int dst_rank = dst.impl_map().get_owning_pe();
   int my_rank  = get_my_pe();
 
-  if (src_rank != my_rank && dst_rank != my_rank)
-    static_assert(
-        "local_deep_copy allows only one view with remote data access");
+  if (src_rank != my_rank && dst_rank != my_rank) {
+    // Both views are remote, copy as through view accessor (TODO)
+    static_assert("local_deep_copy for provided views is supported");
+  }
+
+  if (dst_rank == my_rank && src_rank == my_rank) {
+    // Both views are local, copy as array operation
+    for (size_t i = 0; i < src.span(); ++i) dst.data()[i] = src.data()[i];
+    return;
+  }
 
   using src_data_block_t =
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<ST, SP...>::value_type,
@@ -113,10 +169,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
                                     ViewTraits<DT, DP...>>;
 
-  // We use the data ptr explicitly thus expecting that a subview starts at the
-  // beginning of the local allocaton. We need to add the offset = sum of
-  // offsets in all non-leading dimenions to the ptr to support the generic
-  // case.
   if (src_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     src_data_block_t data_block = src_data_block_t(
@@ -138,8 +190,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 #endif
     data_block.put();
   } else {
-    // Data resides within the node, copy as usual
-    for (size_t i = 0; i < src.span(); ++i) dst.data()[i] = src.data()[i];
+    static_assert("Unable to determine view data location");
   }
 }
 
