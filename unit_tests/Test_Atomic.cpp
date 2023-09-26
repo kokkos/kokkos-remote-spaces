@@ -132,4 +132,6 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview3D<int>(1, 1, 1);
   test_atomic_globalview3D<int>(255, 1024, 3);
   test_atomic_globalview3D<int>(3, 33, 1024);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

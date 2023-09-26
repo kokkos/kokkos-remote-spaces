@@ -19,15 +19,13 @@
 #ifndef KOKKOS_REMOTESPACES_OPTIONS_HPP
 #define KOKKOS_REMOTESPACES_OPTIONS_HPP
 
-#include <Kokkos_Core.hpp>
 #include <cstdint>
 
 namespace Kokkos {
+namespace Experimental {
+namespace Impl {
 
-enum RemoteSpaces_MemoryTraitsFlags {
-  /*GlobalIndex = 1 < 0x128,*/
-  Dim0IsPE = 1 < 0x192
-};
+enum RemoteSpaces_MemoryTraitFlags { Dim0IsPE = 1 < 0x192 };
 
 template <typename T>
 struct RemoteSpaces_MemoryTraits;
@@ -35,9 +33,10 @@ struct RemoteSpaces_MemoryTraits;
 template <unsigned T>
 struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
   enum : bool { dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE))) };
-
   enum : int { state = T };
 };
+}  // namespace Impl
+}  // namespace Experimental
 }  // namespace Kokkos
 
 #endif  // KOKKOS_REMOTESPACES_OPTIONS_HPP

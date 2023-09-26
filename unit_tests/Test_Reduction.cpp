@@ -194,8 +194,11 @@ TEST(TEST_CATEGORY, test_reduce) {
   test_scalar_reduce_2D<double>(773, 3);
 
   test_scalar_reduce_partitioned_1D<int>(20);
+
   test_scalar_reduce_partitioned_1D<double>(337);
 
   test_scalar_reduce_partitioned_2D<int>(4, 2);
   test_scalar_reduce_partitioned_2D<double>(773, 3);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

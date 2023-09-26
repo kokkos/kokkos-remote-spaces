@@ -215,4 +215,6 @@ TEST(TEST_CATEGORY, test_deepcopy) {
   test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200, 100);
   test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(100, 300);
   test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(100, 300);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

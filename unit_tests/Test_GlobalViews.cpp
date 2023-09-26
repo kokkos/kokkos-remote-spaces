@@ -150,4 +150,6 @@ TEST(TEST_CATEGORY, test_globalview) {
   test_globalview3D<int>(1, 1, 1);
   test_globalview3D<float>(255, 1024, 3);
   test_globalview3D<double>(3, 33, 1024);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

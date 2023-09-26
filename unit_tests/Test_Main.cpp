@@ -57,6 +57,7 @@ int main(int argc, char *argv[]) {
   int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
+
 #ifdef KRS_ENABLE_NVSHMEMSPACE
   nvshmem_finalize();
 #endif
@@ -68,5 +69,6 @@ int main(int argc, char *argv[]) {
 #else
   MPI_Finalize();
 #endif
+
   return result;
 }

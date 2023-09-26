@@ -22,8 +22,7 @@
 #include <Kokkos_RemoteSpaces.hpp>
 
 namespace Kokkos {
-namespace Experimental {
-namespace RemoteSpaces {
+namespace Impl {
 
 template <class T, class P>
 auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
@@ -51,6 +50,16 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
   }
 }
 
+template <class T>
+auto KOKKOS_INLINE_FUNCTION get_subview_start_adr(T view) {
+  return view.impl_map().m_handle.ptr;
+}
+
+}  // namespace Impl
+
+namespace Experimental {
+namespace RemoteSpaces {
+
 /** \brief  A local deep copy between views of the default specialization,
  * compatible type, same non-zero rank.
  */
@@ -69,8 +78,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
-    // Both views are remote, copy as through view accessor (TODO)
-    static_assert("local_deep_copy for provided views is supported");
+    // Both views are remote, copy through view accessor (TODO)
+    static_assert("local_deep_copy for provided views is not supported");
   }
 
   if (dst_rank == my_rank && src_rank == my_rank) {
@@ -102,20 +111,24 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
                                  size_type(start_offset + team_block));
 
   // Construct per-team subviews
-  auto src_subview = get_local_subview(src, team_range);
-  auto dst_subview = get_local_subview(dst, team_range);
+  auto src_subview = Kokkos::Impl::get_local_subview(src, team_range);
+  auto dst_subview = Kokkos::Impl::get_local_subview(dst, team_range);
+
+  // Construct subview offsets
+  auto src_subview_ptr = Kokkos::Impl::get_subview_start_adr(src_subview);
+  auto dst_subview_ptr = Kokkos::Impl::get_subview_start_adr(dst_subview);
 
   if (src_rank != my_rank) {
     team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       src_data_block_t data_block = src_data_block_t(
-          dst_subview.data(), src_subview.impl_map().handle().loc.win,
+          dst_subview_ptr, src_subview.impl_map().handle().loc.win,
           src_subview.impl_map().handle().loc.offset, src_subview.span(),
           src_rank);
 #else
       src_data_block_t data_block =
-          src_data_block_t(dst_subview.data(), src_subview.data(), src_subview.span(), src_rank);
+          src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), src_rank);
 #endif
       data_block.get();
     });
@@ -124,12 +137,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       dst_data_block_t data_block = dst_data_block_t(
-          src_subview.data(), dst_subview.impl_map().handle().loc.win,
+          src_subview_ptr, dst_subview.impl_map().handle().loc.win,
           dst_subview.impl_map().handle().loc.offset, dst_subview.span(),
           dst_rank);
 #else
       src_data_block_t data_block =
-          src_data_block_t(dst_subview.data(), src_subview.data(), src_subview.span(), dst_rank);
+          src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), dst_rank);
 #endif
       data_block.put();
     });
@@ -152,8 +165,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
-    // Both views are remote, copy as through view accessor (TODO)
-    static_assert("local_deep_copy for provided views is supported");
+    // Both views are remote, copy through view accessor (TODO)
+    static_assert("local_deep_copy for provided views is not supported");
   }
 
   if (dst_rank == my_rank && src_rank == my_rank) {
@@ -169,24 +182,28 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
                                     ViewTraits<DT, DP...>>;
 
+  // Construct view offsets
+  auto src_subview_ptr = src.data();
+  auto dst_subview_ptr = dst.data();
+
   if (src_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     src_data_block_t data_block = src_data_block_t(
-        dst.data(), src.impl_map().handle().loc.win,
+        dst_subview_ptr, src.impl_map().handle().loc.win,
         src.impl_map().handle().loc.offset, src.span(), src_rank);
 #else
-    src_data_block_t data_block =
-        src_data_block_t(dst.data(), src.data(), src.span(), src_rank);
+    src_data_block_t data_block = src_data_block_t(
+        dst_subview_ptr, src_subview_ptr, src.span(), src_rank);
 #endif
     data_block.get();
   } else if (dst_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     dst_data_block_t data_block = dst_data_block_t(
-        src.data(), dst.impl_map().handle().loc.win,
+        src_subview_ptr, dst.impl_map().handle().loc.win,
         dst.impl_map().handle().loc.offset, dst.span(), dst_rank);
 #else
-    dst_data_block_t data_block =
-        dst_data_block_t(dst.data(), src.data(), dst.span(), dst_rank);
+    src_data_block_t data_block = src_data_block_t(
+        dst_subview_ptr, src_subview_ptr, src.span(), dst_rank);
 #endif
     data_block.put();
   } else {

@@ -18,12 +18,10 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
- 
-void test_empty()
-{
-  
-}
 
-TEST(TEST_CATEGORY, test_empty) {  
+void test_empty() {}
+
+TEST(TEST_CATEGORY, test_empty) {
   test_empty();
+  MPI_Barrier(MPI_COMM_WORLD);
 }

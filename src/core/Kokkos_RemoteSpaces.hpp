@@ -22,8 +22,18 @@
 
 namespace Kokkos {
 namespace Experimental {
+
+namespace Impl {
+class InternalSpecializeTag {};
+}  // namespace Impl
+
+template <class T = Kokkos::Experimental::Impl::InternalSpecializeTag>
+class RemoteSpacesSpecializeTag {};
+
+using RemoteSpaceSpecializeTag = RemoteSpacesSpecializeTag<>;
+
 enum RemoteSpaces_MemoryAllocationMode : int { Symmetric, Cached };
-}
+}  // namespace Experimental
 }  // namespace Kokkos
 
 #ifdef KRS_ENABLE_SHMEMSPACE

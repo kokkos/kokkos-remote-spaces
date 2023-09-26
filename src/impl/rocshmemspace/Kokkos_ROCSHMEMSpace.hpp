@@ -32,8 +32,6 @@
 namespace Kokkos {
 namespace Experimental {
 
-class RemoteSpaceSpecializeTag {};
-
 class ROCSHMEMSpace {
  public:
 #if defined(KOKKOS_ENABLE_HIP)
@@ -127,10 +125,10 @@ struct DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
 
 template <>
 struct MemorySpaceAccess<Kokkos::Experimental::ROCSHMEMSpace,
-                         Kokkos::Experimental::ROCSHMEMSpace> {
-  enum { assignable = true };
-  enum { accessible = true };
-  enum { deepcopy = false };
+                         Kokkos::HostSpace> {
+  enum : bool { assignable = false };
+  enum : bool { accessible = false };
+  enum : bool { deepcopy = true };
 };
 
 template <>
@@ -149,20 +147,29 @@ struct MemorySpaceAccess<Kokkos::HIPSpace,
   enum { deepcopy = true };
 };
 
+template <>
+struct MemorySpaceAccess<Kokkos::Experimental::ROCSHMEMSpace,
+                         Kokkos::HIPSpace> {
+  enum { assignable = false };
+  enum { accessible = true };
+  enum { deepcopy = true };
+};
+
 }  // namespace Impl
 }  // namespace Kokkos
 
 #include <Kokkos_RemoteSpaces_Error.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
+#include <Kokkos_ROCSHMEM_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_RemoteSpaces_Helpers.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
+#include <Kokkos_ROCSHMEM_Ops.hpp>
+#include <Kokkos_ROCSHMEM_BlockOps.hpp>
 #include <Kokkos_RemoteSpaces_ViewMapping.hpp>
-#include <Kokkos_ROCSHMEMSpace_Ops.hpp>
-#include <Kokkos_ROCSHMEMSpace_BlockOps.hpp>
-#include <Kokkos_ROCSHMEMSpace_AllocationRecord.hpp>
-#include <Kokkos_ROCSHMEMSpace_DataHandle.hpp>
-#include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
-#include <Kokkos_ROCSHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_ROCSHMEM_AllocationRecord.hpp>
+#include <Kokkos_ROCSHMEM_DataHandle.hpp>
+#include <Kokkos_ROCSHMEM_LocalDeepCopy.hpp>
 
 #endif  // #define KOKKOS_ROCSHMEMSPACE_HPP

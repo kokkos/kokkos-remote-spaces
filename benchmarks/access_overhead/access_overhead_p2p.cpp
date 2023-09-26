@@ -136,7 +136,8 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
-    assert(v(i) == iters * other_rank + my_rank);
+    assert(v(i) == typename ViewType_t::traits::value_type(iters * other_rank +
+                                                           my_rank));
   }
 
   // run copy benchmark
@@ -228,7 +229,8 @@ struct Access_CudaAware<
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
-    assert(v(i) == iters * other_rank + my_rank);
+    assert(v(i) == typename ViewType_t::traits::value_type(iters * other_rank +
+                                                           my_rank));
   }
 
   // run copy benchmark
@@ -315,7 +317,8 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
-    assert(v(i) == iters * other_rank + my_rank);
+    assert(v(i) == typename ViewType_t::traits::value_type(iters * other_rank +
+                                                           my_rank));
   }
 
   // run copy benchmark
@@ -443,7 +446,8 @@ struct Access_LDC<
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
-    assert(v(i) == iters * other_rank + my_rank);
+    assert(v(i) == typename ViewType_t::traits::value_type(iters * other_rank +
+                                                           my_rank));
   }
 
   KOKKOS_FUNCTION
@@ -456,6 +460,7 @@ struct Access_LDC<
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
       auto league_size = team.league_size();
       auto team_ID     = team.league_rank();
+
       auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
       auto remote_range =
           Kokkos::Experimental::get_range(num_ranks * N, other_rank);
@@ -484,6 +489,11 @@ struct Access_LDC<
       // Construct team subviews
       auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, team_local_range);
+
+      auto val = v_subview_remote.impl_map().m_offset(0);
+
+      printf("TeamID:%i, %li, %li %p, %li\n", team_ID, team_remote_range.first,
+             team_remote_range.second, v_subview_remote.data(), val);
 
       // LCD
       Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
@@ -606,8 +616,8 @@ struct Access_LDC<
           time_a = timer.seconds();
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
-          Kokkos::parallel_for("block_transfer",
-                               team_policy_get_update_t(512, 1), *this);
+          Kokkos::parallel_for("block_transfer", team_policy_get_update_t(2, 1),
+                               *this);
 #else
           Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
                                *this);

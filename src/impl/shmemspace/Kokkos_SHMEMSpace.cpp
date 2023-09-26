@@ -193,17 +193,5 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace,
   memcpy(dst, src, n);
 }
 
-// Currently not invoked. We need a better local_deep_copy overload that
-// recognizes consecutive memory regions
-void local_deep_copy_get(void *dst, const void *src, size_t pe, size_t n) {
-  shmem_getmem(dst, src, pe, n);
-}
-
-// Currently not invoked. We need a better local_deep_copy overload that
-// recognizes consecutive memory regions
-void local_deep_copy_put(void *dst, const void *src, size_t pe, size_t n) {
-  shmem_putmem(dst, src, pe, n);
-}
-
 }  // namespace Impl
 }  // namespace Kokkos

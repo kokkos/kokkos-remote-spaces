@@ -19,7 +19,7 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 
-using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
 template <class DataType, class RemoteSpace>
 void test_reference_counting() {
@@ -37,6 +37,8 @@ void test_reference_counting() {
 }
 
 TEST(TEST_CATEGORY, test_reference_counting) {
-  test_reference_counting<int, RemoteMemSpace>();
-  test_reference_counting<double, RemoteMemSpace>();
+  test_reference_counting<int, RemoteSpace_t>();
+  test_reference_counting<double, RemoteSpace_t>();
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

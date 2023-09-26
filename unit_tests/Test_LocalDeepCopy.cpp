@@ -289,4 +289,6 @@ TEST(TEST_CATEGORY, test_localdeepcopy) {
                                                                            99);
   test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>(1500,
                                                                           2199);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }
