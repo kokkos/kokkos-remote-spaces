@@ -47,22 +47,14 @@ struct Is_Dim0_Used_As_PE {
     value = RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe
   };
 };
-/*
-template <class view_type>
-bool is_local_view(
-    view_type v,
-    std::enable_if_t<Is_View_Of_Type_RemoteSpaces<view_type>::value &&
-Is_Partitioned_Layout<view_type>::value> * = nullptr) { return
-(v.impl_map().get_owning_pe.dim0_idxOffset == v.impl_map().get_my_PE());
-}*/
 
 template <class view_type>
 bool is_local_view(
     view_type v,
-    std::enable_if_t<Is_View_Of_Type_RemoteSpaces<
-        view_type>::value /* && !Is_Partitioned_Layout<view_type>::value*/> * =
+    std::enable_if_t<Is_View_Of_Type_RemoteSpaces<view_type>::value> * =
         nullptr) {
-  return (v.impl_map().get_owning_pe() == v.impl_map().get_my_PE());
+  return (v.impl_map().get_lowest_participating_PE() ==
+          v.impl_map().get_my_PE());
 }
 
 template <class view_type>
@@ -76,45 +68,45 @@ bool is_local_view(
 template <class T>
 struct RemoteSpaces_View_Properties {
   /* Is the first index denoting PE*/
-  bool dim0_isPE;
+  bool R0;
   /* Is this view a subview of another view*/
   bool is_subview;
   /* Index offset in dim0 */
-  T dim0_idxOffset;
+  T R0_domain_offset;
   /* Num local elems in dim0  */
-  T dim0_localSize;
+  T R0_size;
   /* Com size and rank*/
   int num_PEs;
   int my_PE;
 
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties() {
-    dim0_isPE      = true; /* default is true */
-    is_subview     = false;
-    dim0_idxOffset = 0;
-    dim0_localSize = 0;
-    num_PEs        = Kokkos::Experimental::get_num_pes();
-    my_PE          = Kokkos::Experimental::get_my_pe();
+    R0               = true; /* default is true */
+    is_subview       = false;
+    R0_domain_offset = 0;
+    R0_size          = 0;
+    num_PEs          = Kokkos::Experimental::get_num_pes();
+    my_PE            = Kokkos::Experimental::get_my_pe();
   }
 
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties(const RemoteSpaces_View_Properties &rhs) {
-    dim0_isPE      = rhs.dim0_isPE;
-    is_subview     = rhs.is_subview;
-    dim0_idxOffset = rhs.dim0_idxOffset;
-    dim0_localSize = rhs.dim0_localSize;
-    num_PEs        = rhs.num_PEs;
-    my_PE          = rhs.my_PE;
+    R0               = rhs.R0;
+    is_subview       = rhs.is_subview;
+    R0_domain_offset = rhs.R0_domain_offset;
+    R0_size          = rhs.R0_size;
+    num_PEs          = rhs.num_PEs;
+    my_PE            = rhs.my_PE;
   }
 
   KOKKOS_FUNCTION RemoteSpaces_View_Properties &operator=(
       const RemoteSpaces_View_Properties &rhs) {
-    dim0_isPE      = rhs.dim0_isPE;
-    is_subview     = rhs.is_subview;
-    dim0_idxOffset = rhs.dim0_idxOffset;
-    dim0_localSize = rhs.dim0_localSize;
-    num_PEs        = rhs.num_PEs;
-    my_PE          = rhs.my_PE;
+    R0               = rhs.R0;
+    is_subview       = rhs.is_subview;
+    R0_domain_offset = rhs.R0_domain_offset;
+    R0_size          = rhs.R0_size;
+    num_PEs          = rhs.num_PEs;
+    my_PE            = rhs.my_PE;
     return *this;
   }
 };
