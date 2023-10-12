@@ -67,13 +67,13 @@ struct BlockDataHandle {
 
   KOKKOS_INLINE_FUNCTION
   void get() {
-    SHMEMBlockDataElement<T, Traits> element(src, dst, elems, pe);
+    SHMEMBlockDataElement<T, Traits> element(dst, src, elems, pe);
     element.get();
   }
 
   KOKKOS_INLINE_FUNCTION
   void put() {
-    SHMEMBlockDataElement<T, Traits> element(src, dst, elems, pe);
+    SHMEMBlockDataElement<T, Traits> element(dst, src, elems, pe);
     element.put();
   }
 };

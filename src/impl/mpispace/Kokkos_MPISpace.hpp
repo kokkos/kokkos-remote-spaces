@@ -33,8 +33,6 @@
 namespace Kokkos {
 namespace Experimental {
 
-struct RemoteSpaceSpecializeTag {};
-
 class MPISpace {
  public:
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
@@ -158,6 +156,13 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::MPISpace> {
   enum { deepcopy = true };
 };
 
+template <>
+struct MemorySpaceAccess<Kokkos::Experimental::MPISpace, Kokkos::HostSpace> {
+  enum { assignable = false };
+  enum { accessible = true };
+  enum { deepcopy = true };
+};
+
 // MPI locality based on an MPI window and offset
 typedef struct MPIAccessLocation {
   mutable MPI_Win win;
@@ -185,16 +190,17 @@ typedef struct MPIAccessLocation {
 }  // namespace Kokkos
 
 #include <Kokkos_RemoteSpaces_Error.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
+#include <Kokkos_MPISpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_RemoteSpaces_Helpers.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
-#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_MPISpace_Ops.hpp>
 #include <Kokkos_MPISpace_BlockOps.hpp>
+#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_MPISpace_AllocationRecord.hpp>
 #include <Kokkos_MPISpace_DataHandle.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
-#include <Kokkos_MPISpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_MPISPACE_HPP

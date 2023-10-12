@@ -19,6 +19,9 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 
+#define LIVE(EXPR, ARGS, DYNRANK) EXPECT_NO_THROW(EXPR)
+#define DIE(EXPR) ASSERT_DEATH(EXPR, "Deep_copy of remote view not allowed.")
+
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
 template <class Data_t>
@@ -174,9 +177,6 @@ void test_subview3D_DCCopiesSubviewAccess(int i1, int i2, int i3) {
 
   // Set to next rank
   auto v_sub_1 = Kokkos::subview(v, remote_range, Kokkos::ALL, Kokkos::ALL);
-  auto v_sub_2 = ViewRemote_3D_t(v, remote_range, Kokkos::ALL, Kokkos::ALL);
-
-  size_t iters = remote_range.second - remote_range.first;
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -184,32 +184,12 @@ void test_subview3D_DCCopiesSubviewAccess(int i1, int i2, int i3) {
       for (int k = 0; k < v_h.extent(2); ++k) v_h(i, j, k) = 0;
 
   Kokkos::deep_copy(v, v_h);
-
-  Kokkos::parallel_for(
-      "Increment", iters, KOKKOS_LAMBDA(const int j) {
-        for (int k = 0; k < v_sub_1.extent(1); ++k)
-          for (int l = 0; l < v_sub_1.extent(2); ++l) {
-            v_sub_1(j, k, l)++;
-            v_sub_2(j, k, l)++;
-          }
-      });
-
+  // Offening deep_copy below
   Kokkos::deep_copy(v_h, v_sub_1);
-
-  auto local_range = Kokkos::Experimental::get_local_range(i1);
-
-  for (int i = 0; i < local_range.second - local_range.first; ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
-
-  Kokkos::deep_copy(v_h, v_sub_2);
-
-  for (int i = 0; i < local_range.second - local_range.first; ++i)
-    for (int j = 0; j < v_h.extent(1); ++j)
-      for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
 }
 
 TEST(TEST_CATEGORY, test_subview) {
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
   // 1D subview - Subview with GlobalLayout
   test_subview1D<int>(20);
   test_subview1D<float>(555);
@@ -226,8 +206,13 @@ TEST(TEST_CATEGORY, test_subview) {
   test_subview3D<double>(13, 31, 23);
 
   // 3D subview - Subview with GlobalLayout and
-  // deep_copy accessing the subview directly
-  test_subview3D_DCCopiesSubviewAccess<int>(20, 20, 20);
-  test_subview3D_DCCopiesSubviewAccess<float>(55, 11, 13);
-  test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23);
+  // deep_copy accessing the subview directly/
+
+  /* TODO: find out why death test hangs in MPI_Finalize*/
+
+  // DIE(test_subview3D_DCCopiesSubviewAccess<int>(20, 20, 20));
+  // DIE(test_subview3D_DCCopiesSubviewAccess<float>(55, 11, 13));
+  // DIE(test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23));
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

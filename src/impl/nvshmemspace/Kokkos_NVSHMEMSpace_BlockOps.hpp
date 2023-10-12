@@ -70,7 +70,6 @@ KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get)
 template <class T, class Traits, typename Enable = void>
 struct NVSHMEMBlockDataElement {};
 
-// Atomic Operators
 template <class T, class Traits>
 struct NVSHMEMBlockDataElement<T, Traits> {
   typedef const T const_value_type;

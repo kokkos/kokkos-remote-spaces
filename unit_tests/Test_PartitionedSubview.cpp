@@ -298,4 +298,6 @@ TEST(TEST_CATEGORY, test_partitioned_subview) {
   test_partitioned_subview2D_byRank_nextRank<int,
                                              Kokkos::PartitionedLayoutLeft>(50,
                                                                             77);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

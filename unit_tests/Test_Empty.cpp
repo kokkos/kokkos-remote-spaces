@@ -16,27 +16,12 @@
 //
 //@HEADER
 
-#ifndef KOKKOS_REMOTESPACES_OPTIONS_HPP
-#define KOKKOS_REMOTESPACES_OPTIONS_HPP
+#include <Kokkos_RemoteSpaces.hpp>
+#include <gtest/gtest.h>
 
-#include <cstdint>
+void test_empty() {}
 
-namespace Kokkos {
-namespace Experimental {
-namespace Impl {
-
-enum RemoteSpaces_MemoryTraitFlags { Dim0IsPE = 1 < 0x192 };
-
-template <typename T>
-struct RemoteSpaces_MemoryTraits;
-
-template <unsigned T>
-struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
-  enum : bool { dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE))) };
-  enum : int { state = T };
-};
-}  // namespace Impl
-}  // namespace Experimental
-}  // namespace Kokkos
-
-#endif  // KOKKOS_REMOTESPACES_OPTIONS_HPP
+TEST(TEST_CATEGORY, test_empty) {
+  test_empty();
+  MPI_Barrier(MPI_COMM_WORLD);
+}

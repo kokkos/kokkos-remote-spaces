@@ -19,7 +19,7 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 
-using RemoteMemSpace = Kokkos::Experimental::DefaultRemoteMemorySpace;
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
 template <class ViewType>
 void check_extents(ViewType view, int r) {
@@ -51,27 +51,29 @@ void test_allocate_symmetric_remote_view_by_rank(Args... args) {
 }
 
 TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
-  test_allocate_symmetric_remote_view_by_rank<double *, RemoteMemSpace>();
-  test_allocate_symmetric_remote_view_by_rank<double **, RemoteMemSpace>(113);
-  test_allocate_symmetric_remote_view_by_rank<double ***, RemoteMemSpace>(7, 5);
-  test_allocate_symmetric_remote_view_by_rank<double ****, RemoteMemSpace>(
-      9, 10, 7);
-  test_allocate_symmetric_remote_view_by_rank<double *****, RemoteMemSpace>(
+  test_allocate_symmetric_remote_view_by_rank<double *, RemoteSpace_t>();
+  test_allocate_symmetric_remote_view_by_rank<double **, RemoteSpace_t>(113);
+  test_allocate_symmetric_remote_view_by_rank<double ***, RemoteSpace_t>(7, 5);
+  test_allocate_symmetric_remote_view_by_rank<double ****, RemoteSpace_t>(9, 10,
+                                                                          7);
+  test_allocate_symmetric_remote_view_by_rank<double *****, RemoteSpace_t>(
       9, 10, 7, 2);
-  test_allocate_symmetric_remote_view_by_rank<double ******, RemoteMemSpace>(
+  test_allocate_symmetric_remote_view_by_rank<double ******, RemoteSpace_t>(
       9, 10, 7, 2, 1);
-  test_allocate_symmetric_remote_view_by_rank<double *******, RemoteMemSpace>(
+  test_allocate_symmetric_remote_view_by_rank<double *******, RemoteSpace_t>(
       9, 10, 7, 2, 1, 1);
 
-  test_allocate_symmetric_remote_view_by_rank<int *, RemoteMemSpace>();
-  test_allocate_symmetric_remote_view_by_rank<int **, RemoteMemSpace>(113);
-  test_allocate_symmetric_remote_view_by_rank<int ***, RemoteMemSpace>(7, 5);
-  test_allocate_symmetric_remote_view_by_rank<int ****, RemoteMemSpace>(9, 10,
-                                                                        7);
-  test_allocate_symmetric_remote_view_by_rank<int *****, RemoteMemSpace>(9, 10,
-                                                                         7, 2);
-  test_allocate_symmetric_remote_view_by_rank<int ******, RemoteMemSpace>(
+  test_allocate_symmetric_remote_view_by_rank<int *, RemoteSpace_t>();
+  test_allocate_symmetric_remote_view_by_rank<int **, RemoteSpace_t>(113);
+  test_allocate_symmetric_remote_view_by_rank<int ***, RemoteSpace_t>(7, 5);
+  test_allocate_symmetric_remote_view_by_rank<int ****, RemoteSpace_t>(9, 10,
+                                                                       7);
+  test_allocate_symmetric_remote_view_by_rank<int *****, RemoteSpace_t>(9, 10,
+                                                                        7, 2);
+  test_allocate_symmetric_remote_view_by_rank<int ******, RemoteSpace_t>(
       9, 10, 7, 2, 1);
-  test_allocate_symmetric_remote_view_by_rank<int *******, RemoteMemSpace>(
+  test_allocate_symmetric_remote_view_by_rank<int *******, RemoteSpace_t>(
       9, 10, 7, 2, 1, 1);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 }

@@ -26,7 +26,9 @@
 
 namespace Kokkos {
 
-struct PartitionedLayoutLeft {
+class PartitionedLayout {};
+
+struct PartitionedLayoutLeft : public PartitionedLayout {
   //! Tag this class as a kokkos array layout
   using array_layout = PartitionedLayoutLeft;
 
@@ -47,7 +49,7 @@ struct PartitionedLayoutLeft {
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7} {}
 };
 
-struct PartitionedLayoutRight {
+struct PartitionedLayoutRight : public PartitionedLayout {
   //! Tag this class as a kokkos array layout
   using array_layout = PartitionedLayoutRight;
 
@@ -71,7 +73,7 @@ struct PartitionedLayoutRight {
 /// \struct PartitionedLayoutStride
 /// \brief  Memory layout tag indicated arbitrarily strided
 ///         multi-index mapping into contiguous memory.
-struct PartitionedLayoutStride {
+struct PartitionedLayoutStride : public PartitionedLayout {
   //! Tag this class as a kokkos array layout
   using array_layout = PartitionedLayoutStride;
 

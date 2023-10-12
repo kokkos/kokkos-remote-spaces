@@ -34,8 +34,6 @@
 namespace Kokkos {
 namespace Experimental {
 
-class RemoteSpaceSpecializeTag {};
-
 class NVSHMEMSpace {
  public:
 #if defined(KOKKOS_ENABLE_CUDA)
@@ -137,6 +135,14 @@ struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
 };
 
 template <>
+struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
+                         Kokkos::HostSpace> {
+  enum : bool { assignable = false };
+  enum : bool { accessible = false };
+  enum : bool { deepcopy = true };
+};
+
+template <>
 struct MemorySpaceAccess<Kokkos::HostSpace,
                          Kokkos::Experimental::NVSHMEMSpace> {
   enum { assignable = false };
@@ -152,20 +158,29 @@ struct MemorySpaceAccess<Kokkos::CudaSpace,
   enum { deepcopy = true };
 };
 
+template <>
+struct MemorySpaceAccess<Kokkos::Experimental::NVSHMEMSpace,
+                         Kokkos::CudaSpace> {
+  enum { assignable = false };
+  enum { accessible = true };
+  enum { deepcopy = true };
+};
+
 }  // namespace Impl
 }  // namespace Kokkos
 
 #include <Kokkos_RemoteSpaces_Error.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
+#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_RemoteSpaces_Helpers.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
-#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_NVSHMEMSpace_Ops.hpp>
 #include <Kokkos_NVSHMEMSpace_BlockOps.hpp>
+#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_NVSHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_NVSHMEMSpace_DataHandle.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
-#include <Kokkos_NVSHMEMSpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_NVSHMEMSPACE_HPP

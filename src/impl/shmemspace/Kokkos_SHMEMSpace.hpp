@@ -33,8 +33,6 @@
 namespace Kokkos {
 namespace Experimental {
 
-struct RemoteSpaceSpecializeTag {};
-
 class SHMEMSpace {
  public:
 #if defined(KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_OPENMP)
@@ -155,20 +153,28 @@ struct MemorySpaceAccess<Kokkos::HostSpace, Kokkos::Experimental::SHMEMSpace> {
   enum { deepcopy = true };
 };
 
+template <>
+struct MemorySpaceAccess<Kokkos::Experimental::SHMEMSpace, Kokkos::HostSpace> {
+  enum { assignable = false };
+  enum { accessible = true };
+  enum { deepcopy = true };
+};
+
 }  // namespace Impl
 }  // namespace Kokkos
 
 #include <Kokkos_RemoteSpaces_Error.hpp>
-#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
-#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_Options.hpp>
+#include <Kokkos_SHMEMSpace_ViewTraits.hpp>
+#include <Kokkos_RemoteSpaces_ViewLayout.hpp>
+#include <Kokkos_RemoteSpaces_Helpers.hpp>
+#include <Kokkos_RemoteSpaces_DeepCopy.hpp>
 #include <Kokkos_RemoteSpaces_ViewOffset.hpp>
-#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_SHMEMSpace_Ops.hpp>
 #include <Kokkos_SHMEMSpace_BlockOps.hpp>
+#include <Kokkos_RemoteSpaces_ViewMapping.hpp>
 #include <Kokkos_SHMEMSpace_AllocationRecord.hpp>
 #include <Kokkos_SHMEMSpace_DataHandle.hpp>
 #include <Kokkos_RemoteSpaces_LocalDeepCopy.hpp>
-#include <Kokkos_SHMEMSpace_ViewTraits.hpp>
 
 #endif  // #define KOKKOS_SHMEMSPACE_HPP
