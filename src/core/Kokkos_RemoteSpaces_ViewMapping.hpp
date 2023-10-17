@@ -181,8 +181,6 @@ class ViewMapping<
         "Subview destination type must be compatible with subview "
         "derived type");
 
-    bool use_local_indexing = false;
-
     using SrcType =
         ViewMapping<SrcTraits, Kokkos::Experimental::RemoteSpaceSpecializeTag>;
     using DstType =
@@ -194,15 +192,20 @@ class ViewMapping<
     dst.m_offset = dst_offset_type(src.m_offset, extents);
 
     dst.remote_view_props = src.remote_view_props;
-    if (!src.remote_view_props.R0) {
-      // Src view is a node-local subview (R0 of src view is scalar)
-      use_local_indexing       = true;
-      dst.remote_view_props.R0 = false;
-    } else {
-      // R0 is range or remote subview, use
+    bool use_local_indexing;
+
+    if (src.remote_view_props.R0) {
+      // R0 is range or remote subview, use global indexing
       dst.remote_view_props.R0_domain_offset = extents.domain_offset(0);
       dst.remote_view_props.is_subview       = true;
       dst.remote_view_props.R0               = R0;
+      use_local_indexing                     = false;
+    } else {
+      // Src view is a node-local subview (R0 of src view is scalar)
+      // All subsequent subviews will retain R0_domain_offset and will use local
+      // indexing on the rank determined by R0_domain_offset
+      use_local_indexing       = true;
+      dst.remote_view_props.R0 = false;
     }
 
     typename view_type::size_type offset;

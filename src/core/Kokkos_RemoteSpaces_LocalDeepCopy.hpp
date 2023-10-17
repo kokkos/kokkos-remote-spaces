@@ -131,6 +131,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), src_rank);
 #endif
       data_block.get();
+#ifdef KRS_ENABLE_MPISPACE
+      MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
     });
   } else if (dst_rank != my_rank) {
     team.team_barrier();
@@ -145,6 +148,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), dst_rank);
 #endif
       data_block.put();
+#ifdef KRS_ENABLE_MPISPACE
+      MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
     });
   } else {
     static_assert("Unable to determine view data location");
@@ -196,6 +202,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), src_rank);
 #endif
     data_block.get();
+#ifdef KRS_ENABLE_MPISPACE
+    MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
   } else if (dst_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     dst_data_block_t data_block = dst_data_block_t(
@@ -206,6 +215,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), dst_rank);
 #endif
     data_block.put();
+#ifdef KRS_ENABLE_MPISPACE
+    MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
   } else {
     static_assert("Unable to determine view data location");
   }
