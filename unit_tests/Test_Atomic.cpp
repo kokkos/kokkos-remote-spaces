@@ -39,6 +39,7 @@ void test_atomic_globalview1D(int dim0) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
@@ -68,6 +69,7 @@ void test_atomic_globalview2D(int dim0, int dim1) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
@@ -100,6 +102,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
@@ -133,5 +136,5 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview3D<int>(255, 1024, 3);
   test_atomic_globalview3D<int>(3, 33, 1024);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

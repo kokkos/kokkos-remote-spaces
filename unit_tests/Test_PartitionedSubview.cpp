@@ -299,5 +299,5 @@ TEST(TEST_CATEGORY, test_partitioned_subview) {
                                              Kokkos::PartitionedLayoutLeft>(50,
                                                                             77);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

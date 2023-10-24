@@ -178,7 +178,7 @@ void MPISpace::impl_deallocate(
   }
 }
 
-void MPISpace::fence() const {
+void MPISpace::fence() {
   Kokkos::fence();
   for (int i = 0; i < mpi_windows.size(); i++) {
     if (mpi_windows[i] != MPI_WIN_NULL) {

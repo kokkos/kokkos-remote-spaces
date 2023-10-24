@@ -61,5 +61,5 @@ TEST(TEST_CATEGORY, test_remote_accesses) {
   test_remote_accesses<int64_t, RemoteSpace_t>(4567);
   test_remote_accesses<double, RemoteSpace_t>(89);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

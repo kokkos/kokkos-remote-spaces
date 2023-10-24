@@ -41,6 +41,7 @@ void test_globalview1D(int dim0) {
   for (int i = 0; i < v_h.extent(0); ++i) v_h(i) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
@@ -76,6 +77,7 @@ void test_globalview2D(int dim0, int dim1) {
     for (int j = 0; j < v_h.extent(1); ++j) v_h(i, j) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
@@ -114,6 +116,7 @@ void test_globalview3D(int dim0, int dim1, int dim2) {
       for (int k = 0; k < v_h.extent(2); ++k) v_h(i, j, k) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   auto policy = Kokkos::RangePolicy<>(remote_range.first, remote_range.second);
 
@@ -151,5 +154,5 @@ TEST(TEST_CATEGORY, test_globalview) {
   test_globalview3D<float>(255, 1024, 3);
   test_globalview3D<double>(3, 33, 1024);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

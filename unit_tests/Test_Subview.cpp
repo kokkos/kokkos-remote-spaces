@@ -52,6 +52,7 @@ void test_subview1D(int i1) {
   for (int i = 0; i < v_h.extent(0); ++i) v_h(i) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", iters, KOKKOS_LAMBDA(const int i) {
@@ -95,6 +96,7 @@ void test_subview2D(int i1, int i2) {
     for (int j = 0; j < v_h.extent(1); ++j) v_h(i, j) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", iters, KOKKOS_LAMBDA(const int i) {
@@ -140,6 +142,7 @@ void test_subview3D(int i1, int i2, int i3) {
       for (int k = 0; k < v_h.extent(2); ++k) v_h(i, j, k) = 0;
 
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", iters, KOKKOS_LAMBDA(const int j) {
@@ -214,5 +217,5 @@ TEST(TEST_CATEGORY, test_subview) {
   // DIE(test_subview3D_DCCopiesSubviewAccess<float>(55, 11, 13));
   // DIE(test_subview3D_DCCopiesSubviewAccess<double>(13, 31, 23));
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

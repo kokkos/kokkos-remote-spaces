@@ -40,5 +40,5 @@ TEST(TEST_CATEGORY, test_reference_counting) {
   test_reference_counting<int, RemoteSpace_t>();
   test_reference_counting<double, RemoteSpace_t>();
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }
