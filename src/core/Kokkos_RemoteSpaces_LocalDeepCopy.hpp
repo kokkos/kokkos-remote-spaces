@@ -52,7 +52,7 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
 
 template <class T>
 auto KOKKOS_INLINE_FUNCTION get_subview_start_adr(T view) {
-  return view.impl_map().m_handle.ptr;
+  return view.data();
 }
 
 }  // namespace Impl
@@ -73,8 +73,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  int src_rank = src.impl_map().get_owning_pe();
-  int dst_rank = dst.impl_map().get_owning_pe();
+  int src_rank = src.impl_map().get_lowest_participating_PE();
+  int dst_rank = dst.impl_map().get_lowest_participating_PE();
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
@@ -131,6 +131,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), src_rank);
 #endif
       data_block.get();
+#ifdef KRS_ENABLE_MPISPACE
+      MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
     });
   } else if (dst_rank != my_rank) {
     team.team_barrier();
@@ -145,6 +148,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), dst_rank);
 #endif
       data_block.put();
+#ifdef KRS_ENABLE_MPISPACE
+      MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
     });
   } else {
     static_assert("Unable to determine view data location");
@@ -160,8 +166,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  int src_rank = src.impl_map().get_owning_pe();
-  int dst_rank = dst.impl_map().get_owning_pe();
+  int src_rank = src.impl_map().get_lowest_participating_PE();
+  int dst_rank = dst.impl_map().get_lowest_participating_PE();
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
@@ -196,6 +202,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), src_rank);
 #endif
     data_block.get();
+#ifdef KRS_ENABLE_MPISPACE
+    MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
   } else if (dst_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     dst_data_block_t data_block = dst_data_block_t(
@@ -206,6 +215,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), dst_rank);
 #endif
     data_block.put();
+#ifdef KRS_ENABLE_MPISPACE
+    MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
   } else {
     static_assert("Unable to determine view data location");
   }

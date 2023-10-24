@@ -131,11 +131,11 @@ class ViewMapping<
 
   // If dim0 is range and PartitionedLayout, dim0 is PE
   // We compute the offset to that subview during assign
-  enum { require_Dim0_IsPE = R0 };
+  enum { require_R0 = R0 };
 
  public:
   using memory_traits = typename std::conditional<
-      require_Dim0_IsPE,
+      require_R0,
       Kokkos::MemoryTraits<
           RemoteSpaces_MemoryTraits<typename SrcTraits::memory_traits>::state |
           RemoteSpaces_MemoryTraitFlags::Dim0IsPE>,
@@ -191,17 +191,34 @@ class ViewMapping<
                                                         args...);
     dst.m_offset = dst_offset_type(src.m_offset, extents);
 
-    dst.remote_view_props                = src.remote_view_props;
-    dst.remote_view_props.dim0_isPE      = R0;
-    dst.remote_view_props.is_subview     = true;
-    dst.remote_view_props.dim0_idxOffset = extents.domain_offset(0);
+    dst.remote_view_props = src.remote_view_props;
+    bool use_local_indexing;
+
+    if (src.remote_view_props.R0) {
+      // R0 is range or remote subview, use global indexing
+      dst.remote_view_props.R0_domain_offset = extents.domain_offset(0);
+      dst.remote_view_props.is_subview       = true;
+      dst.remote_view_props.R0               = R0;
+      use_local_indexing                     = false;
+    } else {
+      // Src view is a node-local subview (R0 of src view is scalar)
+      // All subsequent subviews will retain R0_domain_offset and will use local
+      // indexing on the rank determined by R0_domain_offset
+      use_local_indexing       = true;
+      dst.remote_view_props.R0 = false;
+    }
 
     typename view_type::size_type offset;
-
-    offset = src.m_offset(0, extents.domain_offset(1), extents.domain_offset(2),
-                          extents.domain_offset(3), extents.domain_offset(4),
-                          extents.domain_offset(5), extents.domain_offset(6),
-                          extents.domain_offset(7));
+    offset =
+        use_local_indexing
+            ? src.m_offset(extents.domain_offset(0), extents.domain_offset(1),
+                           extents.domain_offset(2), extents.domain_offset(3),
+                           extents.domain_offset(4), extents.domain_offset(5),
+                           extents.domain_offset(6), extents.domain_offset(7))
+            : src.m_offset(0, extents.domain_offset(1),
+                           extents.domain_offset(2), extents.domain_offset(3),
+                           extents.domain_offset(4), extents.domain_offset(5),
+                           extents.domain_offset(6), extents.domain_offset(7));
 
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
@@ -254,22 +271,19 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   int get_my_PE() const { return remote_view_props.my_PE; }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION int get_owning_pe(
+  KOKKOS_INLINE_FUNCTION int get_lowest_participating_PE(
       typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
-    // If View is subview, compute owning PE of index dim0_idxOffset
-    if (remote_view_props.is_subview) return remote_view_props.dim0_idxOffset;
-    // Else, return my_PE
-    return remote_view_props.my_PE;
+    return remote_view_props.R0_domain_offset;
   }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION int get_owning_pe(
+  KOKKOS_INLINE_FUNCTION int get_lowest_participating_PE(
       typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
-    // If View is subview, compute owning PE of index dim0_idxOffset
+    // If View is subview, compute owning PE of index R0_domain_offset
     if (remote_view_props.is_subview)
-      return compute_dim0_offsets(remote_view_props.dim0_idxOffset).PE;
+      return compute_dim0_offsets(remote_view_props.R0_domain_offset).PE;
     // Else, return my_PE
     return remote_view_props.my_PE;
   }
@@ -289,7 +303,10 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
       typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
-    return remote_view_props.dim0_localSize;
+    if (remote_view_props.R0)
+      return remote_view_props.R0_size;
+    else
+      return m_offset.m_dim.extent(0);
   }
 
   template <typename T = Traits>
@@ -382,167 +399,57 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION
   reference_type reference() const { return m_handle[0]; }
 
-  //----------------------------------------
-  // PartitionedLayout{Left,Right,Strided} access operators where dim0 is PE
+  // PartitionedLayout{Left,Right,Strided} access operators
 
   template <typename I0, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type reference(
-      const I0 &i0, typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                              Is_Dim0_Used_As_PE<T>::value> * =
-                        nullptr) const {
-    auto dim0_offset             = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element = m_handle(dim0_offset, 0);
-    return element;
-  }
-
-  template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
+  reference(const I0 &i0,
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto dim0_offset             = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element = m_handle(dim0_offset, m_offset(0, i1));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
-                nullptr) const {
-    auto dim0_offset             = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element = m_handle(dim0_offset, m_offset(0, i1, i2));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename I3,
-            typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
-                nullptr) const {
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element =
-        m_handle(dim0_offset, m_offset(0, i1, i2, i3));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename I3, typename I4,
-            typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type reference(
-      const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
-      typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                Is_Dim0_Used_As_PE<T>::value> * =
-          nullptr) const {
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element =
-        m_handle(dim0_offset, m_offset(0, i1, i2, i3, i4));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename I3, typename I4,
-            typename I5, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, const I5 &i5,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
-                nullptr) const {
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element =
-        m_handle(dim0_offset, m_offset(0, i1, i2, i3, i4, i5));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename I3, typename I4,
-            typename I5, typename I6, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, const I5 &i5, const I6 &i6,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
-                nullptr) const {
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element =
-        m_handle(dim0_offset, m_offset(0, i1, i2, i3, i4, i5, i6));
-    return element;
-  }
-
-  template <typename I0, typename I1, typename I2, typename I3, typename I4,
-            typename I5, typename I6, typename I7, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      Is_Dim0_Used_As_PE<T>::value> * =
-                nullptr) const {
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
-    const reference_type element =
-        m_handle(dim0_offset, m_offset(0, i1, i2, i3, i4, i5, i6, i7));
-    return element;
-  }
-
-  //----------------------------------------
-  // PartitionedLayout{Left,Right,Strided} access operators where dim0 is not
-  // PE This can occur on subview creation where dim0 becomes a scalar
-
-  template <typename I0, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type reference(
-      const I0 &i0, typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                              !Is_Dim0_Used_As_PE<T>::value> * =
-                        nullptr) const {
     // We need this dynamic check as we do not derive the
     // type specialization at view construction through the
     // view ctr (only through Kokkos::subview(...)). This adds support
     // for auto sub_v = View_t(old_sub_v,...).
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
-    const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0));
+    const reference_type element = m_handle(dim0_offset, m_offset(_i0));
     return element;
   }
 
   template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
-    const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1));
+    const reference_type element = m_handle(dim0_offset, m_offset(_i0, i1));
     return element;
   }
 
   template <typename I0, typename I1, typename I2, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
-    const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1, i2));
+    const reference_type element = m_handle(dim0_offset, m_offset(_i0, i1, i2));
     return element;
   }
 
@@ -550,18 +457,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
     const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1, i2, i3));
+        m_handle(dim0_offset, m_offset(_i0, i1, i2, i3));
     return element;
   }
 
@@ -569,18 +475,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
-      typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                !Is_Dim0_Used_As_PE<T>::value> * =
+      typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
     const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1, i2, i3, i4));
+        m_handle(dim0_offset, m_offset(_i0, i1, i2, i3, i4));
     return element;
   }
 
@@ -589,18 +494,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
     const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5));
+        m_handle(dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5));
     return element;
   }
 
@@ -609,18 +513,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
     const reference_type element =
-        m_handle(m_handle_dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5, i6));
+        m_handle(dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5, i6));
     return element;
   }
 
@@ -629,18 +532,17 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7,
-            typename std::enable_if_t<Is_Partitioned_Layout<T>::value &&
-                                      !Is_Dim0_Used_As_PE<T>::value> * =
+            typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
-    auto m_handle_dim0_offset = remote_view_props.dim0_idxOffset;
-    auto _i0                  = i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset;
+    auto _i0         = i0;
 
-    if (remote_view_props.dim0_isPE) {
-      m_handle_dim0_offset += i0;
+    if (remote_view_props.R0) {
+      dim0_offset += i0;
       _i0 = 0;
     }
-    const reference_type element = m_handle(
-        m_handle_dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5, i6, i7));
+    const reference_type element =
+        m_handle(dim0_offset, m_offset(_i0, i1, i2, i3, i4, i5, i6, i7));
     return element;
   }
 
@@ -657,8 +559,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0>
   KOKKOS_INLINE_FUNCTION Dim0_IndexOffset<I0> compute_dim0_offsets(
       const I0 &_i0) const {
-    assert(remote_view_props.dim0_localSize);
-    auto local_size = static_cast<I0>(remote_view_props.dim0_localSize);
+    assert(remote_view_props.R0_size);
+    auto local_size = static_cast<I0>(remote_view_props.R0_size);
     auto target_pe  = static_cast<int>(_i0 / local_size);
     auto dim0_mod   = static_cast<I0>(_i0 % local_size);
     return {target_pe, dim0_mod};
@@ -669,11 +571,21 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   reference(const I0 &i0,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element = m_handle(0, m_offset(i0));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element    = m_handle(new_offset.PE, m_offset(i0));
+      return element;
+    }
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
         m_handle(new_offset.PE, m_offset(new_offset.offset));
@@ -685,11 +597,21 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   reference(const I0 &i0, const I1 &i1,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element = m_handle(0, m_offset(i0, i1));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element = m_handle(new_offset.PE, m_offset(i0, i1));
+      return element;
+    }
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
         m_handle(new_offset.PE, m_offset(new_offset.offset, i1));
@@ -701,11 +623,23 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   reference(const I0 &i0, const I1 &i1, const I2 &i2,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element = m_handle(0, m_offset(i0, i1, i2));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2));
+      return element;
+    }
+
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2));
       return element;
     }
-    auto dim0_offset = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset = remote_view_props.R0_domain_offset + i0;
 
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
@@ -719,11 +653,23 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2, i3));
+      return element;
+    }
+
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
         m_handle(new_offset.PE, m_offset(new_offset.offset, i1, i2, i3));
@@ -736,11 +682,24 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
       typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element =
+            m_handle(0, m_offset(i0, i1, i2, i3, i4));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4));
+      return element;
+    }
+
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3, i4));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
         m_handle(new_offset.PE, m_offset(new_offset.offset, i1, i2, i3, i4));
@@ -754,12 +713,25 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             const I4 &i4, const I5 &i5,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element =
+            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4, i5));
+      return element;
+    }
+
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(
         new_offset.PE, m_offset(new_offset.offset, i1, i2, i3, i4, i5));
@@ -773,12 +745,24 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             const I4 &i4, const I5 &i5, const I6 &i6,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element =
+            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4, i5, i6));
+      return element;
+    }
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(
         new_offset.PE, m_offset(new_offset.offset, i1, i2, i3, i4, i5, i6));
@@ -792,12 +776,24 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7,
             typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
                 nullptr) const {
+    if (!remote_view_props.R0) {
+      if (remote_view_props.num_PEs <= 1) {
+        const reference_type element =
+            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
+        return element;
+      }
+      auto dim0_offset                = remote_view_props.R0_domain_offset;
+      Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
+      const reference_type element =
+          m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
+      return element;
+    }
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
       return element;
     }
-    auto dim0_offset                = remote_view_props.dim0_idxOffset + i0;
+    auto dim0_offset                = remote_view_props.R0_domain_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(
         new_offset.PE, m_offset(new_offset.offset, i1, i2, i3, i4, i5, i6, i7));
@@ -891,9 +887,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
              RemoteSpaces_View_Properties<typename T::size_type> &view_props) {
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
-    view_props.dim0_localSize =
+    view_props.R0_size =
         Kokkos::Experimental::get_indexing_block_size(arg_layout.dimension[0]);
-    layout.dimension[0] = view_props.dim0_localSize;
+    layout.dimension[0] = view_props.R0_size;
   }
 
   template <typename T = Traits>
@@ -903,8 +899,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
              RemoteSpaces_View_Properties<typename T::size_type> &view_props) {
     for (int i = 0; i < T::rank; i++)
       layout.dimension[i] = arg_layout.dimension[i];
-    layout.dimension[0]       = 1;
-    view_props.dim0_localSize = 0;
+    layout.dimension[0] = 1;
+    view_props.R0_size  = 0;
   }
 
  public:

@@ -33,7 +33,7 @@ namespace Impl {
     int _typesize;                                                             \
     MPI_Request request;                                                       \
     MPI_Type_size(mpi_type, &_typesize);                                       \
-    const void *src_adr = ptr + offset;                                        \
+    const void *src_adr = ptr;                                                 \
     size_t win_offset   = sizeof(SharedAllocationHeader) + offset * _typesize; \
     MPI_Rput(src_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
              &request);                                                        \
@@ -63,7 +63,7 @@ KOKKOS_REMOTESPACES_PUT(double, MPI_DOUBLE)
     int _typesize;                                                             \
     MPI_Request request;                                                       \
     MPI_Type_size(mpi_type, &_typesize);                                       \
-    void *dst_adr     = ptr + offset;                                          \
+    void *dst_adr     = ptr;                                                   \
     size_t win_offset = sizeof(SharedAllocationHeader) + offset * _typesize;   \
     MPI_Rget(dst_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
              &request);                                                        \
