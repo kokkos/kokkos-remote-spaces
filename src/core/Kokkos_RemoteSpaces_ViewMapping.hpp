@@ -272,19 +272,20 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_lowest_participating_PE(
-      typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
-          nullptr) const {
-    return remote_view_props.R0_domain_offset;
-  }
-
-  template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION int get_lowest_participating_PE(
       typename std::enable_if_t<!Is_Partitioned_Layout<T>::value> * =
           nullptr) const {
     // If View is subview, compute owning PE of index R0_domain_offset
     if (remote_view_props.is_subview)
       return compute_dim0_offsets(remote_view_props.R0_domain_offset).PE;
     // Else, return my_PE
+    return remote_view_props.my_PE;
+  }
+
+  template <typename T = Traits>
+  KOKKOS_INLINE_FUNCTION int get_lowest_participating_PE(
+      typename std::enable_if_t<Is_Partitioned_Layout<T>::value> * =
+          nullptr) const {
+    if (remote_view_props.is_subview) return remote_view_props.R0_domain_offset;
     return remote_view_props.my_PE;
   }
 

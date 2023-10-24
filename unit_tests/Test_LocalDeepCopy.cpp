@@ -26,7 +26,8 @@ enum team_sizes : int { big = 32, small = 2, very_small = 3 };
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
                              std::is_same<Space_B, RemoteSpace_t>::value &&
@@ -36,7 +37,7 @@ void test_localdeepcopy(typename std::enable_if_t<
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t **, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -62,7 +63,8 @@ void test_localdeepcopy(typename std::enable_if_t<
   ASSERT_EQ(0x123, v_H(0, 0));
 }
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
                              std::is_same<Space_B, RemoteSpace_t>::value &&
@@ -72,7 +74,7 @@ void test_localdeepcopy(typename std::enable_if_t<
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t **, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -99,7 +101,8 @@ void test_localdeepcopy(typename std::enable_if_t<
   ASSERT_EQ(0x123, v_H(0, 0));
 }
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(int i1,
                         typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
@@ -110,7 +113,7 @@ void test_localdeepcopy(int i1,
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t **, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -135,7 +138,8 @@ void test_localdeepcopy(int i1,
   for (int j = 0; j < i1; ++j) ASSERT_EQ(0x123, v_H(0, j));
 }
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(int i1,
                         typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
@@ -146,7 +150,7 @@ void test_localdeepcopy(int i1,
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t **, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t **, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -174,7 +178,8 @@ void test_localdeepcopy(int i1,
   for (int j = 0; j < i1; ++j) ASSERT_EQ(0x123, v_H(0, j));
 }
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(int i1, int i2,
                         typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
@@ -185,7 +190,7 @@ void test_localdeepcopy(int i1, int i2,
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -215,7 +220,8 @@ void test_localdeepcopy(int i1, int i2,
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
 }
 
-template <class Data_t, class Space_A, class Space_B, int is_enabled_team>
+template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
+          class Layout_t>
 void test_localdeepcopy(int i1, int i2,
                         typename std::enable_if_t<
                             (std::is_same<Space_A, Kokkos::HostSpace>::value &&
@@ -226,7 +232,7 @@ void test_localdeepcopy(int i1, int i2,
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -255,7 +261,7 @@ void test_localdeepcopy(int i1, int i2,
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -273,7 +279,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -338,7 +344,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -356,7 +362,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -415,7 +421,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -433,7 +439,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -501,7 +507,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -519,7 +525,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -575,7 +581,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -593,7 +599,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -658,7 +664,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -676,7 +682,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -735,7 +741,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -753,7 +759,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -821,7 +827,7 @@ void test_localdeepcopy_withSubview(
 }
 
 template <class Data_t, class Space_A, class Space_B, int is_enabled_team,
-          int block_op_type, int subview_gen>
+          int block_op_type, int subview_gen, class Layout_t>
 void test_localdeepcopy_withSubview(
     int i1, int i2,
     typename std::enable_if_t<
@@ -839,7 +845,7 @@ void test_localdeepcopy_withSubview(
 
   if (num_ranks % 2 && num_ranks > 1) return;  // skip
 
-  using ViewRemote_t = Kokkos::View<Data_t ***, Space_B>;
+  using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
   using TeamPolicy_t = Kokkos::TeamPolicy<>;
 
@@ -897,71 +903,82 @@ void test_localdeepcopy_withSubview(
   }
 }
 
+#define GENBLOCK_TEST_LOCALDEEPCOPY(TEAM, LAYOUT)                              \
+  /* Scalar */                                                                 \
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>();   \
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, TEAM,          \
+                     LAYOUT>();                                                \
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, TEAM,           \
+                     LAYOUT>();                                                \
+                                                                               \
+  /* 1D */                                                                     \
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>(50); \
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>( \
+      150);                                                                    \
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>(  \
+      1500);                                                                   \
+                                                                               \
+  /* 2D */                                                                     \
+  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>(50,  \
+                                                                          20); \
+  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>( \
+      150, 99);                                                                \
+  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, TEAM, LAYOUT>(  \
+      150, 2199);
+
+#define GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(TEAM, LAYOUT, IS_RANGES)      \
+  /* 2D with Subviews (get block transfer)*/                                  \
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, \
+                                 get_op, IS_RANGES, LAYOUT>(12, 15);          \
+  /* 2D with Subviews (put block transfer) */                                 \
+  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, \
+                                 put_op, IS_RANGES, LAYOUT>(5, 16);           \
+  /* 2D with Subviews (get block transfer)*/                                  \
+  test_localdeepcopy_withSubview<int64_t, Kokkos::HostSpace, RemoteSpace_t,   \
+                                 TEAM, get_op, IS_RANGES, LAYOUT>(12, 15);    \
+  /* 2D with Subviews (put block transfer)*/                                  \
+  test_localdeepcopy_withSubview<int64_t, Kokkos::HostSpace, RemoteSpace_t,   \
+                                 TEAM, put_op, IS_RANGES, LAYOUT>(5, 16);     \
+  /* 2D with Subviews (get block transfer)*/                                  \
+  test_localdeepcopy_withSubview<double, Kokkos::HostSpace, RemoteSpace_t,    \
+                                 TEAM, get_op, IS_RANGES, LAYOUT>(12, 15);    \
+  /* 2D with Subviews (put block transfer)*/                                  \
+  test_localdeepcopy_withSubview<double, Kokkos::HostSpace, RemoteSpace_t,    \
+                                 TEAM, put_op, IS_RANGES, LAYOUT>(5, 16);
+
 TEST(TEST_CATEGORY, test_localdeepcopy) {
-  // Scalar
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>();
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>();
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>();
+  using LL_t  = Kokkos::LayoutLeft;
+  using LR_t  = Kokkos::LayoutRight;
+  using PLL_t = Kokkos::PartitionedLayoutLeft;
+  using PLR_t = Kokkos::PartitionedLayoutRight;
 
-  // Scalar with Teams
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>();
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>();
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>();
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLR_t)
 
-  // 1D
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>(50);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>(
-      150);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>(
-      1500);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_ranges);
 
-  // 1D with Teams
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>(50);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>(150);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>(1500);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_scalar);
 
-  // 2D
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, without_team>(50,
-                                                                          20);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, without_team>(
-      150, 99);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, without_team>(
-      1500, 2199);
-
-  // 2D with Teams
-  test_localdeepcopy<int, Kokkos::HostSpace, RemoteSpace_t, with_team>(50, 20);
-  test_localdeepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t, with_team>(150,
-                                                                           99);
-  test_localdeepcopy<double, Kokkos::HostSpace, RemoteSpace_t, with_team>(1500,
-                                                                          2199);
-
-  // With subviews using ranges
-  // 2D with Subviews (get block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 without_team, get_op, with_ranges>(12, 15);
-  // 2D with Teams and Subviews (get block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 with_team, get_op, with_ranges>(14, 19);
-  // 2D with Subviews (put block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 without_team, put_op, with_ranges>(5, 16);
-  // 2D with Teams and Subviews (put block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 with_team, put_op, with_ranges>(33, 2);
-
-  // With subviews using scalar
-  // 2D with Subviews (get block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 without_team, get_op, with_scalar>(12, 15);
-  // 2D with Teams and Subviews (get block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 with_team, get_op, with_scalar>(14, 19);
-  // 2D with Subviews (put block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 without_team, put_op, with_scalar>(25, 16);
-  // 2D with Teams and Subviews (put block transfer)
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t,
-                                 with_team, put_op, with_scalar>(37, 2);
+  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_scalar);*/
 
   MPI_Barrier(MPI_COMM_WORLD);
 }
