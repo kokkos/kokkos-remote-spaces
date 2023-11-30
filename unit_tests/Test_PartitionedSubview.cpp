@@ -212,6 +212,8 @@ void test_partitioned_subview2D_byRank_nextRank(int i1, int i2) {
         for (int j = 0; j < v_sub_next.extent(1); ++j) v_sub_next(i, j)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v_sub);
 
   for (int i = 0; i < i1; ++i)

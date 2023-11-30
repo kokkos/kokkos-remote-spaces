@@ -44,6 +44,8 @@ void test_atomic_globalview1D(int dim0) {
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -76,6 +78,8 @@ void test_atomic_globalview2D(int dim0, int dim1) {
         for (int j = 0; j < v.extent(1); ++j) v(i, j)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -110,6 +114,8 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
           for (int k = 0; k < dim2; ++k) v(i, j, k)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);

@@ -60,6 +60,8 @@ void test_subview1D(int i1) {
         v_sub_2(i)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(i1);
@@ -106,6 +108,8 @@ void test_subview2D(int i1, int i2) {
         }
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(i1);
@@ -153,6 +157,8 @@ void test_subview3D(int i1, int i2, int i3) {
           }
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(i1);

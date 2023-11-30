@@ -48,6 +48,8 @@ void test_globalview1D(int dim0) {
   Kokkos::parallel_for(
       "Increment", policy, KOKKOS_LAMBDA(const int i) { v(i)++; });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -86,6 +88,8 @@ void test_globalview2D(int dim0, int dim1) {
         for (int j = 0; j < dim1; ++j) v(i, j)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -126,6 +130,8 @@ void test_globalview3D(int dim0, int dim1, int dim2) {
           for (int k = 0; k < dim2; ++k) v(i, j, k)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);

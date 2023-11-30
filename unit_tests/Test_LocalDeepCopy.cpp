@@ -213,7 +213,10 @@ void test_localdeepcopy(int i1, int i2,
         });
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R_cpy);
+
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
 }
@@ -253,7 +256,10 @@ void test_localdeepcopy(int i1, int i2,
         Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_R_cpy, v_R);
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R_cpy);
+
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
 }
@@ -332,6 +338,7 @@ void test_localdeepcopy_withSubview(
         });
   }
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -392,6 +399,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_local, v_R_subview_next);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -409,6 +417,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_local, v_R_subview_prev);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -473,6 +482,7 @@ void test_localdeepcopy_withSubview(
         });
   }
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -495,6 +505,7 @@ void test_localdeepcopy_withSubview(
           });
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -554,6 +565,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_next, v_R_subview_local);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   if (my_rank % 2 != 0) {
@@ -570,6 +582,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_prev, v_R_subview_local);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   if (my_rank % 2 != 0) {
@@ -632,6 +645,7 @@ void test_localdeepcopy_withSubview(
           });
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
 
@@ -652,6 +666,7 @@ void test_localdeepcopy_withSubview(
         });
   }
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
 
@@ -712,6 +727,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_local, v_R_subview_next);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
 
@@ -729,6 +745,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_local, v_R_subview_prev);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
 
@@ -817,6 +834,7 @@ void test_localdeepcopy_withSubview(
           });
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
 
@@ -877,9 +895,10 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_next, v_R_subview_local);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
-
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
+
   if (my_rank % 2 != 0)
     for (int i = 0; i < i1; ++i)
       for (int j = 0; j < i2; ++j) ASSERT_EQ(prev_rank, v_H_sub(i, j));
@@ -895,6 +914,7 @@ void test_localdeepcopy_withSubview(
               team, v_R_subview_prev, v_R_subview_local);
         });
   }
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H_sub, v_R_subview_local);
   if (my_rank % 2 != 0) {
