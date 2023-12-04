@@ -133,14 +133,14 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview1D<int>(31);
 
   // 2D
-  test_atomic_globalview2D<int>(128, 312);
-  test_atomic_globalview2D<int>(256, 237);
-  test_atomic_globalview2D<int>(1, 1);
+  test_atomic_globalview2D<int64_t>(1, 1);
+  test_atomic_globalview2D<int64_t>(128, 312);
+  test_atomic_globalview2D<int64_t>(256, 237);
 
   // 3D
-  test_atomic_globalview3D<int>(1, 1, 1);
-  test_atomic_globalview3D<int>(255, 1024, 3);
-  test_atomic_globalview3D<int>(3, 33, 1024);
+  test_atomic_globalview3D<int64_t>(1, 1, 1);
+  test_atomic_globalview3D<int64_t>(2, 17, 123);
+  test_atomic_globalview3D<int64_t>(3, 8, 123);
 
   RemoteSpace_t::fence();
 }

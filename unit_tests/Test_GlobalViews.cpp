@@ -21,14 +21,14 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t>
+template <class Data_t, class Layout_t>
 void test_globalview1D(int dim0) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_1D_t = Kokkos::View<Data_t *, RemoteSpace_t>;
+  using ViewRemote_1D_t = Kokkos::View<Data_t *, Layout_t, RemoteSpace_t>;
   using ViewHost_1D_t   = typename ViewRemote_1D_t::HostMirror;
 
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", dim0);
@@ -58,14 +58,14 @@ void test_globalview1D(int dim0) {
     ASSERT_EQ(v_h(i), 1);
 }
 
-template <class Data_t>
+template <class Data_t, class Layout_t>
 void test_globalview2D(int dim0, int dim1) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, Layout_t, RemoteSpace_t>;
   using ViewHost_2D_t   = typename ViewRemote_2D_t::HostMirror;
 
   ViewRemote_2D_t v = ViewRemote_2D_t("RemoteView", dim0, dim1);
@@ -98,14 +98,14 @@ void test_globalview2D(int dim0, int dim1) {
     for (int j = 0; j < v_h.extent(1); ++j) ASSERT_EQ(v_h(i, j), 1);
 }
 
-template <class Data_t>
+template <class Data_t, class Layout_t>
 void test_globalview3D(int dim0, int dim1, int dim2) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, Layout_t, RemoteSpace_t>;
   using ViewHost_3D_t   = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", dim0, dim1, dim2);
@@ -141,24 +141,47 @@ void test_globalview3D(int dim0, int dim1, int dim2) {
       for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 1);
 }
 
+#define GENBLOCK_CORNERCASES(TYPE, LAYOUT)  \
+  /*Corner cases*/                          \
+  test_globalview1D<TYPE, LAYOUT>(0);       \
+  test_globalview1D<TYPE, LAYOUT>(1);       \
+  test_globalview2D<TYPE, LAYOUT>(0, 0);    \
+  test_globalview2D<TYPE, LAYOUT>(1, 1);    \
+  test_globalview3D<TYPE, LAYOUT>(0, 0, 0); \
+  test_globalview3D<TYPE, LAYOUT>(1, 1, 1);
+
+#define GENBLOCK_CORNERCASES(TYPE, LAYOUT)  \
+  /*Corner cases*/                          \
+  test_globalview1D<TYPE, LAYOUT>(0);       \
+  test_globalview1D<TYPE, LAYOUT>(1);       \
+  test_globalview2D<TYPE, LAYOUT>(0, 0);    \
+  test_globalview2D<TYPE, LAYOUT>(1, 1);    \
+  test_globalview3D<TYPE, LAYOUT>(0, 0, 0); \
+  test_globalview3D<TYPE, LAYOUT>(1, 1, 1);
+
+#define GENBLOCK_OTHERCASES(TYPE, LAYOUT)     \
+  test_globalview1D<TYPE, LAYOUT>(1235);      \
+  test_globalview2D<TYPE, LAYOUT>(1129, 313); \
+  test_globalview3D<TYPE, LAYOUT>(3, 33, 1025);
+
 TEST(TEST_CATEGORY, test_globalview) {
-  // 1D
-  test_globalview1D<int>(0);
-  test_globalview1D<int>(1);
-  test_globalview1D<int>(3);
-  test_globalview1D<int>(10);
-  test_globalview1D<int>(31);
-  test_globalview1D<int>(1234);
+  /*Corner cases*/
+  GENBLOCK_CORNERCASES(int, Kokkos::LayoutLeft)
+  GENBLOCK_CORNERCASES(float, Kokkos::LayoutLeft)
+  GENBLOCK_CORNERCASES(double, Kokkos::LayoutLeft)
 
-  // 2D
-  test_globalview2D<int>(128, 312);
-  test_globalview2D<float>(256, 237);
-  test_globalview2D<double>(1, 1);
+  GENBLOCK_CORNERCASES(int, Kokkos::LayoutRight)
+  GENBLOCK_CORNERCASES(float, Kokkos::LayoutRight)
+  GENBLOCK_CORNERCASES(double, Kokkos::LayoutRight)
 
-  // 3D
-  test_globalview3D<int>(1, 1, 1);
-  test_globalview3D<float>(255, 1024, 3);
-  test_globalview3D<double>(3, 33, 1024);
+  /*Other cases*/
+  GENBLOCK_OTHERCASES(int, Kokkos::LayoutLeft);
+  GENBLOCK_OTHERCASES(float, Kokkos::LayoutLeft);
+  GENBLOCK_OTHERCASES(double, Kokkos::LayoutLeft);
+
+  GENBLOCK_OTHERCASES(int, Kokkos::LayoutRight);
+  GENBLOCK_OTHERCASES(float, Kokkos::LayoutRight);
+  GENBLOCK_OTHERCASES(double, Kokkos::LayoutRight);
 
   RemoteSpace_t::fence();
 }
