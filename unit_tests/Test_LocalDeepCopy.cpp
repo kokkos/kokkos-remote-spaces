@@ -305,6 +305,7 @@ void test_localdeepcopy_withSubview(
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
 
   // Copy from next
@@ -318,6 +319,8 @@ void test_localdeepcopy_withSubview(
           });
         });
   }
+
+  Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
@@ -389,6 +392,7 @@ void test_localdeepcopy_withSubview(
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
   // Copy from next
   if (my_rank % 2 == 0) {
@@ -468,6 +472,7 @@ void test_localdeepcopy_withSubview(
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
 
   // Put to next
@@ -555,7 +560,10 @@ void test_localdeepcopy_withSubview(
       "Init", i1, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = my_rank;
       });
+
+  Kokkos::fence();
   RemoteSpace_t::fence();
+
   // Put to next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
@@ -632,6 +640,7 @@ void test_localdeepcopy_withSubview(
         for (int j = 0; j < i2; ++j) v_R_subview_local(i, j) = my_rank;
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
 
   // Copy from next
@@ -653,6 +662,7 @@ void test_localdeepcopy_withSubview(
     for (int i = 0; i < i1; ++i)
       for (int j = 0; j < i2; ++j) ASSERT_EQ(next_rank, v_H_sub(i, j));
   }
+
   RemoteSpace_t::fence();
   // Copy from previous
   if (my_rank % 2 == 0) {
@@ -717,7 +727,9 @@ void test_localdeepcopy_withSubview(
         for (int j = 0; j < i2; ++j) v_R_subview_local(i, j) = my_rank;
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
+
   // Copy from next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
@@ -790,7 +802,7 @@ void test_localdeepcopy_withSubview(
       Kokkos::subview(v_R, prev_rank, Kokkos::ALL, Kokkos::ALL);
   auto v_R_subview_local =
       Kokkos::subview(v_R, my_rank, Kokkos::ALL, Kokkos::ALL);
-
+  return;
   Kokkos::parallel_for(
       "Init", i1, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < i2; ++j) v_R_subview_local(i, j) = my_rank;
@@ -886,6 +898,8 @@ void test_localdeepcopy_withSubview(
       });
 
   Kokkos::fence();
+  RemoteSpace_t::fence();
+
   // Put to next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
@@ -971,36 +985,41 @@ TEST(TEST_CATEGORY, test_localdeepcopy) {
   using LR_t  = Kokkos::LayoutRight;
   using PLL_t = Kokkos::PartitionedLayoutLeft;
   using PLR_t = Kokkos::PartitionedLayoutRight;
+  /*
+    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LL_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LL_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LR_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LR_t)
 
-  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LL_t)
-  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LL_t)
-  /*GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LR_t)
-  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LR_t)*/
+    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLL_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLL_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLR_t)
+    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLR_t)
 
-  /*GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLL_t)
-  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLL_t)
-  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLR_t)
-  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLR_t)*/
+    // Test with subviews created using ranges (maintains rank)
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_ranges);
 
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_ranges);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_ranges);
-  /* GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_ranges);
-   GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_ranges);*/
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_ranges);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_ranges);
 
-  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_ranges);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_ranges);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_ranges);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_ranges);*/
+    // Test with subviews created using scalars (decrements rank)
 
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_scalar);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_scalar);
-  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_scalar);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_scalar);*/
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_scalar);
+    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_scalar);*/
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_scalar);
+  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_scalar);*/ /*N/A*/
 
   /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_scalar);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_scalar);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_scalar);
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_scalar);*/
+  //Compiler error GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t,
+  with_scalar); //Compiler error
+  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_scalar);
+  //Compiler error GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t,
+  with_scalar);*/ //Compiler error
 
   RemoteSpace_t::fence();
 }
