@@ -1044,7 +1044,7 @@ inline void deep_copy(
 }
 
 //----------------------------------------------------------------------------
-/** \brief  A deep copy between views of the default specialization, compatible
+/** \brief  A deep copy between views of RemoteSpaces specialization, compatible
  * type, same non-zero rank, same contiguous layout.
  */
 template <class DT, class... DP, class ST, class... SP>
@@ -1057,15 +1057,8 @@ inline void deep_copy(
                       (unsigned(ViewTraits<DT, DP...>::rank) != 0 ||
                        unsigned(ViewTraits<ST, SP...>::rank) != 0))>* =
         nullptr) {
-  using dst_type            = View<DT, DP...>;
-  using src_type            = View<ST, SP...>;
-  using dst_execution_space = typename dst_type::execution_space;
-  using src_execution_space = typename src_type::execution_space;
-  using dst_memory_space    = typename dst_type::memory_space;
-  using src_memory_space    = typename src_type::memory_space;
-  using dst_value_type      = typename dst_type::value_type;
-  using src_value_type      = typename src_type::value_type;
-  using namespace Kokkos::Experimental::Impl;
+  using dst_type = View<DT, DP...>;
+  using src_type = View<ST, SP...>;
 
   static_assert(std::is_same<typename dst_type::value_type,
                              typename dst_type::non_const_value_type>::value,
@@ -1073,6 +1066,14 @@ inline void deep_copy(
 
   static_assert((unsigned(dst_type::rank) == unsigned(src_type::rank)),
                 "deep_copy requires Views of equal rank");
+
+  using dst_execution_space = typename dst_type::execution_space;
+  using src_execution_space = typename src_type::execution_space;
+  using dst_memory_space    = typename dst_type::memory_space;
+  using src_memory_space    = typename src_type::memory_space;
+  using dst_value_type      = typename dst_type::value_type;
+  using src_value_type      = typename src_type::value_type;
+  using namespace Kokkos::Experimental::Impl;
 
   if (Kokkos::Tools::Experimental::get_callbacks().begin_deep_copy != nullptr) {
     Kokkos::Profiling::beginDeepCopy(

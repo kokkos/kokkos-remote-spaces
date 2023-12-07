@@ -35,7 +35,142 @@ namespace Impl {
 using namespace Kokkos::Experimental::Impl;
 
 /*
- * ViewMapping class used by View copy-ctr and subview() to specialize new
+ * Type used for subview creation with non-standard Layouts and default (void)
+ * view specialization.
+ */
+
+template <class SrcTraits, class... Args>
+class ViewMapping<
+    std::enable_if_t<(std::is_void<typename SrcTraits::specialize>::value &&
+                      (std::is_same<typename SrcTraits::array_layout,
+                                    Kokkos::PartitionedLayoutLeft>::value ||
+                       std::is_same<typename SrcTraits::array_layout,
+                                    Kokkos::PartitionedLayoutRight>::value))>,
+    SrcTraits, Args...> {
+ private:
+  static_assert(SrcTraits::rank == sizeof...(Args),
+                "Subview mapping requires one argument for each dimension of "
+                "source View");
+
+  enum {
+    RZ = false,
+    R0 = bool(is_integral_extent<0, Args...>::value),
+    R1 = bool(is_integral_extent<1, Args...>::value),
+    R2 = bool(is_integral_extent<2, Args...>::value),
+    R3 = bool(is_integral_extent<3, Args...>::value),
+    R4 = bool(is_integral_extent<4, Args...>::value),
+    R5 = bool(is_integral_extent<5, Args...>::value),
+    R6 = bool(is_integral_extent<6, Args...>::value),
+    R7 = bool(is_integral_extent<7, Args...>::value)
+  };
+
+  enum {
+    rank = unsigned(R0) + unsigned(R1) + unsigned(R2) + unsigned(R3) +
+           unsigned(R4) + unsigned(R5) + unsigned(R6) + unsigned(R7)
+  };
+
+  // Whether right-most rank is a range.
+  enum {
+    R0_rev =
+        (0 == SrcTraits::rank
+             ? RZ
+             : (1 == SrcTraits::rank
+                    ? R0
+                    : (2 == SrcTraits::rank
+                           ? R1
+                           : (3 == SrcTraits::rank
+                                  ? R2
+                                  : (4 == SrcTraits::rank
+                                         ? R3
+                                         : (5 == SrcTraits::rank
+                                                ? R4
+                                                : (6 == SrcTraits::rank
+                                                       ? R5
+                                                       : (7 == SrcTraits::rank
+                                                              ? R6
+                                                              : R7))))))))
+  };
+
+  // Subview's layout
+  using array_layout = std::conditional_t<
+      (            /* Same array layout IF */
+       (rank == 0) /* output rank zero */
+       || SubviewLegalArgsCompileTime<typename SrcTraits::array_layout,
+                                      typename SrcTraits::array_layout, rank,
+                                      SrcTraits::rank, 0, Args...>::value ||
+       // OutputRank 1 or 2, InputLayout Left, Interval 0
+       // because single stride one or second index has a stride.
+       (rank <= 2 && R0 &&
+        std::is_same<typename SrcTraits::array_layout,
+                     Kokkos::LayoutLeft>::value)  // replace with input rank
+       ||
+       // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
+       // because single stride one or second index has a stride.
+       (rank <= 2 && R0_rev &&
+        std::is_same<typename SrcTraits::array_layout,
+                     Kokkos::LayoutRight>::value)  // replace input rank
+       ),
+      typename SrcTraits::array_layout, Kokkos::LayoutStride>;
+
+  using value_type = typename SrcTraits::value_type;
+
+  using data_type =
+      typename SubViewDataType<value_type,
+                               typename Kokkos::Impl::ParseViewExtents<
+                                   typename SrcTraits::data_type>::type,
+                               Args...>::type;
+
+ public:
+  using traits_type = Kokkos::ViewTraits<data_type, array_layout,
+                                         typename SrcTraits::device_type,
+                                         typename SrcTraits::memory_traits>;
+
+  using type =
+      Kokkos::View<data_type, array_layout, typename SrcTraits::device_type,
+                   typename SrcTraits::memory_traits>;
+
+  template <class MemoryTraits>
+  struct apply {
+    static_assert(Kokkos::is_memory_traits<MemoryTraits>::value, "");
+
+    using traits_type =
+        Kokkos::ViewTraits<data_type, array_layout,
+                           typename SrcTraits::device_type, MemoryTraits>;
+
+    using type = Kokkos::View<data_type, array_layout,
+                              typename SrcTraits::device_type, MemoryTraits>;
+  };
+
+  // The presumed type is 'ViewMapping< traits_type , void >'
+  // However, a compatible ViewMapping is acceptable.
+  template <class DstTraits>
+  KOKKOS_INLINE_FUNCTION static void assign(
+      ViewMapping<DstTraits, void> &dst,
+      ViewMapping<SrcTraits, void> const &src, Args... args) {
+    static_assert(ViewMapping<DstTraits, traits_type, void>::is_assignable,
+                  "Subview destination type must be compatible with subview "
+                  "derived type");
+
+    using DstType = ViewMapping<DstTraits, void>;
+
+    using dst_offset_type = typename DstType::offset_type;
+
+    const SubviewExtents<SrcTraits::rank, rank> extents(src.m_impl_offset.m_dim,
+                                                        args...);
+
+    dst.m_impl_offset = dst_offset_type(src.m_impl_offset, extents);
+
+    dst.m_impl_handle = ViewDataHandle<DstTraits>::assign(
+        src.m_impl_handle,
+        src.m_impl_offset(extents.domain_offset(0), extents.domain_offset(1),
+                          extents.domain_offset(2), extents.domain_offset(3),
+                          extents.domain_offset(4), extents.domain_offset(5),
+                          extents.domain_offset(6), extents.domain_offset(7)));
+  }
+};
+
+/*
+ * ViewMapping type used by View copy-ctr and subview() to specialize new
  * (sub-) view type
  */
 
@@ -95,11 +230,10 @@ class ViewMapping<
       typename std::conditional<
           (            /* Same array layout IF */
            (rank == 0) /* output rank zero */
-           ||
-           SubviewLegalArgsCompileTime<typename SrcTraits::array_layout,
-                                       typename SrcTraits::array_layout, rank,
-                                       SrcTraits::rank, 0, Args...>::value ||
-           // OutputRank 1 or 2, InputLayout Left, Interval 0
+           || SubviewLegalArgsCompileTime<typename SrcTraits::array_layout,
+                                          typename SrcTraits::array_layout,
+                                          rank, SrcTraits::rank, 0, Args...>::
+                  value ||  // OutputRank 1 or 2, InputLayout Left, Interval 0
            // because single stride one or second index has a stride.
            (rank <= 2 && R0 &&
             (std::is_same<typename SrcTraits::array_layout,

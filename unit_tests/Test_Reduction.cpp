@@ -154,8 +154,8 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
   for (int i = 0; i < dim1_block; ++i)
     for (int j = 0; j < v_h.extent(2); ++j)
       v_h(0, i, j) = (Data_t)start + i * dim2 + j;
-  Kokkos::deep_copy(v_sub, v_h);
 
+  Kokkos::deep_copy(v_sub, v_h);
   RemoteSpace_t::fence();
 
   Data_t gsum = 0;
