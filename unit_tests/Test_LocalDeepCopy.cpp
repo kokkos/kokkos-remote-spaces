@@ -985,38 +985,37 @@ TEST(TEST_CATEGORY, test_localdeepcopy) {
   using LR_t  = Kokkos::LayoutRight;
   using PLL_t = Kokkos::PartitionedLayoutLeft;
   using PLR_t = Kokkos::PartitionedLayoutRight;
-  /*
-    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LL_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LL_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LR_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LR_t)
 
-    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLL_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLL_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLR_t)
-    GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, LR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, LR_t)
 
-    // Test with subviews created using ranges (maintains rank)
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLL_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(without_team, PLR_t)
+  GENBLOCK_TEST_LOCALDEEPCOPY(with_team, PLR_t)
 
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_ranges);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_ranges);
+  // Test with subviews created using ranges (maintains rank)
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_ranges);
 
-    // Test with subviews created using scalars (decrements rank)
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_ranges);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t, with_ranges);
 
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_scalar);
-    GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_scalar);*/
-  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_scalar);
-  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_scalar);*/ /*N/A*/
+  // Test with subviews created using scalars (decrements rank)
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LL_t, with_scalar);
+  GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LL_t, with_scalar);
+  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, LR_t, with_scalar);*/
+  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, LR_t, with_scalar);*/
 
-  /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_scalar);
-  //Compiler error GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t,
-  with_scalar); //Compiler error
+  // GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLL_t, with_scalar);
+  // Compiler error GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLL_t,
+  // with_scalar); //Compiler error
   /*GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(without_team, PLR_t, with_scalar);
   //Compiler error GENBLOCK_TEST_LOCALDEEPCOPY_WITHSUBVIEW(with_team, PLR_t,
   with_scalar);*/ //Compiler error
