@@ -1,6 +1,15 @@
 pipeline {
     agent none 
 
+    options {
+        disableConcurrentBuilds(abortPrevious: true)
+        timeout(time: 6, unit: 'HOURS')
+    }
+
+    triggers {
+        issueCommentTrigger('.*test this please.*')
+    }
+
     stages {
         stage('Clang-Format') {
             agent {
