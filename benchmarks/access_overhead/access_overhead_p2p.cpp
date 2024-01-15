@@ -24,8 +24,8 @@
 #include <type_traits>
 #include <string>
 
-#define ACCESS_LDC_USE_MULTI_LDC
-//#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
+//#define ACCESS_LDC_USE_MULTI_LDC
+#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
 
 #define CHECK_FOR_CORRECTNESS
 
@@ -490,12 +490,7 @@ struct Access_LDC<
       auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, team_local_range);
 
-      auto val = v_subview_remote.impl_map().m_offset(0);
-
-      printf("TeamID:%i, %li, %li %p, %li\n", team_ID, team_remote_range.first,
-             team_remote_range.second, v_subview_remote.data(), val);
-
-      // LCD
+      // LDC
       Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
                                                           v_subview_remote);
     });
@@ -536,7 +531,7 @@ struct Access_LDC<
       auto v_subview_remote    = Kokkos::subview(v_tmp, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v, team_local_range);
 
-      // LCD
+      // LDC
       Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
                                                           v_tmp_subview_local);
     });
@@ -616,8 +611,8 @@ struct Access_LDC<
           time_a = timer.seconds();
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
-          Kokkos::parallel_for("block_transfer", team_policy_get_update_t(2, 1),
-                               *this);
+          Kokkos::parallel_for("block_transfer",
+                               team_policy_get_update_t(64, 1), *this);
 #else
           Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
                                *this);
@@ -648,7 +643,7 @@ struct Access_LDC<
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
           Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(512, 1), *this);
+                               team_policy_put_update_t(64, 1), *this);
 #else
           Kokkos::parallel_for("block_transfer", team_policy_put_update_t(1, 1),
                                *this);
