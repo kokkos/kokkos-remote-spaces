@@ -100,6 +100,7 @@ class NVSHMEMSpace {
 
 KOKKOS_FUNCTION
 int get_num_pes();
+
 KOKKOS_FUNCTION
 int get_my_pe();
 

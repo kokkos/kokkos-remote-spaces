@@ -51,10 +51,9 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
 }
 
 template <class T>
-auto KOKKOS_INLINE_FUNCTION get_subview_start_adr(T view) {
-  return view.data();
+auto KOKKOS_INLINE_FUNCTION get_view_adr(T view) {
+  return view.impl_map().handle().ptr;
 }
-
 }  // namespace Impl
 
 namespace Experimental {
@@ -73,8 +72,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  int src_rank = src.impl_map().get_lowest_participating_PE();
-  int dst_rank = dst.impl_map().get_lowest_participating_PE();
+  int src_rank = src.impl_map().get_logical_PE();
+  int dst_rank = dst.impl_map().get_logical_PE();
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
@@ -115,8 +114,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   auto dst_subview = Kokkos::Impl::get_local_subview(dst, team_range);
 
   // Construct subview offsets
-  auto src_subview_ptr = Kokkos::Impl::get_subview_start_adr(src_subview);
-  auto dst_subview_ptr = Kokkos::Impl::get_subview_start_adr(dst_subview);
+  auto src_subview_ptr = Kokkos::Impl::get_view_adr(src_subview);
+  auto dst_subview_ptr = Kokkos::Impl::get_view_adr(dst_subview);
 
   if (src_rank != my_rank) {
     team.team_barrier();
@@ -166,8 +165,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
          std::is_same<typename ViewTraits<ST, SP...>::specialize,
                       Kokkos::Experimental::RemoteSpaceSpecializeTag>::value)>::
         type * = nullptr) {
-  int src_rank = src.impl_map().get_lowest_participating_PE();
-  int dst_rank = dst.impl_map().get_lowest_participating_PE();
+  int src_rank = src.impl_map().get_logical_PE();
+  int dst_rank = dst.impl_map().get_logical_PE();
   int my_rank  = get_my_pe();
 
   if (src_rank != my_rank && dst_rank != my_rank) {
@@ -188,9 +187,12 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
       Kokkos::Impl::BlockDataHandle<typename ViewTraits<DT, DP...>::value_type,
                                     ViewTraits<DT, DP...>>;
 
-  // Construct view offsets
-  auto src_subview_ptr = src.data();
-  auto dst_subview_ptr = dst.data();
+  // Construct subview offsets
+  auto src_subview_ptr = Kokkos::Impl::get_view_adr(src);
+  auto dst_subview_ptr = Kokkos::Impl::get_view_adr(dst);
+
+  printf("LDC: %p, %p, %p %p\n", dst.data(), src.data(), dst_subview_ptr,
+         src_subview_ptr);
 
   if (src_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
