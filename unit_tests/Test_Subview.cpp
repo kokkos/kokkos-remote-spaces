@@ -170,16 +170,16 @@ void test_subview3D(int i1, int i2, int i3) {
       for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
 }
 
+
 template <class Data_t>
 void test_subview3D_byRank(int i1, int i2, int i3) {
-  int my_rank, next_rank;
+  int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  next_rank = (my_rank + 1) % num_ranks;
-
   using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
   using ViewHost_3D_t   = typename ViewRemote_3D_t::HostMirror;
 
   ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", i1, i2, i3);
@@ -189,10 +189,8 @@ void test_subview3D_byRank(int i1, int i2, int i3) {
       Kokkos::Experimental::get_range(i1, (my_rank + 1) % num_ranks);
 
   // Set to next rank
-  auto v_sub_1 = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
-  auto v_sub_2 = ViewRemote_3D_t(v, next_rank, Kokkos::ALL, Kokkos::ALL);
-
-  size_t iters = remote_range.second - remote_range.first;
+  auto v_sub_1 = Kokkos::subview(v, remote_range.first, Kokkos::ALL, Kokkos::ALL);
+  //auto v_sub_2 = ViewRemote_2D_t(v, remote_range.first, Kokkos::ALL, Kokkos::ALL);
 
   // Init
   for (int i = 0; i < v_h.extent(0); ++i)
@@ -206,7 +204,7 @@ void test_subview3D_byRank(int i1, int i2, int i3) {
       "Increment", v_sub_1.extent(0), KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < v_sub_1.extent(1); ++j) {
           v_sub_1(i, j)++;
-          v_sub_2(i, j)++;
+         // v_sub_2(i, j)++;
         }
       });
 
@@ -214,17 +212,73 @@ void test_subview3D_byRank(int i1, int i2, int i3) {
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
-  auto local_range = Kokkos::Experimental::get_local_range(i1);
-
   for (int i = 0; i < v_h.extent(0); ++i) {
     if (i == 0) {
       for (int j = 0; j < v_h.extent(1); ++j)
-        for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
+        for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 1);
     } else {
       for (int j = 0; j < v_h.extent(1); ++j)
         for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 0);
     }
   }
+}
+
+template <class Data_t>
+void test_subviewOfSubview_Scalar_3D(int i1, int i2, int i3) {
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
+
+  
+  using ViewRemote_3D_t = Kokkos::View<Data_t ***, RemoteSpace_t>;
+  using ViewRemote_2D_t = Kokkos::View<Data_t **, RemoteSpace_t>;
+  using ViewHost_3D_t   = typename ViewRemote_3D_t::HostMirror;
+
+  ViewRemote_3D_t v = ViewRemote_3D_t("RemoteView", i1, i2, i3);
+  ViewHost_3D_t v_h("HostView", v.extent(0), v.extent(1), v.extent(2));
+
+  auto remote_range =
+      Kokkos::Experimental::get_range(i1, (my_rank + 1) % num_ranks);
+
+  // Set to next rank
+  auto v_sub_1 = Kokkos::subview(v, remote_range.first, Kokkos::ALL, Kokkos::ALL);
+  auto v_sub_2 = ViewRemote_2D_t(v, remote_range.first, Kokkos::ALL, Kokkos::ALL);
+
+  int i2_half = static_cast<int>(i2 * 0.5);
+
+  // Create subview on next rank using subview of a subview
+  auto v_sub_1_half = Kokkos::subview(
+      v_sub_1, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
+  auto v_sub_2_half = ViewRemote_2D_t(
+      v_sub_2, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
+
+  // Init
+  for (int i = 0; i < v_h.extent(0); ++i)
+    for (int j = 0; j < v_h.extent(1); ++j)
+      for (int k = 0; k < v_h.extent(2); ++k) v_h(i, j, k) = 0;
+
+  Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
+
+  Kokkos::parallel_for(
+      "Increment", v_sub_1_half.extent(0), KOKKOS_LAMBDA(const int j) {
+        for (int k = 0; k < v_sub_1_half.extent(1); ++k){
+            v_sub_1_half(j, k)++;
+            v_sub_2_half(j, k)++;
+            }
+      });
+
+  Kokkos::fence();
+  RemoteSpace_t::fence();
+  Kokkos::deep_copy(v_h, v);
+
+  for (int i = 0; i < v_h.extent(0); ++i)
+    for (int j = 0; j < v_h.extent(1); ++j)
+      if(j < i2_half)
+        for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 0);
+      else
+        for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
 }
 
 template <class Data_t>
@@ -251,9 +305,9 @@ void test_subviewOfSubview_Range_3D(int i1, int i2, int i3) {
 
   // Create subview on next rank using subview of a subview
   auto v_sub_1_half = Kokkos::subview(
-      v, Kokkos::ALL, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
+      v_sub_1, Kokkos::ALL, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
   auto v_sub_2_half = ViewRemote_3D_t(
-      v, Kokkos::ALL, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
+      v_sub_2, Kokkos::ALL, Kokkos::pair<int, int>(i2_half, i2), Kokkos::ALL);
 
   size_t iters = remote_range.second - remote_range.first;
 
@@ -287,6 +341,7 @@ void test_subviewOfSubview_Range_3D(int i1, int i2, int i3) {
       else
         for (int k = 0; k < v_h.extent(2); ++k) ASSERT_EQ(v_h(i, j, k), 2);
 }
+
 
 template <class Data_t>
 void test_subview3D_DCCopiesSubviewAccess(int i1, int i2, int i3) {
