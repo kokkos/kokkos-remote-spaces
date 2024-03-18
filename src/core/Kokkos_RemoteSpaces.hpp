@@ -20,6 +20,8 @@
 #define KOKKOS_REMOTESPACES_HPP
 #include <Kokkos_Core.hpp>
 
+#include <iostream>
+
 namespace Kokkos {
 namespace Experimental {
 

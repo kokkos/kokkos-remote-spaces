@@ -42,10 +42,15 @@ struct PartitionedLayoutLeft : public PartitionedLayout {
   PartitionedLayoutLeft &operator=(PartitionedLayoutLeft &&) = default;
 
   KOKKOS_INLINE_FUNCTION
-  explicit constexpr PartitionedLayoutLeft(size_t N0 = 0, size_t N1 = 0,
-                                           size_t N2 = 0, size_t N3 = 0,
-                                           size_t N4 = 0, size_t N5 = 0,
-                                           size_t N6 = 0, size_t N7 = 0)
+  explicit constexpr PartitionedLayoutLeft(
+      size_t N0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7} {}
 };
 
@@ -63,10 +68,15 @@ struct PartitionedLayoutRight : public PartitionedLayout {
   PartitionedLayoutRight &operator=(PartitionedLayoutRight &&) = default;
 
   KOKKOS_INLINE_FUNCTION
-  explicit constexpr PartitionedLayoutRight(size_t N0 = 0, size_t N1 = 0,
-                                            size_t N2 = 0, size_t N3 = 0,
-                                            size_t N4 = 0, size_t N5 = 0,
-                                            size_t N6 = 0, size_t N7 = 0)
+  explicit constexpr PartitionedLayoutRight(
+      size_t N0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG,
+      size_t N7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG)
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7} {}
 };
 
@@ -121,10 +131,14 @@ struct PartitionedLayoutStride : public PartitionedLayout {
 
   KOKKOS_INLINE_FUNCTION
   explicit constexpr PartitionedLayoutStride(
-      size_t N0 = 0, size_t S0 = 0, size_t N1 = 0, size_t S1 = 0, size_t N2 = 0,
-      size_t S2 = 0, size_t N3 = 0, size_t S3 = 0, size_t N4 = 0, size_t S4 = 0,
-      size_t N5 = 0, size_t S5 = 0, size_t N6 = 0, size_t S6 = 0, size_t N7 = 0,
-      size_t S7 = 0)
+      size_t N0 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S0 = 0,
+      size_t N1 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S1 = 0,
+      size_t N2 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S2 = 0,
+      size_t N3 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S3 = 0,
+      size_t N4 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S4 = 0,
+      size_t N5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S5 = 0,
+      size_t N6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S6 = 0,
+      size_t N7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S7 = 0)
       : dimension{N0, N1, N2, N3, N4, N5, N6, N7}, stride{S0, S1, S2, S3,
                                                           S4, S5, S6, S7} {}
 };

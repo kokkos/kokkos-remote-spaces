@@ -68,8 +68,9 @@ void *NVSHMEMSpace::impl_allocate(
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       int num_pes = nvshmem_n_pes();
       int my_id   = nvshmem_my_pe();
-      ptr         = nvshmem_align(Kokkos::Impl::MEMORY_ALIGNMENT,
-                          arg_alloc_size);  // nvshmem_malloc(arg_alloc_size);
+      ptr         = /*(Kokkos::Impl::MEMORY_ALIGNMENT,
+                          arg_alloc_size); */
+          nvshmem_malloc(arg_alloc_size);
     } else {
       Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
     }

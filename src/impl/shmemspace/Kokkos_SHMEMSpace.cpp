@@ -141,7 +141,7 @@ void SHMEMSpace::impl_deallocate(
   }
 }
 
-void SHMEMSpace::fence() const {
+void SHMEMSpace::fence() {
   Kokkos::fence();
   shmem_barrier_all();
 }

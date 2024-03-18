@@ -75,5 +75,5 @@ TEST(TEST_CATEGORY, test_allocate_symmetric_remote_view_by_rank) {
   test_allocate_symmetric_remote_view_by_rank<int *******, RemoteSpace_t>(
       9, 10, 7, 2, 1, 1);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

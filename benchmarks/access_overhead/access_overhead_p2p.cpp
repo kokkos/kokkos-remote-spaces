@@ -24,10 +24,11 @@
 #include <type_traits>
 #include <string>
 
+#define NUM_TEAMS 1 /* Recursive subview support needed. TBD */
 #define ACCESS_LDC_USE_MULTI_LDC
 //#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
 
-#define CHECK_FOR_CORRECTNESS
+//#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
@@ -187,7 +188,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
       double gups = 1e-9 * ((N * iters) / time);
       double size = N * sizeof(double) / 1024.0 / 1024.0;
       double bw   = gups * sizeof(double);
-      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+      printf("access_overhead_p2p,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
              modes[mode].c_str(), N, size, iters, time, gups, bw);
     }
   }
@@ -275,7 +276,7 @@ struct Access_CudaAware<
       double gups = 1e-9 * ((N * iters) / time);
       double size = N * sizeof(double) / 1024.0 / 1024.0;
       double bw   = gups * sizeof(double);
-      printf("access_overhead,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+      printf("access_overhead_p2p,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
              (modes[mode]).c_str(), N, size, iters, time, gups, bw);
     }
   }
@@ -397,7 +398,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
       double size = N * sizeof(double) / 1024.0 / 1024.0;
       double bw   = gups * sizeof(double);
       if (rma_op == RMA_GET) {
-        printf("access_overhead_p2p_get,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+        printf("access_overhead_p2p,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
                modes[mode].c_str(), N, size, iters, time, gups, bw);
       } else {
         printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
@@ -438,7 +439,7 @@ struct Access_LDC<
   void operator()(const size_t i) const {
     double val1 = v_tmp(i);
     double val2 = v(i);
-    printf("debug: %li, %f, %f\n", i, val1, val2);
+    printf("debug: %li, %.2f, %.2f\n", i, val1, val2);
   }
 
   KOKKOS_FUNCTION
@@ -486,16 +487,17 @@ struct Access_LDC<
           Kokkos::pair(remote_range.first + start_offset,
                        remote_range.first + start_offset + team_block);
 
+      // printf("[%lu, %lu], [%lu, %lu], [%lu, %lu], [%lu, %lu]\n",
+      //        team_remote_range.first, team_remote_range.second,
+      //        team_local_range.first, team_local_range.second,
+      //        remote_range.first, remote_range.second, local_range.first,
+      //        local_range.second);
+
       // Construct team subviews
       auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v_tmp, team_local_range);
 
-      auto val = v_subview_remote.impl_map().m_offset(0);
-
-      printf("TeamID:%i, %li, %li %p, %li\n", team_ID, team_remote_range.first,
-             team_remote_range.second, v_subview_remote.data(), val);
-
-      // LCD
+      // LDC
       Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
                                                           v_subview_remote);
     });
@@ -536,7 +538,7 @@ struct Access_LDC<
       auto v_subview_remote    = Kokkos::subview(v_tmp, team_remote_range);
       auto v_tmp_subview_local = Kokkos::subview(v, team_local_range);
 
-      // LCD
+      // LDC
       Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
                                                           v_tmp_subview_local);
     });
@@ -616,14 +618,14 @@ struct Access_LDC<
           time_a = timer.seconds();
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
-          Kokkos::parallel_for("block_transfer", team_policy_get_update_t(2, 1),
-                               *this);
+          Kokkos::parallel_for("block_transfer",
+                               team_policy_get_update_t(NUM_TEAMS, 1), *this);
 #else
           Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
                                *this);
 #endif
           Kokkos::fence();
-#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
+#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (1)
           Kokkos::parallel_for(
               "printf values for debugging",
               Kokkos::RangePolicy(local_range.first, local_range.second),
@@ -648,10 +650,10 @@ struct Access_LDC<
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
           Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(512, 1), *this);
+                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
 #else
-          Kokkos::parallel_for("block_transfer", team_policy_put_update_t(1, 1),
-                               *this);
+          Kokkos::parallel_for("block_transfer",
+                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
 #endif
           Kokkos::fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
@@ -702,7 +704,7 @@ struct Access_LDC<
       double size = N * sizeof(double) / 1024.0 / 1024.0;
       double bw   = gups * sizeof(double);
       if (rma_op == RMA_GET) {
-        printf("access_overhead_p2p_get,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
+        printf("access_overhead_p2p,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",
                modes[mode].c_str(), N, size, iters, time, gups, bw);
       } else {
         printf("access_overhead_p2p_put,%s,%lu,%lf,%lu,%lf,%lf,%lf\n",

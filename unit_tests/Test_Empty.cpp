@@ -19,7 +19,9 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 
-void test_empty() {}
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+
+void test_empty() { RemoteSpace_t::fence(); }
 
 TEST(TEST_CATEGORY, test_empty) {
   test_empty();

@@ -32,6 +32,7 @@ struct RemoteSpaces_MemoryTraits;
 
 template <unsigned T>
 struct RemoteSpaces_MemoryTraits<MemoryTraits<T>> {
+  /*Remove as obsolete*/
   enum : bool { dim0_is_pe = (unsigned(0) != (T & unsigned(Dim0IsPE))) };
   enum : int { state = T };
 };

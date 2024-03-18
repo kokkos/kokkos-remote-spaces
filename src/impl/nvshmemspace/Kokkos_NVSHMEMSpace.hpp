@@ -84,7 +84,7 @@ class NVSHMEMSpace {
   /**\brief Return Name of the MemorySpace */
   static constexpr const char *name() { return m_name; }
 
-  void fence();
+  static void fence();
 
   int allocation_mode;
   int64_t extent;
@@ -100,6 +100,7 @@ class NVSHMEMSpace {
 
 KOKKOS_FUNCTION
 int get_num_pes();
+
 KOKKOS_FUNCTION
 int get_my_pe();
 

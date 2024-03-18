@@ -132,14 +132,18 @@ struct ViewOffset<
                                                                       i7))))));
   }
 
-  //----------------------------------------
-
   KOKKOS_INLINE_FUNCTION
   constexpr array_layout layout() const {
-    return array_layout(m_dim.N0, m_dim.N1, m_dim.N2, m_dim.N3, m_dim.N4,
-                        m_dim.N5, m_dim.N6, m_dim.N7);
+    constexpr auto r = dimension_type::rank;
+    return array_layout((r > 0 ? m_dim.N0 : KOKKOS_INVALID_INDEX),
+                        (r > 1 ? m_dim.N1 : KOKKOS_INVALID_INDEX),
+                        (r > 2 ? m_dim.N2 : KOKKOS_INVALID_INDEX),
+                        (r > 3 ? m_dim.N3 : KOKKOS_INVALID_INDEX),
+                        (r > 4 ? m_dim.N4 : KOKKOS_INVALID_INDEX),
+                        (r > 5 ? m_dim.N5 : KOKKOS_INVALID_INDEX),
+                        (r > 6 ? m_dim.N6 : KOKKOS_INVALID_INDEX),
+                        (r > 7 ? m_dim.N7 : KOKKOS_INVALID_INDEX));
   }
-
   KOKKOS_INLINE_FUNCTION constexpr size_type dimension_0() const {
     return m_dim.N0;
   }
@@ -414,12 +418,17 @@ struct ViewOffset<
                                                                       i7))))));
   }
 
-  //----------------------------------------
-
   KOKKOS_INLINE_FUNCTION
   constexpr array_layout layout() const {
-    return array_layout(m_dim.N0, m_dim.N1, m_dim.N2, m_dim.N3, m_dim.N4,
-                        m_dim.N5, m_dim.N6, m_dim.N7);
+    constexpr auto r = dimension_type::rank;
+    return array_layout((r > 0 ? m_dim.N0 : KOKKOS_INVALID_INDEX),
+                        (r > 1 ? m_dim.N1 : KOKKOS_INVALID_INDEX),
+                        (r > 2 ? m_dim.N2 : KOKKOS_INVALID_INDEX),
+                        (r > 3 ? m_dim.N3 : KOKKOS_INVALID_INDEX),
+                        (r > 4 ? m_dim.N4 : KOKKOS_INVALID_INDEX),
+                        (r > 5 ? m_dim.N5 : KOKKOS_INVALID_INDEX),
+                        (r > 6 ? m_dim.N6 : KOKKOS_INVALID_INDEX),
+                        (r > 7 ? m_dim.N7 : KOKKOS_INVALID_INDEX));
   }
 
   KOKKOS_INLINE_FUNCTION constexpr size_type dimension_0() const {
@@ -756,8 +765,15 @@ struct ViewOffset<
 
   KOKKOS_INLINE_FUNCTION
   constexpr array_layout layout() const {
-    return array_layout(m_dim.N0, m_dim.N1, m_dim.N2, m_dim.N3, m_dim.N4,
-                        m_dim.N5, m_dim.N6, m_dim.N7);
+    constexpr auto r = dimension_type::rank;
+    return array_layout((r > 0 ? m_dim.N0 : KOKKOS_INVALID_INDEX),
+                        (r > 1 ? m_dim.N1 : KOKKOS_INVALID_INDEX),
+                        (r > 2 ? m_dim.N2 : KOKKOS_INVALID_INDEX),
+                        (r > 3 ? m_dim.N3 : KOKKOS_INVALID_INDEX),
+                        (r > 4 ? m_dim.N4 : KOKKOS_INVALID_INDEX),
+                        (r > 5 ? m_dim.N5 : KOKKOS_INVALID_INDEX),
+                        (r > 6 ? m_dim.N6 : KOKKOS_INVALID_INDEX),
+                        (r > 7 ? m_dim.N7 : KOKKOS_INVALID_INDEX));
   }
 
   KOKKOS_INLINE_FUNCTION constexpr size_type dimension_0() const {
@@ -1039,10 +1055,16 @@ struct ViewOffset<
 
   KOKKOS_INLINE_FUNCTION
   constexpr array_layout layout() const {
-    return array_layout(m_dim.N0, m_dim.N1, m_dim.N2, m_dim.N3, m_dim.N4,
-                        m_dim.N5, m_dim.N6, m_dim.N7);
+    constexpr auto r = dimension_type::rank;
+    return array_layout((r > 0 ? m_dim.N0 : KOKKOS_INVALID_INDEX),
+                        (r > 1 ? m_dim.N1 : KOKKOS_INVALID_INDEX),
+                        (r > 2 ? m_dim.N2 : KOKKOS_INVALID_INDEX),
+                        (r > 3 ? m_dim.N3 : KOKKOS_INVALID_INDEX),
+                        (r > 4 ? m_dim.N4 : KOKKOS_INVALID_INDEX),
+                        (r > 5 ? m_dim.N5 : KOKKOS_INVALID_INDEX),
+                        (r > 6 ? m_dim.N6 : KOKKOS_INVALID_INDEX),
+                        (r > 7 ? m_dim.N7 : KOKKOS_INVALID_INDEX));
   }
-
   KOKKOS_INLINE_FUNCTION constexpr size_type dimension_0() const {
     return m_dim.N0;
   }
@@ -1402,14 +1424,17 @@ struct ViewOffset<Dimension, Kokkos::PartitionedLayoutStride, void> {
            i6 * m_stride.S6 + i7 * m_stride.S7;
   }
 
-  //----------------------------------------
-
   KOKKOS_INLINE_FUNCTION
   constexpr array_layout layout() const {
-    return array_layout(m_dim.N0, m_stride.S0, m_dim.N1, m_stride.S1, m_dim.N2,
-                        m_stride.S2, m_dim.N3, m_stride.S3, m_dim.N4,
-                        m_stride.S4, m_dim.N5, m_stride.S5, m_dim.N6,
-                        m_stride.S6, m_dim.N7, m_stride.S7);
+    constexpr auto r = dimension_type::rank;
+    return array_layout((r > 0 ? m_dim.N0 : KOKKOS_INVALID_INDEX),
+                        (r > 1 ? m_dim.N1 : KOKKOS_INVALID_INDEX),
+                        (r > 2 ? m_dim.N2 : KOKKOS_INVALID_INDEX),
+                        (r > 3 ? m_dim.N3 : KOKKOS_INVALID_INDEX),
+                        (r > 4 ? m_dim.N4 : KOKKOS_INVALID_INDEX),
+                        (r > 5 ? m_dim.N5 : KOKKOS_INVALID_INDEX),
+                        (r > 6 ? m_dim.N6 : KOKKOS_INVALID_INDEX),
+                        (r > 7 ? m_dim.N7 : KOKKOS_INVALID_INDEX));
   }
 
   KOKKOS_INLINE_FUNCTION constexpr size_type dimension_0() const {

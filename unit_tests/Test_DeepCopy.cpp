@@ -43,12 +43,9 @@ void test_deepcopy(
   ViewHost_t v_H("HostView", 1, 1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
 
-  RemoteSpace_t().fence();
-
   Kokkos::parallel_for(
       "Team", 1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, 0) = 0x123; });
 
-  RemoteSpace_t().fence();
   Kokkos::deep_copy(v_H, v_R);
   ASSERT_EQ(0x123, v_H(0, 0));
 }
@@ -73,7 +70,6 @@ void test_deepcopy(
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
 
-  RemoteSpace_t().fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i) {
     ASSERT_EQ(0x123, v_H(0, i));
@@ -216,5 +212,5 @@ TEST(TEST_CATEGORY, test_deepcopy) {
   test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(100, 300);
   test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(100, 300);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

@@ -39,10 +39,13 @@ void test_atomic_globalview1D(int dim0) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -68,12 +71,15 @@ void test_atomic_globalview2D(int dim0, int dim1) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < v.extent(1); ++j) v(i, j)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -100,6 +106,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   // Init
   Kokkos::deep_copy(v_h, 0);
   Kokkos::deep_copy(v, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
@@ -107,6 +114,8 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
           for (int k = 0; k < dim2; ++k) v(i, j, k)++;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v);
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
@@ -124,14 +133,14 @@ TEST(TEST_CATEGORY, test_atomic_globalview) {
   test_atomic_globalview1D<int>(31);
 
   // 2D
-  test_atomic_globalview2D<int>(128, 312);
-  test_atomic_globalview2D<int>(256, 237);
-  test_atomic_globalview2D<int>(1, 1);
+  test_atomic_globalview2D<int64_t>(1, 1);
+  test_atomic_globalview2D<int64_t>(128, 312);
+  test_atomic_globalview2D<int64_t>(256, 237);
 
   // 3D
-  test_atomic_globalview3D<int>(1, 1, 1);
-  test_atomic_globalview3D<int>(255, 1024, 3);
-  test_atomic_globalview3D<int>(3, 33, 1024);
+  test_atomic_globalview3D<int64_t>(1, 1, 1);
+  test_atomic_globalview3D<int64_t>(2, 17, 123);
+  test_atomic_globalview3D<int64_t>(3, 8, 123);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

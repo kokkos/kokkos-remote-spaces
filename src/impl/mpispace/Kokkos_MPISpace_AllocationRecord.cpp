@@ -19,6 +19,8 @@
 #include <Kokkos_MPISpace.hpp>
 #include <Kokkos_MPISpace_AllocationRecord.hpp>
 
+#include <iostream>
+
 namespace Kokkos {
 namespace Impl {
 
