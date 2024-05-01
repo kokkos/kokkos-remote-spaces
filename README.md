@@ -59,7 +59,7 @@ Kokkos Remote Spaces is built using [CMake](https://cmake.org) version 3.17 or l
 | KRS_ENABLE_SHMEMSPACE| OFF     | Enables the SHMEM backend             |
 | KRS_ENABLE_NVSHMEMSPACE| OFF     | Enables the NVSHMEM backend           |
 | KRS_ENABLE_MPISPACE  | OFF     | Enables the MPI backend               |
-| KRS_ENABLE_EXAMPLES  | OFF     | Enables building examples             |
+| KRS_ENABLE_APPLICATIONS  | OFF     | Enables building examples             |
 | KRS_ENABLE_TESTS     | OFF     | Enables building tests                |
 
 

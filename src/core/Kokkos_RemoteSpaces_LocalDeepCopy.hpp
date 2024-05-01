@@ -191,9 +191,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   auto src_subview_ptr = Kokkos::Impl::get_view_adr(src);
   auto dst_subview_ptr = Kokkos::Impl::get_view_adr(dst);
 
-  printf("LDC: %p, %p, %p %p\n", dst.data(), src.data(), dst_subview_ptr,
-         src_subview_ptr);
-
   if (src_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     src_data_block_t data_block = src_data_block_t(

@@ -187,30 +187,31 @@ void test_deepcopy(
   Kokkos::fence();
 }
 
+#define GENBLOCK1(TYPE)                                    \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(); \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>();
+
+#define GENBLOCK2(TYPE)                                      \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>(10); \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(100);
+
+#define GENBLOCK3(TYPE)                                            \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(100, 200); \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>(100, 200);
+
 TEST(TEST_CATEGORY, test_deepcopy) {
   // scalar
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>();
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>();
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();
-
+  GENBLOCK1(int)
+  GENBLOCK1(float)
+  GENBLOCK1(double)
   // 1D
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(10);
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>(100);
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>(200);
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200);
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(300);
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(300);
-
+  GENBLOCK2(int)
+  GENBLOCK2(float)
+  GENBLOCK2(double)
   // 2D
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>(100, 200);
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(100, 200);
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>(200, 100);
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200, 100);
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(100, 300);
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(100, 300);
+  GENBLOCK3(int)
+  GENBLOCK3(float)
+  GENBLOCK3(double)
 
   RemoteSpace_t::fence();
 }

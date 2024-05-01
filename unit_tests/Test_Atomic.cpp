@@ -126,21 +126,31 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
       }
 }
 
+#define GENBLOCK1(TYPE)              \
+  test_atomic_globalview1D<TYPE>(0); \
+  test_atomic_globalview1D<TYPE>(1); \
+  test_atomic_globalview1D<TYPE>(31);
+
+#define GENBLOCK2(TYPE)                     \
+  test_atomic_globalview2D<TYPE>(1, 1);     \
+  test_atomic_globalview2D<TYPE>(128, 312); \
+  test_atomic_globalview2D<TYPE>(256, 237);
+
+#define GENBLOCK3(TYPE)                       \
+  test_atomic_globalview3D<TYPE>(1, 1, 1);    \
+  test_atomic_globalview3D<TYPE>(2, 17, 123); \
+  test_atomic_globalview3D<TYPE>(3, 8, 123);
+
 TEST(TEST_CATEGORY, test_atomic_globalview) {
   // 1D
-  test_atomic_globalview1D<int>(0);
-  test_atomic_globalview1D<int>(1);
-  test_atomic_globalview1D<int>(31);
-
+  GENBLOCK1(int)
+  GENBLOCK1(int64_t)
   // 2D
-  test_atomic_globalview2D<int64_t>(1, 1);
-  test_atomic_globalview2D<int64_t>(128, 312);
-  test_atomic_globalview2D<int64_t>(256, 237);
-
+  GENBLOCK2(int)
+  GENBLOCK2(int64_t)
   // 3D
-  test_atomic_globalview3D<int64_t>(1, 1, 1);
-  test_atomic_globalview3D<int64_t>(2, 17, 123);
-  test_atomic_globalview3D<int64_t>(3, 8, 123);
+  GENBLOCK3(int)
+  GENBLOCK3(int64_t)
 
   RemoteSpace_t::fence();
 }

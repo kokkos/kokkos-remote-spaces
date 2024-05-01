@@ -210,8 +210,22 @@ struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutRight,
 // Rules which allow assignment to LayoutStride
 
 template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
-struct SubviewLegalArgsCompileTime<Kokkos::LayoutStride,
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutStride,
                                    Kokkos::PartitionedLayoutLeft, RankDest,
+                                   RankSrc, CurrentArg, SubViewArgs...> {
+  enum : bool { value = false };
+};
+
+template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutStride,
+                                   Kokkos::PartitionedLayoutStride, RankDest,
+                                   RankSrc, CurrentArg, SubViewArgs...> {
+  enum : bool { value = false };
+};
+
+template <int RankDest, int RankSrc, int CurrentArg, class... SubViewArgs>
+struct SubviewLegalArgsCompileTime<Kokkos::PartitionedLayoutStride,
+                                   Kokkos::PartitionedLayoutRight, RankDest,
                                    RankSrc, CurrentArg, SubViewArgs...> {
   enum : bool { value = false };
 };

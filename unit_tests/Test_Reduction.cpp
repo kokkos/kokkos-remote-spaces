@@ -177,28 +177,29 @@ void test_scalar_reduce_partitioned_2D(int dim1, int dim2) {
   ASSERT_EQ((total - 1) * (total) / 2, gsum);
 }
 
+#define GENBLOCK_1(TYPE)               \
+  test_scalar_reduce_1D<TYPE>(0);      \
+  test_scalar_reduce_1D<TYPE>(1);      \
+  test_scalar_reduce_1D<TYPE>(127);    \
+  test_scalar_reduce_2D<TYPE>(0, 0);   \
+  test_scalar_reduce_2D<TYPE>(1, 1);   \
+  test_scalar_reduce_2D<TYPE>(111, 3); \
+  test_scalar_reduce_2D<TYPE>(773, 3);
+
+#define GENBLOCK_2(TYPE)                         \
+  test_scalar_reduce_partitioned_1D<TYPE>(20);   \
+  test_scalar_reduce_partitioned_1D<TYPE>(337);  \
+  test_scalar_reduce_partitioned_2D<TYPE>(4, 2); \
+  test_scalar_reduce_partitioned_2D<TYPE>(773, 3);
+
 TEST(TEST_CATEGORY, test_reduce) {
-  // Params: array size
+  GENBLOCK_1(int)
+  GENBLOCK_1(float)
+  GENBLOCK_1(double)
 
-  // Scalar reduce
-  test_scalar_reduce_1D<int>(0);
-  test_scalar_reduce_1D<int>(1);
-
-  test_scalar_reduce_1D<float>(127);
-  test_scalar_reduce_1D<double>(773);
-
-  test_scalar_reduce_2D<int>(0, 0);
-  test_scalar_reduce_2D<int>(1, 1);
-
-  test_scalar_reduce_2D<float>(111, 3);
-  test_scalar_reduce_2D<double>(773, 3);
-
-  test_scalar_reduce_partitioned_1D<int>(20);
-
-  test_scalar_reduce_partitioned_1D<double>(337);
-
-  test_scalar_reduce_partitioned_2D<int>(4, 2);
-  test_scalar_reduce_partitioned_2D<double>(773, 3);
+  GENBLOCK_2(int)
+  GENBLOCK_2(float)
+  GENBLOCK_2(double)
 
   RemoteSpace_t::fence();
 }

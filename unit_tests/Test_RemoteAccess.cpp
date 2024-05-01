@@ -90,17 +90,21 @@ void test_remote_accesses(
   ASSERT_EQ(check, ref);
 }
 
+#define GENBLOCK(TYPE, OP)                                 \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(1);    \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(4567); \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(45617);
+
 TEST(TEST_CATEGORY, test_remote_accesses) {
   /*Get operations*/
-  test_remote_accesses<int, RemoteSpace_t, get_op>(1);
-  test_remote_accesses<int64_t, RemoteSpace_t, get_op>(4561717);
-  test_remote_accesses<int64_t, RemoteSpace_t, get_op>(4567);
-  test_remote_accesses<double, RemoteSpace_t, get_op>(89);
-  /*Put operations*/
-  test_remote_accesses<int, RemoteSpace_t, put_op>(1);
-  test_remote_accesses<int64_t, RemoteSpace_t, put_op>(4561717);
-  test_remote_accesses<int64_t, RemoteSpace_t, put_op>(4567);
-  test_remote_accesses<double, RemoteSpace_t, put_op>(89);
+  GENBLOCK(int, get_op)
+  GENBLOCK(float, get_op)
+  GENBLOCK(double, get_op)
+
+  /*PUT operations*/
+  GENBLOCK(int, put_op)
+  GENBLOCK(float, put_op)
+  GENBLOCK(double, put_op)
 
   RemoteSpace_t::fence();
 }

@@ -68,8 +68,12 @@ class SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
             sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
             arg_label),
         m_space(arg_space) {
+#if (KOKKOS_VERSION >= 40300)
+    fill_host_accessible_header_info(this, *RecordBase::m_alloc_ptr, arg_label);
+#else
     this->base_t::_fill_host_accessible_header_info(*RecordBase::m_alloc_ptr,
                                                     arg_label);
+#endif
   }
 
   SharedAllocationRecord(

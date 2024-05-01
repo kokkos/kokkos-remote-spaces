@@ -274,24 +274,13 @@ class ViewMapping<
                                    typename SrcTraits::data_type>::type,
                                Args...>::type;
 
-  // If dim0 is range and PartitionedLayout, dim0 is PE
-  // We compute the offset to that subview during assign
-  enum { require_R0 = R0 };
-
  public:
-  using memory_traits = typename std::conditional<
-      require_R0,
-      Kokkos::MemoryTraits<
-          RemoteSpaces_MemoryTraits<typename SrcTraits::memory_traits>::state |
-          RemoteSpaces_MemoryTraitFlags::Dim0IsPE> /*Remove as obsolete*/,
-      typename SrcTraits::memory_traits>::type;
-
-  using traits_type =
-      Kokkos::ViewTraits<data_type, array_layout,
-                         typename SrcTraits::memory_space, memory_traits>;
-  using view_type =
-      typename Kokkos::View<data_type, array_layout,
-                            typename SrcTraits::memory_space, memory_traits>;
+  using traits_type = Kokkos::ViewTraits<data_type, array_layout,
+                                         typename SrcTraits::memory_space,
+                                         typename SrcTraits::memory_traits>;
+  using view_type   = typename Kokkos::View<data_type, array_layout,
+                                          typename SrcTraits::memory_space,
+                                          typename SrcTraits::memory_traits>;
 
   using type = view_type;
 
@@ -334,19 +323,19 @@ class ViewMapping<
 
     const SubviewExtents<SrcTraits::rank, rank> extents(src.m_offset.m_dim,
                                                         args...);
-    dst.m_offset                    = dst_offset_type(src.m_offset, extents);
-    dst.remote_view_props           = src.remote_view_props;
+    dst.m_offset                  = dst_offset_type(src.m_offset, extents);
+    dst.remote_view_props         = src.remote_view_props;
     bool switch_to_local_indexing = false;
 
-    /*We currently support only subviews of subviews where the first subview is
-     created with a scalar over the leading dim*/
-    /*Subviews that span across multiple nodes cannot have subviews in this version
-    */
+    /* Currently we only have a restricted support of subviews of subviews.
+     */
+
     if (!src.remote_view_props.using_local_indexing) {
+      // if subview, switch to local indexing
       dst.remote_view_props.using_local_indexing = !R0 ? true : false;
-      dst.remote_view_props.R0_offset = extents.domain_offset(0);
-    }
-    else
+      dst.remote_view_props.R0_offset =
+          src.remote_view_props.R0_offset + extents.domain_offset(0);
+    } else
       switch_to_local_indexing = true;
 
     typename view_type::size_type offset;
@@ -362,7 +351,7 @@ class ViewMapping<
                   extents.domain_offset(3), extents.domain_offset(4),
                   extents.domain_offset(5), extents.domain_offset(6),
                   extents.domain_offset(7));
-                  
+
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
     dst.m_handle = ViewDataHandle<DstTraits>::assign(
@@ -415,17 +404,15 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT) const {
-    // If View is subview, compute owning PE of index R0_offset
-    if (USING_LOCAL_INDEXING)
+    if (remote_view_props.R0_offset != 0)
       return compute_dim0_offsets(remote_view_props.R0_offset).PE;
-    // Else, return my_PE
     return remote_view_props.my_PE;
   }
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(
       ENABLE_IF_PARTITIONED_LAYOUT) const {
-    if (USING_LOCAL_INDEXING) return remote_view_props.R0_offset;
+    if (remote_view_props.R0_offset != 0) return remote_view_props.R0_offset;
     return remote_view_props.my_PE;
   }
 
@@ -696,20 +683,18 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element = m_handle(0, m_offset(i0));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element = m_handle(0, m_offset(i0));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element    = m_handle(new_offset.PE, m_offset(i0));
       return element;
     }
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element = m_handle(0, m_offset(i0));
-      return element;
-    }
+
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
@@ -720,18 +705,15 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element = m_handle(0, m_offset(i0, i1));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element = m_handle(0, m_offset(i0, i1));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element = m_handle(new_offset.PE, m_offset(i0, i1));
-      return element;
-    }
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element = m_handle(0, m_offset(i0, i1));
       return element;
     }
     auto dim0_offset                = remote_view_props.R0_offset + i0;
@@ -744,11 +726,13 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0, typename I1, typename I2, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      I0 offset                    = m_offset(i0, i1, i2);
+      const reference_type element = m_handle(0, offset);
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element = m_handle(0, m_offset(i0, i1, i2));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
@@ -756,12 +740,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       return element;
     }
 
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element = m_handle(0, m_offset(i0, i1, i2));
-      return element;
-    }
-    auto dim0_offset = remote_view_props.R0_offset + i0;
-
+    auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
         m_handle(new_offset.PE, m_offset(new_offset.offset, i1, i2));
@@ -773,11 +752,12 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
@@ -785,10 +765,6 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       return element;
     }
 
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
-      return element;
-    }
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
@@ -801,12 +777,12 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3, i4));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element =
-            m_handle(0, m_offset(i0, i1, i2, i3, i4));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
@@ -814,10 +790,6 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       return element;
     }
 
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3, i4));
-      return element;
-    }
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element =
@@ -830,12 +802,13 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element =
+          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element =
-            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
@@ -843,11 +816,6 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
       return element;
     }
 
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element =
-          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
-      return element;
-    }
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(
@@ -860,23 +828,20 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
       const I5 &i5, const I6 &i6, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element =
+          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element =
-            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
           m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4, i5, i6));
       return element;
     }
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element =
-          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
-      return element;
-    }
+
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(
@@ -889,23 +854,20 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
       const I5 &i5, const I6 &i6, const I7 &i7, ENABLE_IF_GLOBAL_LAYOUT) const {
+    if (remote_view_props.num_PEs <= 1) {
+      const reference_type element =
+          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
+      return element;
+    }
+
     if (USING_LOCAL_INDEXING) {
-      if (remote_view_props.num_PEs <= 1) {
-        const reference_type element =
-            m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
-        return element;
-      }
       auto dim0_offset                = remote_view_props.R0_offset;
       Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
       const reference_type element =
           m_handle(new_offset.PE, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
       return element;
     }
-    if (remote_view_props.num_PEs <= 1) {
-      const reference_type element =
-          m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
-      return element;
-    }
+
     auto dim0_offset                = remote_view_props.R0_offset + i0;
     Dim0_IndexOffset<I0> new_offset = compute_dim0_offsets<I0>(dim0_offset);
     const reference_type element    = m_handle(

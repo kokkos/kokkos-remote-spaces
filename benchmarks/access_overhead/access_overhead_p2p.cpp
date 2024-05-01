@@ -24,10 +24,11 @@
 #include <type_traits>
 #include <string>
 
-//#define ACCESS_LDC_USE_MULTI_LDC
-#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
+#define NUM_TEAMS 1 /* Recursive subview support needed. TBD */
+#define ACCESS_LDC_USE_MULTI_LDC
+//#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
 
-#define CHECK_FOR_CORRECTNESS
+//#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
@@ -486,11 +487,11 @@ struct Access_LDC<
           Kokkos::pair(remote_range.first + start_offset,
                        remote_range.first + start_offset + team_block);
 
-      printf("[%lu, %lu], [%lu, %lu], [%lu, %lu], [%lu, %lu]\n",
-             team_remote_range.first, team_remote_range.second,
-             team_local_range.first, team_local_range.second,
-             remote_range.first, remote_range.second, local_range.first,
-             local_range.second);
+      // printf("[%lu, %lu], [%lu, %lu], [%lu, %lu], [%lu, %lu]\n",
+      //        team_remote_range.first, team_remote_range.second,
+      //        team_local_range.first, team_local_range.second,
+      //        remote_range.first, remote_range.second, local_range.first,
+      //        local_range.second);
 
       // Construct team subviews
       auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
@@ -617,8 +618,8 @@ struct Access_LDC<
           time_a = timer.seconds();
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
-          Kokkos::parallel_for("block_transfer", team_policy_get_update_t(4, 1),
-                               *this);
+          Kokkos::parallel_for("block_transfer",
+                               team_policy_get_update_t(NUM_TEAMS, 1), *this);
 #else
           Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
                                *this);
@@ -649,10 +650,10 @@ struct Access_LDC<
 #if defined(ACCESS_LDC_USE_MULTI_LDC) || \
     defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
           Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(64, 1), *this);
+                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
 #else
-          Kokkos::parallel_for("block_transfer", team_policy_put_update_t(1, 1),
-                               *this);
+          Kokkos::parallel_for("block_transfer",
+                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
 #endif
           Kokkos::fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
