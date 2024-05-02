@@ -45,7 +45,7 @@ void test_allocate_symmetric_remote_view_by_rank(Args... args) {
   RemoteView_t view("MyRemoteView", numRanks, args...);
   check_extents(view, 0, numRanks, args...);
 
-  // Check implicit memort space allocaton
+  // Check implicit memory space allocaton
   view = RemoteView_t("MyRemoteView", numRanks, args...);
   check_extents(view, 0, numRanks, args...);
 }

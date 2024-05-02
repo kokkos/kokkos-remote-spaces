@@ -20,6 +20,8 @@
 #include <csignal>
 #include <mpi.h>
 
+#include <iostream>
+
 namespace Kokkos {
 namespace Experimental {
 
@@ -40,9 +42,7 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
 }
 
 void *MPISpace::allocate(const char *arg_label, const size_t arg_alloc_size,
-                         const size_t
-
-                             arg_logical_size) const {
+                         const size_t arg_logical_size) const {
   return impl_allocate(arg_label, arg_alloc_size, arg_logical_size);
 }
 
@@ -67,12 +67,17 @@ void *MPISpace::impl_allocate(
   if (arg_alloc_size) {
     // Over-allocate to and round up to guarantee proper alignment.
     size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
-
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       current_win = MPI_WIN_NULL;
-      MPI_Win_allocate(size_padded, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
+
+      MPI_Info info;
+      MPI_Info_create(&info);
+      MPI_Info_set(info, "mpi_minimum_memory_alignment",
+                   std::to_string(Kokkos::Impl::MEMORY_ALIGNMENT).c_str());
+      MPI_Win_allocate(size_padded, 1, info, MPI_COMM_WORLD, &ptr,
                        &current_win);
 
+      assert(ptr != nullptr);
       assert(current_win != MPI_WIN_NULL);
 
       int ret = MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
@@ -98,12 +103,11 @@ void *MPISpace::impl_allocate(
   using MemAllocFailureMode = Kokkos::Impl::Experimental::
       RemoteSpacesMemoryAllocationFailure::FailureMode;
 
-  if ((ptr == nullptr) || (reinterpret_cast<uintptr_t>(ptr) == ~uintptr_t(0))
+  if ((ptr == nullptr) ||
+      (reinterpret_cast<uintptr_t>(ptr) == ~uintptr_t(0))
       // MPI_Win_allocate may allocate non-alligned to
       // Kokkos::Impl::MEMORY_ALIGNMENT
-      // ||
-      // (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)*/
-  ) {
+      || (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)) {
     MemAllocFailureMode failure_mode =
         MemAllocFailureMode::AllocationNotAligned;
     if (ptr == nullptr) {
@@ -154,7 +158,8 @@ void MPISpace::impl_deallocate(
 
     last_valid--;
     for (int i = 0; i < mpi_windows.size(); ++i) {
-      if (mpi_windows[i] == current_win) {
+      if (mpi_windows[i] == current_win &&
+          current_win != mpi_windows[last_valid]) {
         mpi_windows[i]          = mpi_windows[last_valid];
         mpi_windows[last_valid] = MPI_WIN_NULL;
         break;
