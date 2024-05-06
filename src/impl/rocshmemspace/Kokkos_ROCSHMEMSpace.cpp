@@ -128,10 +128,7 @@ void ROCSHMEMSpace::impl_deallocate(
   }
 }
 
-void ROCSHMEMSpace::fence() {
-  Kokkos::fence();
-  roc_shmem_barrier_all();
-}
+void ROCSHMEMSpace::fence() { roc_shmem_barrier_all(); }
 
 KOKKOS_FUNCTION
 size_t get_num_pes() { return roc_shmem_n_pes(); }

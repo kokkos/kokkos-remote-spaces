@@ -130,10 +130,7 @@ void NVSHMEMSpace::impl_deallocate(
   }
 }
 
-void NVSHMEMSpace::fence() {
-  Kokkos::fence();
-  nvshmem_barrier_all();
-}
+void NVSHMEMSpace::fence() { nvshmem_barrier_all(); }
 
 KOKKOS_FUNCTION
 int get_num_pes() { return nvshmem_n_pes(); }

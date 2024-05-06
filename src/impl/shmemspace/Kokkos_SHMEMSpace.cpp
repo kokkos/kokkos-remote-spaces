@@ -141,10 +141,7 @@ void SHMEMSpace::impl_deallocate(
   }
 }
 
-void SHMEMSpace::fence() {
-  Kokkos::fence();
-  shmem_barrier_all();
-}
+void SHMEMSpace::fence() { shmem_barrier_all(); }
 
 size_t get_num_pes() { return shmem_n_pes(); }
 size_t get_my_pe() { return shmem_my_pe(); }
