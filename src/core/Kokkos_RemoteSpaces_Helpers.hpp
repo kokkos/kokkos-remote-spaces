@@ -23,7 +23,6 @@
 
 namespace Kokkos {
 namespace Experimental {
-namespace Impl {
 
 template <class T>
 struct Is_Partitioned_Layout {
@@ -41,12 +40,16 @@ struct Is_View_Of_Type_RemoteSpaces {
   };
 };
 
-template <class T>
-struct Is_Dim0_Used_As_PE {
-  enum : bool {
-    value = RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe
-  };
-};
+#define ENABLE_IF_GLOBAL_LAYOUT(VIEWTYPE)                                \
+  std::enable_if_t<                                                      \
+      !Kokkos::Experimental::Is_Partitioned_Layout<VIEWTYPE>::value> * = \
+      nullptr
+#define ENABLE_IF_PARTITIONED_LAYOUT(VIEWTYPE)                          \
+  std::enable_if_t<                                                     \
+      Kokkos::Experimental::Is_Partitioned_Layout<VIEWTYPE>::value> * = \
+      nullptr
+
+namespace Impl {
 
 template <class view_type>
 bool is_local_view(

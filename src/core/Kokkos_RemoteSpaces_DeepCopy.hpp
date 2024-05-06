@@ -49,7 +49,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 0, iType> {
 
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i) = val;
     else
       a(i) = val;
@@ -72,7 +72,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 1, iType> {
 
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i) = val;
     else
       a(i) = val;
@@ -100,7 +100,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 2, iType> {
 
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i0, i1) = val;
     else
       a(i0, i1) = val;
@@ -129,7 +129,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 3, iType> {
 
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1, const iType& i2) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i0, i1, i2) = val;
     else
       a(i0, i1, i2) = val;
@@ -160,7 +160,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 4, iType> {
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1, const iType& i2,
                   const iType& i3) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i0, i1, i2, i3) = val;
     else
       a(i0, i1, i2, i3) = val;
@@ -191,7 +191,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 5, iType> {
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1, const iType& i2,
                   const iType& i3, const iType& i4) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i0, i1, i2, i3, i4) = val;
     else
       a(i0, i1, i2, i3, i4) = val;
@@ -222,7 +222,7 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 6, iType> {
   KOKKOS_INLINE_FUNCTION
   void operator()(const iType& i0, const iType& i1, const iType& i2,
                   const iType& i3, const iType& i4, const iType& i5) const {
-    if constexpr (Is_Partitioned_Layout<ViewType>::value)
+    if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<ViewType>::value)
       a(0, i0, i1, i2, i3, i4, i5) = val;
     else
       a(i0, i1, i2, i3, i4, i5) = val;
@@ -254,7 +254,8 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 7, iType> {
   void operator()(const iType& i0, const iType& i1, const iType& i3,
                   const iType& i4, const iType& i5, const iType& i6) const {
     for (iType i2 = 0; i2 < iType(a.extent(2)); i2++)
-      if constexpr (Is_Partitioned_Layout<ViewType>::value)
+      if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<
+                        ViewType>::value)
         a(0, i0, i1, i2, i3, i4, i5, i6) = val;
       else
         a(i0, i1, i2, i3, i4, i5, i6) = val;
@@ -287,7 +288,8 @@ struct ViewFill_RemoteSpaces<ViewType, Layout, ExecSpace, 8, iType> {
                   const iType& i5, const iType& i6, const iType& i7) const {
     for (iType i2 = 0; i2 < iType(a.extent(2)); i2++)
       for (iType i4 = 0; i4 < iType(a.extent(4)); i4++)
-        if constexpr (Is_Partitioned_Layout<ViewType>::value)
+        if constexpr (Kokkos::Experimental::Is_Partitioned_Layout<
+                          ViewType>::value)
           a(0, i0, i1, i2, i3, i4, i5, i6, i7) = val;
         else
           a(i0, i1, i2, i3, i4, i5, i6, i7) = val;
@@ -630,8 +632,9 @@ void view_copy_RemoteSpaces(
 template <class DstType, class SrcType>
 void view_copy_RemoteSpaces(
     const DstType& dst, const SrcType& src,
-    typename std::enable_if_t<(Is_View_Of_Type_RemoteSpaces<DstType>::value ||
-                               Is_View_Of_Type_RemoteSpaces<SrcType>::value)>* =
+    typename std::enable_if_t<
+        (Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<DstType>::value ||
+         Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<SrcType>::value)>* =
         nullptr) {
   using dst_execution_space = typename DstType::execution_space;
   using src_execution_space = typename SrcType::execution_space;
@@ -735,7 +738,8 @@ inline void contiguous_fill(
     const ExecutionSpace& exec_space, const View<DT, DP...>& dst,
     typename ViewTraits<DT, DP...>::const_value_type& value,
     typename std::enable_if_t<
-        (Is_View_Of_Type_RemoteSpaces<View<DT, DP...>>::value)>* = nullptr) {
+        (Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+            View<DT, DP...>>::value)>* = nullptr) {
   using ViewType     = View<DT, DP...>;
   using ViewTypeFlat = Kokkos::View<
       typename ViewType::value_type*, Kokkos::LayoutRight,
@@ -763,7 +767,8 @@ struct ZeroMemset_RemoteSpaces {
       const ExecutionSpace& exec_space, const ViewType& dst,
       typename ViewType::const_value_type& value,
       typename std::enable_if_t<
-          Is_View_Of_Type_RemoteSpaces<ViewType>::value>* = nullptr) {
+          Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+              ViewType>::value>* = nullptr) {
     contiguous_fill(exec_space, dst, value);
   }
 
@@ -782,7 +787,8 @@ contiguous_fill_or_memset(
     const ExecutionSpace& exec_space, const View<DT, DP...>& dst,
     typename ViewTraits<DT, DP...>::const_value_type& value,
     typename std::enable_if_t<
-        Is_View_Of_Type_RemoteSpaces<View<DT, DP...>>::value>* = nullptr) {
+        Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+            View<DT, DP...>>::value>* = nullptr) {
 // On A64FX memset seems to do the wrong thing with regards to first touch
 // leading to the significant performance issues
 #ifndef KOKKOS_ARCH_A64FX
@@ -802,7 +808,8 @@ contiguous_fill_or_memset(
     const ExecutionSpace& exec_space, const View<DT, DP...>& dst,
     typename ViewTraits<DT, DP...>::const_value_type& value,
     typename std::enable_if_t<
-        Is_View_Of_Type_RemoteSpaces<View<DT, DP...>>::value>* = nullptr) {
+        Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+            View<DT, DP...>>::value>* = nullptr) {
   contiguous_fill(exec_space, dst, value);
 }
 
@@ -815,7 +822,8 @@ contiguous_fill_or_memset(
     const View<DT, DP...>& dst,
     typename ViewTraits<DT, DP...>::const_value_type& value,
     typename std::enable_if_t<
-        Is_View_Of_Type_RemoteSpaces<View<DT, DP...>>::value>* = nullptr) {
+        Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+            View<DT, DP...>>::value>* = nullptr) {
   using ViewType        = View<DT, DP...>;
   using exec_space_type = typename ViewType::execution_space;
 
@@ -838,7 +846,8 @@ contiguous_fill_or_memset(
     const View<DT, DP...>& dst,
     typename ViewTraits<DT, DP...>::const_value_type& value,
     typename std::enable_if_t<
-        Is_View_Of_Type_RemoteSpaces<View<DT, DP...>>::value>* = nullptr) {
+        Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+            View<DT, DP...>>::value>* = nullptr) {
   using ViewType        = View<DT, DP...>;
   using exec_space_type = typename ViewType::execution_space;
 
@@ -848,12 +857,11 @@ contiguous_fill_or_memset(
 
 /** \brief  Deep copy a value from Host memory into a view.  */
 template <class DT, class... DP>
-inline void deep_copy(
-    const View<DT, DP...>& dst,
-    typename ViewTraits<DT, DP...>::const_value_type& value,
-    typename std::enable_if_t<
-        Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
-            View<DT, DP...>>::value>* = nullptr) {
+inline void deep_copy(const View<DT, DP...>& dst,
+                      typename ViewTraits<DT, DP...>::const_value_type& value,
+                      typename std::enable_if_t<
+                          Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
+                              View<DT, DP...>>::value>* = nullptr) {
   using ViewType        = View<DT, DP...>;
   using exec_space_type = typename ViewType::execution_space;
 
@@ -950,7 +958,7 @@ template <class ST, class... SP>
 inline void deep_copy(
     typename ViewTraits<ST, SP...>::non_const_value_type& dst,
     const View<ST, SP...>& src,
-    std::enable_if_t<Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
+    std::enable_if_t<Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
         View<ST, SP...>>::value>* = nullptr) {
   using src_traits       = ViewTraits<ST, SP...>;
   using src_memory_space = typename src_traits::memory_space;
@@ -986,9 +994,9 @@ inline void deep_copy(
 template <class DT, class... DP, class ST, class... SP>
 inline void deep_copy(
     const View<DT, DP...>& dst, const View<ST, SP...>& src,
-    std::enable_if_t<(Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
+    std::enable_if_t<(Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
                           View<ST, SP...>>::value &&
-                      Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
+                      Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
                           View<DT, DP...>>::value &&
                       (unsigned(ViewTraits<DT, DP...>::rank) == unsigned(0) &&
                        unsigned(ViewTraits<ST, SP...>::rank) ==
@@ -1004,15 +1012,12 @@ inline void deep_copy(
                              typename src_type::non_const_value_type>::value,
                 "deep_copy requires matching non-const destination type");
 
-  static_assert(((Kokkos::Experimental::Impl::Is_Partitioned_Layout<
-                      View<DT, DP...>>::value &&
-                  Kokkos::Experimental::Impl::Is_Partitioned_Layout<
-                      View<DT, DP...>>::value) ||
-                 (!Kokkos::Experimental::Impl::Is_Partitioned_Layout<
-                      View<DT, DP...>>::value &&
-                  !Kokkos::Experimental::Impl::Is_Partitioned_Layout<
-                      View<DT, DP...>>::value)),
-                "ERROR: deep_copy requires compatible view types");
+  static_assert(
+      ((Kokkos::Experimental::Is_Partitioned_Layout<View<DT, DP...>>::value &&
+        Kokkos::Experimental::Is_Partitioned_Layout<View<DT, DP...>>::value) ||
+       (!Kokkos::Experimental::Is_Partitioned_Layout<View<DT, DP...>>::value &&
+        !Kokkos::Experimental::Is_Partitioned_Layout<View<DT, DP...>>::value)),
+      "ERROR: deep_copy requires compatible view types");
 
   if (Kokkos::Tools::Experimental::get_callbacks().begin_deep_copy != nullptr) {
     Kokkos::Profiling::beginDeepCopy(
@@ -1050,9 +1055,9 @@ inline void deep_copy(
 template <class DT, class... DP, class ST, class... SP>
 inline void deep_copy(
     const View<DT, DP...>& dst, const View<ST, SP...>& src,
-    std::enable_if_t<((Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
+    std::enable_if_t<((Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
                            View<ST, SP...>>::value ||
-                       Kokkos::Experimental::Impl::Is_View_Of_Type_RemoteSpaces<
+                       Kokkos::Experimental::Is_View_Of_Type_RemoteSpaces<
                            View<DT, DP...>>::value) &&
                       (unsigned(ViewTraits<DT, DP...>::rank) != 0 ||
                        unsigned(ViewTraits<ST, SP...>::rank) != 0))>* =
@@ -1172,10 +1177,10 @@ inline void deep_copy(
                    typename src_type::non_const_value_type>::value &&
       (std::is_same<typename dst_type::array_layout,
                     typename src_type::array_layout>::value ||
-       (Is_Partitioned_Layout<src_type>::value &&
-        !Is_Partitioned_Layout<dst_type>::value) ||
-       (Is_Partitioned_Layout<dst_type>::value &&
-        !Is_Partitioned_Layout<src_type>::value) ||
+       (Kokkos::Experimental::Is_Partitioned_Layout<src_type>::value &&
+        !Kokkos::Experimental::Is_Partitioned_Layout<dst_type>::value) ||
+       (Kokkos::Experimental::Is_Partitioned_Layout<dst_type>::value &&
+        !Kokkos::Experimental::Is_Partitioned_Layout<src_type>::value) ||
        (dst_type::rank == 1 && src_type::rank == 1)) &&
       dst.span_is_contiguous() && src.span_is_contiguous() &&
       ((dst_type::rank < 1) || (dst.stride_0() == src.stride_0())) &&

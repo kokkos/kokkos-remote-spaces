@@ -21,11 +21,6 @@
 
 #include <type_traits>
 
-#define ENABLE_IF_GLOBAL_LAYOUT \
-  std::enable_if_t<!Is_Partitioned_Layout<T>::value> * = nullptr
-#define ENABLE_IF_PARTITIONED_LAYOUT \
-  std::enable_if_t<Is_Partitioned_Layout<T>::value> * = nullptr
-
 #define USING_GLOBAL_INDEXING !remote_view_props.using_local_indexing
 #define USING_LOCAL_INDEXING remote_view_props.using_local_indexing
 
@@ -263,7 +258,7 @@ class ViewMapping<
   // Check if Kokkos::LayoutStride should become PartitionedLayoutStride
   using array_layout = typename std::conditional<
       std::is_same<array_layout_candidate, Kokkos::LayoutStride>::value &&
-          Is_Partitioned_Layout<SrcTraits>::value,
+          Kokkos::Experimental::Is_Partitioned_Layout<SrcTraits>::value,
       Kokkos::PartitionedLayoutStride, array_layout_candidate>::type;
 
   using value_type = typename SrcTraits::value_type;
@@ -403,7 +398,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   int get_PE() const { return remote_view_props.my_PE; }
 
   template <typename T = Traits>
-  KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT) const {
+  KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.R0_offset != 0)
       return compute_dim0_offsets(remote_view_props.R0_offset).PE;
     return remote_view_props.my_PE;
@@ -411,7 +406,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(
-      ENABLE_IF_PARTITIONED_LAYOUT) const {
+      ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     if (remote_view_props.R0_offset != 0) return remote_view_props.R0_offset;
     return remote_view_props.my_PE;
   }
@@ -429,7 +424,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
-      ENABLE_IF_GLOBAL_LAYOUT) const {
+      ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (USING_GLOBAL_INDEXING)
       return remote_view_props.R0_size;
     else
@@ -438,7 +433,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION constexpr size_t dimension_0(
-      ENABLE_IF_PARTITIONED_LAYOUT) const {
+      ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     return m_offset.dimension_0();
   }
 
@@ -529,7 +524,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, ENABLE_IF_PARTITIONED_LAYOUT) const {
+  reference(const I0 &i0, ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     // We need this dynamic check as we do not derive the
     // type specialization at view construction through the
     // view ctr (only through Kokkos::subview(...)). This adds support
@@ -547,7 +542,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, ENABLE_IF_PARTITIONED_LAYOUT) const {
+  reference(const I0 &i0, const I1 &i1, ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -562,7 +557,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   template <typename I0, typename I1, typename I2, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2,
-            ENABLE_IF_PARTITIONED_LAYOUT) const {
+            ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -578,7 +573,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            ENABLE_IF_PARTITIONED_LAYOUT) const {
+            ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -595,7 +590,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, ENABLE_IF_PARTITIONED_LAYOUT) const {
+            const I4 &i4, ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -612,7 +607,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename I5, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, const I5 &i5, ENABLE_IF_PARTITIONED_LAYOUT) const {
+            const I4 &i4, const I5 &i5, ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -629,7 +624,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename I5, typename I6, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
-      const I5 &i5, const I6 &i6, ENABLE_IF_PARTITIONED_LAYOUT) const {
+      const I5 &i5, const I6 &i6, ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -647,7 +642,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
             const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7,
-            ENABLE_IF_PARTITIONED_LAYOUT) const {
+            ENABLE_IF_PARTITIONED_LAYOUT(T)) const {
     auto dim0_offset = remote_view_props.R0_offset;
     auto _i0         = i0;
 
@@ -682,7 +677,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename I0, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, ENABLE_IF_GLOBAL_LAYOUT) const {
+  reference(const I0 &i0, ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0));
       return element;
@@ -704,7 +699,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename I0, typename I1, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
-  reference(const I0 &i0, const I1 &i1, ENABLE_IF_GLOBAL_LAYOUT) const {
+  reference(const I0 &i0, const I1 &i1, ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1));
       return element;
@@ -724,8 +719,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   }
 
   template <typename I0, typename I1, typename I2, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type reference(
-      const I0 &i0, const I1 &i1, const I2 &i2, ENABLE_IF_GLOBAL_LAYOUT) const {
+  KOKKOS_INLINE_FUNCTION const reference_type
+  reference(const I0 &i0, const I1 &i1, const I2 &i2,
+            ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       I0 offset                    = m_offset(i0, i1, i2);
       const reference_type element = m_handle(0, offset);
@@ -751,7 +747,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            ENABLE_IF_GLOBAL_LAYOUT) const {
+            ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3));
       return element;
@@ -776,7 +772,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, ENABLE_IF_GLOBAL_LAYOUT) const {
+            const I4 &i4, ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element = m_handle(0, m_offset(i0, i1, i2, i3, i4));
       return element;
@@ -801,7 +797,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename I5, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type
   reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
-            const I4 &i4, const I5 &i5, ENABLE_IF_GLOBAL_LAYOUT) const {
+            const I4 &i4, const I5 &i5, ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5));
@@ -827,7 +823,7 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
             typename I5, typename I6, typename T = Traits>
   KOKKOS_INLINE_FUNCTION const reference_type reference(
       const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
-      const I5 &i5, const I6 &i6, ENABLE_IF_GLOBAL_LAYOUT) const {
+      const I5 &i5, const I6 &i6, ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6));
@@ -851,9 +847,10 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   template <typename I0, typename I1, typename I2, typename I3, typename I4,
             typename I5, typename I6, typename I7, typename T = Traits>
-  KOKKOS_INLINE_FUNCTION const reference_type reference(
-      const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3, const I4 &i4,
-      const I5 &i5, const I6 &i6, const I7 &i7, ENABLE_IF_GLOBAL_LAYOUT) const {
+  KOKKOS_INLINE_FUNCTION const reference_type
+  reference(const I0 &i0, const I1 &i1, const I2 &i2, const I3 &i3,
+            const I4 &i4, const I5 &i5, const I6 &i6, const I7 &i7,
+            ENABLE_IF_GLOBAL_LAYOUT(T)) const {
     if (remote_view_props.num_PEs <= 1) {
       const reference_type element =
           m_handle(0, m_offset(i0, i1, i2, i3, i4, i5, i6, i7));
@@ -956,7 +953,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
  private:
   template <typename T = Traits>
-  KOKKOS_FUNCTION typename std::enable_if_t<!Is_Partitioned_Layout<T>::value>
+  KOKKOS_FUNCTION typename std::enable_if_t<
+      !Kokkos::Experimental::Is_Partitioned_Layout<T>::value>
   set_layout(typename T::array_layout const &arg_layout,
              typename T::array_layout &layout,
              RemoteSpaces_View_Properties<typename T::size_type> &view_props) {
@@ -968,7 +966,8 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   }
 
   template <typename T = Traits>
-  KOKKOS_FUNCTION typename std::enable_if_t<Is_Partitioned_Layout<T>::value>
+  KOKKOS_FUNCTION typename std::enable_if_t<
+      Kokkos::Experimental::Is_Partitioned_Layout<T>::value>
   set_layout(typename T::array_layout const &arg_layout,
              typename T::array_layout &layout,
              RemoteSpaces_View_Properties<typename T::size_type> &view_props) {
@@ -1204,8 +1203,5 @@ class ViewMapping<DstTraits, SrcTraits,
 
 }  // namespace Impl
 }  // namespace Kokkos
-
-#undef ENABLE_IF_GLOBAL_LAYOUT
-#undef ENABLE_IF_PARTITIONED_LAYOUT
 
 #endif  // KOKKOS_REMOTESPACES_VIEWMAPPING_HPP
