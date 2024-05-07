@@ -114,18 +114,30 @@ KOKKOS_REMOTESPACES_ATOMIC_FETCH(double)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_FETCH
 
-#define KOKKOS_REMOTESPACES_ATOMIC_ADD(type)                                   \
-  static KOKKOS_INLINE_FUNCTION void mpi_type_atomic_add(type *ptr,            \
-                                                         type value, int pe) { \
-    /* TBD */                                                                  \
+#define KOKKOS_REMOTESPACES_ATOMIC_ADD(type, mpi_type)                     \
+  static KOKKOS_INLINE_FUNCTION void mpi_type_atomic_add(                  \
+      type &value, type &retVal, int offset, int pe, const MPI_Win &win) { \
+    assert(win != MPI_WIN_NULL);                                           \
+    int _typesize;                                                         \
+    MPI_Type_size(mpi_type, &_typesize);                                   \
+    auto retCode = MPI_Get_accumulate(                                     \
+        &value, 1, mpi_type, &retVal, 1, mpi_type, pe,                     \
+        sizeof(SharedAllocationHeader) + offset * _typesize, 1, mpi_type,  \
+        MPI_SUM, win);                                                     \
   }
 
-KOKKOS_REMOTESPACES_ATOMIC_ADD(int)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned int)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(long)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(long long)
-KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long long)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(char, MPI_SIGNED_CHAR)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned char, MPI_UNSIGNED_CHAR)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(short, MPI_SHORT)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned short, MPI_UNSIGNED_SHORT)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(int, MPI_INT)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned int, MPI_UNSIGNED)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(long, MPI_INT64_T)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(long long, MPI_LONG_LONG)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long long, MPI_UNSIGNED_LONG_LONG)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(unsigned long, MPI_UNSIGNED_LONG)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(float, MPI_FLOAT)
+KOKKOS_REMOTESPACES_ATOMIC_ADD(double, MPI_DOUBLE)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_ADD
 
@@ -565,9 +577,9 @@ struct MPIDataElement<
   KOKKOS_INLINE_FUNCTION
   const_value_type operator+=(const_value_type &val) const {
     T tmp;
-    mpi_type_g(tmp, offset, pe, *win);
-    tmp += val;
-    mpi_type_p(tmp, offset, pe, *win);
+    // forward the pinky promise of not updating "val" of mpi.
+    mpi_type_atomic_add(const_cast<non_const_value_type &>(val), tmp, offset,
+                        pe, *win);
     return tmp;
   }
 
