@@ -70,13 +70,18 @@ void *MPISpace::impl_allocate(
     size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       current_win = MPI_WIN_NULL;
+      ptr         = aligned_alloc(Kokkos::Impl::MEMORY_ALIGNMENT, size_padded);
+      MPI_Win_create(ptr, size_padded, 1, MPI_INFO_NULL, MPI_COMM_WORLD,
+                     &current_win);
 
+#if 0
       MPI_Info info;
       MPI_Info_create(&info);
       MPI_Info_set(info, "mpi_minimum_memory_alignment",
                    std::to_string(Kokkos::Impl::MEMORY_ALIGNMENT).c_str());
       MPI_Win_allocate(size_padded, 1, info, MPI_COMM_WORLD, &ptr,
                        &current_win);
+#endif
 
       assert(ptr != nullptr);
       assert(current_win != MPI_WIN_NULL);
@@ -111,7 +116,7 @@ void *MPISpace::impl_allocate(
 
   if ((ptr == nullptr)
       /* Uncomment once MPI makes the alignement via info keys work */
-      /*|| (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)*/) {
+      || (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)) {
     MemAllocFailureMode failure_mode =
         MemAllocFailureMode::AllocationNotAligned;
     if (ptr == nullptr) {
