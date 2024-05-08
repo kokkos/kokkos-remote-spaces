@@ -63,14 +63,12 @@ void *NVSHMEMSpace::impl_allocate(
 
   if (arg_alloc_size) {
     // Over-allocate to and round up to guarantee proper alignment.
-    //  size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
+    size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
 
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       int num_pes = nvshmem_n_pes();
       int my_id   = nvshmem_my_pe();
-      ptr         = /*(Kokkos::Impl::MEMORY_ALIGNMENT,
-                          arg_alloc_size); */
-          nvshmem_malloc(arg_alloc_size);
+      ptr         = nvshmem_malloc(size_padded);
     } else {
       Kokkos::abort("SHMEMSpace only supports symmetric allocation policy.");
     }
@@ -119,7 +117,7 @@ void NVSHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    Kokkos::Experimental::NVSHMEMSpace().fence();
+    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
