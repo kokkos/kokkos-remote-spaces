@@ -21,6 +21,8 @@
 
 #include <Kokkos_RemoteSpaces.hpp>
 
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+
 int main(int argc, char *argv[]) {
   int mpi_thread_level_available;
   int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
@@ -54,6 +56,7 @@ int main(int argc, char *argv[]) {
 
   Kokkos::initialize(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
+  RemoteSpace_t::fence();
   int result = RUN_ALL_TESTS();
 
   Kokkos::finalize();
