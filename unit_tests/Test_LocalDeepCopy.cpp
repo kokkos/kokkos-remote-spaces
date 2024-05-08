@@ -824,7 +824,7 @@ void test_localdeepcopy_withSubview(
       Kokkos::subview(v_R, prev_rank, Kokkos::ALL, Kokkos::ALL);
   auto v_R_subview_local =
       Kokkos::subview(v_R, my_rank, Kokkos::ALL, Kokkos::ALL);
-  return;
+
   Kokkos::parallel_for(
       "Init", i1, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < i2; ++j) v_R_subview_local(i, j) = my_rank;

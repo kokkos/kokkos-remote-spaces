@@ -117,7 +117,6 @@ void NVSHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -142,13 +141,11 @@ namespace Impl {
 
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::NVSHMEMSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace, HostSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 
@@ -157,7 +154,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
                        Kokkos::Experimental::NVSHMEMSpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 
@@ -167,7 +163,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::NVSHMEMSpace,
                        ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
                                                  void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::NVSHMEMSpace().fence();
   cudaMemcpy(dst, src, n, cudaMemcpyDefault);
 }
 

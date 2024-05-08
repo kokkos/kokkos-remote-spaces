@@ -46,6 +46,8 @@ void test_deepcopy(
   Kokkos::parallel_for(
       "Team", 1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, 0) = 0x123; });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   ASSERT_EQ(0x123, v_H(0, 0));
 }
@@ -66,10 +68,13 @@ void test_deepcopy(
 
   ViewHost_t v_H("HostView", 1, i1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i) {
     ASSERT_EQ(0x123, v_H(0, i));
@@ -92,12 +97,14 @@ void test_deepcopy(
 
   ViewHost_t v_H("HostView", 1, i1, i2);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = 0x123;
       });
 
+  Kokkos::fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
@@ -119,7 +126,7 @@ void test_deepcopy(
   ViewHost_t v_H("HostView", 1, 1);
   v_H(0, 0)        = 0x123;
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
-
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
@@ -147,6 +154,7 @@ void test_deepcopy(
   for (int i = 0; i < i1; ++i) v_H(0, i) = 0x123;
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
@@ -176,7 +184,7 @@ void test_deepcopy(
     for (int j = 0; j < i2; ++j) v_H(0, i, j) = 0x123;
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
-
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(

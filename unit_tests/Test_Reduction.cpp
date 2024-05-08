@@ -112,6 +112,7 @@ void test_scalar_reduce_partitioned_1D(int dim1) {
         v(my_rank, i) = static_cast<Data_t>(start + i);
       });
 
+  Kokkos::fence();
   RemoteSpace_t::fence();
 
   Data_t gsum = 0;

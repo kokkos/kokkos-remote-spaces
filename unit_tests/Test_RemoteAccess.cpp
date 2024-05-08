@@ -38,6 +38,8 @@ void test_remote_accesses(
 
   int next_rank = (my_rank + 1) % num_ranks;
 
+  RemoteSpace_t::fence();
+
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {
         /*Get Op*/
@@ -71,6 +73,8 @@ void test_remote_accesses(
 
   int next_rank = (my_rank + 1) % num_ranks;
   int prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
+
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {

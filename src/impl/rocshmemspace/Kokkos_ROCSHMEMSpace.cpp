@@ -117,7 +117,6 @@ void ROCSHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -144,14 +143,12 @@ Kokkos::Impl::DeepCopy<
     HostSpace, Kokkos::Experimental::ROCSHMEMSpace>::DeepCopy(void *dst,
                                                               const void *src,
                                                               size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        HostSpace>::DeepCopy(void *dst, const void *src,
                                             size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
@@ -160,7 +157,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        Kokkos::Experimental::ROCSHMEMSpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
@@ -170,7 +166,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
                                                  void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 

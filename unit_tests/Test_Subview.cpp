@@ -210,7 +210,6 @@ void test_subview3D_byScalar(int i1, int i2, int i3) {
 
   Kokkos::fence();
   RemoteSpace_t::fence();
-
   Kokkos::deep_copy(v_h, v);
 
   for (int i = 0; i < v_h.extent(0); ++i) {
@@ -415,13 +414,12 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   // Init
   deep_copy(v_h, VAL);
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+  auto v_sub   = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
-
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, sub2);
   auto v_sub_2 = ViewRemote_1D_t(v, Kokkos::ALL, sub1, sub2);
-
   Kokkos::deep_copy(v_sub, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", 1, KOKKOS_LAMBDA(const int i) {
@@ -457,13 +455,12 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
   // Init
   deep_copy(v_h, VAL);
 
-  auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
+  auto v_sub   = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
-
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, Kokkos::ALL);
   auto v_sub_2 = ViewRemote_2D_t(v, Kokkos::ALL, sub1, Kokkos::ALL);
-
   Kokkos::deep_copy(v_sub, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(1), KOKKOS_LAMBDA(const int i) {
@@ -503,6 +500,7 @@ void test_partitioned_subview3D(int i1, int i2, int sub1, int sub2) {
       Kokkos::subview(v, Kokkos::ALL, Kokkos::ALL, std::make_pair(sub1, sub2));
 
   Kokkos::deep_copy(v_sub, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", v_sub_1.extent(1), KOKKOS_LAMBDA(const int i) {
@@ -579,6 +577,7 @@ void test_partitioned_subview2D_byRank_nextRank(int i1, int i2) {
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_sub, v_h);
 
   Kokkos::parallel_for(
@@ -621,6 +620,7 @@ void test_partitioned_subviewOfSubviewRange_2D(int i1, int i2) {
   auto v_sub_next_half = Kokkos::subview(
       v_sub_next, Kokkos::pair<int, int>(i1_half, i1), Kokkos::ALL);
   Kokkos::deep_copy(v_sub, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", v_sub_next_half.extent(0), KOKKOS_LAMBDA(const int i) {
@@ -663,7 +663,9 @@ void test_partitioned_subviewOfSubviewScalar_2D(int i1, int i2) {
                                Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next_half = Kokkos::subview(v_sub_next, i1_half, Kokkos::ALL);
+
   Kokkos::deep_copy(v_sub, v_h);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Increment", v_sub_next_half.extent(0),
