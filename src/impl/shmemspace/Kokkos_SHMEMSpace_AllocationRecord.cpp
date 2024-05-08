@@ -29,11 +29,7 @@ SharedAllocationRecord<void, void> SharedAllocationRecord<
 
 SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace,
                        void>::~SharedAllocationRecord() {
-  m_space.deallocate(m_label.c_str(),
-                     SharedAllocationRecord<void, void>::m_alloc_ptr,
-                     SharedAllocationRecord<void, void>::m_alloc_size,
-                     (SharedAllocationRecord<void, void>::m_alloc_size -
-                      sizeof(SharedAllocationHeader)));
+  // Let SharedAllocationRecordCommon do the deallocation
 }
 
 SharedAllocationHeader *_do_allocation(
