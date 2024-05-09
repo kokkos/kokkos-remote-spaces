@@ -21,15 +21,50 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-template <class Data_t, class Space_t>
-void test_remote_accesses(int size) {
+enum op : int { get_op, put_op };
+
+template <class Data_t, class Space_t, int op_type>
+void test_remote_accesses(
+    int size, typename std::enable_if_t<(op_type == get_op)> * = nullptr) {
   int my_rank;
   int num_ranks;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
-  using TeamPolicy  = Kokkos::TeamPolicy<>;
-  TeamPolicy policy = TeamPolicy(1, Kokkos::AUTO);
+  using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
+  using HostSpace_t  = typename RemoteView_t::HostMirror;
+  RemoteView_t v_R   = RemoteView_t("RemoteView", num_ranks, size);
+  HostSpace_t v_H("HostView", v_R.extent(0), size);
+
+  int next_rank = (my_rank + 1) % num_ranks;
+
+  RemoteSpace_t::fence();
+
+  Kokkos::parallel_for(
+      "Update", size, KOKKOS_LAMBDA(const int i) {
+        /*Get Op*/
+        v_R(my_rank, i) = (Data_t)next_rank * size + i;
+      });
+
+  Kokkos::fence();
+  RemoteSpace_t::fence();
+  Kokkos::deep_copy(v_H, v_R);
+
+  Data_t check(0), ref(0);
+  for (int i = 0; i < size; i++) {
+    check += v_H(0, i);
+    ref += next_rank * size + i;
+  }
+  ASSERT_EQ(check, ref);
+}
+
+template <class Data_t, class Space_t, int op_type>
+void test_remote_accesses(
+    int size, typename std::enable_if_t<(op_type == put_op)> * = nullptr) {
+  int my_rank;
+  int num_ranks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
 
   using RemoteView_t = Kokkos::View<Data_t **, Space_t>;
   using HostSpace_t  = typename RemoteView_t::HostMirror;
@@ -39,11 +74,16 @@ void test_remote_accesses(int size) {
   int next_rank = (my_rank + 1) % num_ranks;
   int prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
 
+  RemoteSpace_t::fence();
+
   Kokkos::parallel_for(
       "Update", size, KOKKOS_LAMBDA(const int i) {
+        /*Put Op*/
         v_R(next_rank, i) = (Data_t)my_rank * size + i;
       });
 
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
 
   Data_t check(0), ref(0);
@@ -54,12 +94,21 @@ void test_remote_accesses(int size) {
   ASSERT_EQ(check, ref);
 }
 
-TEST(TEST_CATEGORY, test_remote_accesses) {
-  test_remote_accesses<int, RemoteSpace_t>(0);
-  test_remote_accesses<int, RemoteSpace_t>(1);
-  test_remote_accesses<float, RemoteSpace_t>(64);
-  test_remote_accesses<int64_t, RemoteSpace_t>(4567);
-  test_remote_accesses<double, RemoteSpace_t>(89);
+#define GENBLOCK(TYPE, OP)                                 \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(1);    \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(4567); \
+  test_remote_accesses<TYPE, RemoteSpace_t, get_op>(45617);
 
-  MPI_Barrier(MPI_COMM_WORLD);
+TEST(TEST_CATEGORY, test_remote_accesses) {
+  /*Get operations*/
+  GENBLOCK(int, get_op)
+  GENBLOCK(float, get_op)
+  GENBLOCK(double, get_op)
+
+  /*PUT operations*/
+  GENBLOCK(int, put_op)
+  GENBLOCK(float, put_op)
+  GENBLOCK(double, put_op)
+
+  RemoteSpace_t::fence();
 }

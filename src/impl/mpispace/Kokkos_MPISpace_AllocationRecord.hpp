@@ -74,6 +74,7 @@ class SharedAllocationRecord<Kokkos::Experimental::MPISpace, void>
     this->base_t::_fill_host_accessible_header_info(*RecordBase::m_alloc_ptr,
                                                     arg_label);
 #endif
+    win = m_space.current_win;
   }
 
   SharedAllocationRecord(

@@ -23,7 +23,6 @@
 
 namespace Kokkos {
 namespace Experimental {
-namespace Impl {
 
 template <class T>
 struct Is_Partitioned_Layout {
@@ -41,20 +40,23 @@ struct Is_View_Of_Type_RemoteSpaces {
   };
 };
 
-template <class T>
-struct Is_Dim0_Used_As_PE {
-  enum : bool {
-    value = RemoteSpaces_MemoryTraits<typename T::memory_traits>::dim0_is_pe
-  };
-};
+#define ENABLE_IF_GLOBAL_LAYOUT(VIEWTYPE)                                \
+  std::enable_if_t<                                                      \
+      !Kokkos::Experimental::Is_Partitioned_Layout<VIEWTYPE>::value> * = \
+      nullptr
+#define ENABLE_IF_PARTITIONED_LAYOUT(VIEWTYPE)                          \
+  std::enable_if_t<                                                     \
+      Kokkos::Experimental::Is_Partitioned_Layout<VIEWTYPE>::value> * = \
+      nullptr
+
+namespace Impl {
 
 template <class view_type>
 bool is_local_view(
     view_type v,
     std::enable_if_t<Is_View_Of_Type_RemoteSpaces<view_type>::value> * =
         nullptr) {
-  return (v.impl_map().get_lowest_participating_PE() ==
-          v.impl_map().get_my_PE());
+  return (v.impl_map().get_PE() == v.impl_map().get_logical_PE());
 }
 
 template <class view_type>
@@ -67,12 +69,14 @@ bool is_local_view(
 
 template <class T>
 struct RemoteSpaces_View_Properties {
-  /* Is the first index denoting PE*/
-  bool R0;
-  /* Is this view a subview of another view*/
-  bool is_subview;
+  /* Is the first index denoting PE o*/
+  // bool R0;
+  /* Is this view a subview created over dim0, then the
+   *  we use indexing of an ordinary view
+   */
+  bool using_local_indexing;
   /* Index offset in dim0 */
-  T R0_domain_offset;
+  T R0_offset;
   /* Num local elems in dim0  */
   T R0_size;
   /* Com size and rank*/
@@ -81,32 +85,29 @@ struct RemoteSpaces_View_Properties {
 
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties() {
-    R0               = true; /* default is true */
-    is_subview       = false;
-    R0_domain_offset = 0;
-    R0_size          = 0;
-    num_PEs          = Kokkos::Experimental::get_num_pes();
-    my_PE            = Kokkos::Experimental::get_my_pe();
+    using_local_indexing = false;
+    R0_offset            = 0;
+    R0_size              = 0;
+    num_PEs              = Kokkos::Experimental::get_num_pes();
+    my_PE                = Kokkos::Experimental::get_my_pe();
   }
 
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties(const RemoteSpaces_View_Properties &rhs) {
-    R0               = rhs.R0;
-    is_subview       = rhs.is_subview;
-    R0_domain_offset = rhs.R0_domain_offset;
-    R0_size          = rhs.R0_size;
-    num_PEs          = rhs.num_PEs;
-    my_PE            = rhs.my_PE;
+    using_local_indexing = rhs.using_local_indexing;
+    R0_offset            = rhs.R0_offset;
+    R0_size              = rhs.R0_size;
+    num_PEs              = rhs.num_PEs;
+    my_PE                = rhs.my_PE;
   }
 
   KOKKOS_FUNCTION RemoteSpaces_View_Properties &operator=(
       const RemoteSpaces_View_Properties &rhs) {
-    R0               = rhs.R0;
-    is_subview       = rhs.is_subview;
-    R0_domain_offset = rhs.R0_domain_offset;
-    R0_size          = rhs.R0_size;
-    num_PEs          = rhs.num_PEs;
-    my_PE            = rhs.my_PE;
+    using_local_indexing = rhs.using_local_indexing;
+    R0_offset            = rhs.R0_offset;
+    R0_size              = rhs.R0_size;
+    num_PEs              = rhs.num_PEs;
+    my_PE                = rhs.my_PE;
     return *this;
   }
 };
@@ -146,7 +147,7 @@ KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_range(T size, int pe) {
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION Kokkos::pair<T, T> get_local_range(T size) {
-  auto pe = Kokkos::Experimental::get_my_pe();
+  auto pe = get_my_pe();
   return getRange(size, pe);
 }
 

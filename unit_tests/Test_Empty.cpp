@@ -19,9 +19,8 @@
 #include <Kokkos_RemoteSpaces.hpp>
 #include <gtest/gtest.h>
 
-void test_empty() {}
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-TEST(TEST_CATEGORY, test_empty) {
-  test_empty();
-  MPI_Barrier(MPI_COMM_WORLD);
-}
+void test_empty() { RemoteSpace_t::fence(); }
+
+TEST(TEST_CATEGORY, test_empty) { test_empty(); }

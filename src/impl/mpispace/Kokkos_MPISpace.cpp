@@ -20,11 +20,14 @@
 #include <csignal>
 #include <mpi.h>
 
+#include <iostream>
+
 namespace Kokkos {
 namespace Experimental {
 
 MPI_Win MPISpace::current_win;
 std::vector<MPI_Win> MPISpace::mpi_windows;
+std::mutex internal_mpi_backend_mutex;
 
 /* Default allocation mechanism */
 MPISpace::MPISpace() : allocation_mode(Kokkos::Experimental::Symmetric) {}
@@ -40,9 +43,7 @@ void *MPISpace::allocate(const size_t arg_alloc_size) const {
 }
 
 void *MPISpace::allocate(const char *arg_label, const size_t arg_alloc_size,
-                         const size_t
-
-                             arg_logical_size) const {
+                         const size_t arg_logical_size) const {
   return impl_allocate(arg_label, arg_alloc_size, arg_logical_size);
 }
 
@@ -67,12 +68,25 @@ void *MPISpace::impl_allocate(
   if (arg_alloc_size) {
     // Over-allocate to and round up to guarantee proper alignment.
     size_t size_padded = arg_alloc_size + sizeof(void *) + alignment;
-
     if (allocation_mode == Kokkos::Experimental::Symmetric) {
       current_win = MPI_WIN_NULL;
-      MPI_Win_allocate(size_padded, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &ptr,
-                       &current_win);
+      ptr         = aligned_alloc(Kokkos::Impl::MEMORY_ALIGNMENT, size_padded);
+      MPI_Win_create(ptr, size_padded, 1, MPI_INFO_NULL, MPI_COMM_WORLD,
+                     &current_win);
 
+#if 0
+      MPI_Info info;
+      MPI_Info_create(&info);
+      MPI_Info_set(info, "mpi_minimum_memory_alignment",
+                   std::to_string(Kokkos::Impl::MEMORY_ALIGNMENT).c_str());
+      MPI_Win_allocate(size_padded, 1, info, MPI_COMM_WORLD, &ptr,
+                       &current_win);
+#endif
+
+      assert(ptr != nullptr);
+      assert(current_win != MPI_WIN_NULL);
+
+      assert(ptr != nullptr);
       assert(current_win != MPI_WIN_NULL);
 
       int ret = MPI_Win_lock_all(MPI_MODE_NOCHECK, current_win);
@@ -80,14 +94,16 @@ void *MPISpace::impl_allocate(
         Kokkos::abort("MPI window lock all failed.");
       }
       int i;
+
+      internal_mpi_backend_mutex.lock();
       for (i = 0; i < mpi_windows.size(); ++i) {
         if (mpi_windows[i] == MPI_WIN_NULL) break;
       }
-
       if (i == mpi_windows.size())
         mpi_windows.push_back(current_win);
       else
         mpi_windows[i] = current_win;
+      internal_mpi_backend_mutex.unlock();
     } else {
       Kokkos::abort("MPISpace only supports symmetric allocation policy.");
     }
@@ -98,12 +114,9 @@ void *MPISpace::impl_allocate(
   using MemAllocFailureMode = Kokkos::Impl::Experimental::
       RemoteSpacesMemoryAllocationFailure::FailureMode;
 
-  if ((ptr == nullptr) || (reinterpret_cast<uintptr_t>(ptr) == ~uintptr_t(0))
-      // MPI_Win_allocate may allocate non-alligned to
-      // Kokkos::Impl::MEMORY_ALIGNMENT
-      // ||
-      // (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)*/
-  ) {
+  if ((ptr == nullptr)
+      /* Uncomment once MPI makes the alignement via info keys work */
+      || (reinterpret_cast<uintptr_t>(ptr) & alignment_mask)) {
     MemAllocFailureMode failure_mode =
         MemAllocFailureMode::AllocationNotAligned;
     if (ptr == nullptr) {
@@ -139,7 +152,6 @@ void MPISpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -147,6 +159,7 @@ void MPISpace::impl_deallocate(
                                         reported_size);
     }
 
+    internal_mpi_backend_mutex.lock();
     int last_valid;
     for (last_valid = 0; last_valid < mpi_windows.size(); ++last_valid) {
       if (mpi_windows[last_valid] == MPI_WIN_NULL) break;
@@ -165,28 +178,21 @@ void MPISpace::impl_deallocate(
     MPI_Win_unlock_all(current_win);
     MPI_Win_free(&current_win);
 
-    // We pass a mempory space instance do multiple Views thus
-    // setting "current_win = MPI_WIN_NULL;" will result in a wrong handle if
-    // subsequent view runs out of scope
-    // Fixme: The following only works when views are allocated sequentially
-    // We need a thread-safe map to associate views and windows
-
     if (last_valid != 0)
       current_win = mpi_windows[last_valid - 1];
     else
       current_win = MPI_WIN_NULL;
+
+    internal_mpi_backend_mutex.unlock();
   }
 }
 
-void MPISpace::fence() const {
-  Kokkos::fence();
+void MPISpace::fence() {
+  internal_mpi_backend_mutex.lock();
   for (int i = 0; i < mpi_windows.size(); i++) {
-    if (mpi_windows[i] != MPI_WIN_NULL) {
-      MPI_Win_flush_all(mpi_windows[i]);
-    } else {
-      break;
-    }
+    if (mpi_windows[i] != MPI_WIN_NULL) MPI_Win_flush_all(mpi_windows[i]);
   }
+  internal_mpi_backend_mutex.unlock();
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -195,7 +201,6 @@ size_t get_num_pes() {
   MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
   return n_ranks;
 }
-
 size_t get_my_pe() {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -208,13 +213,11 @@ namespace Impl {
 
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::MPISpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::MPISpace().fence();
   memcpy(dst, src, n);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace, HostSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::MPISpace().fence();
   memcpy((char *)dst, (char *)src, n);
 }
 
@@ -223,7 +226,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
                                                                  const void
                                                                      *src,
                                                                  size_t n) {
-  Kokkos::Experimental::MPISpace().fence();
   memcpy(dst, src, n);
 }
 
@@ -232,7 +234,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
                        Kokkos::Experimental::MPISpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::MPISpace().fence();
   memcpy(dst, src, n);
 }
 
@@ -242,7 +243,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::MPISpace,
                        ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
                                                  void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::MPISpace().fence();
   memcpy(dst, src, n);
 }
 

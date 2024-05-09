@@ -130,7 +130,6 @@ void SHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -141,10 +140,7 @@ void SHMEMSpace::impl_deallocate(
   }
 }
 
-void SHMEMSpace::fence() const {
-  Kokkos::fence();
-  shmem_barrier_all();
-}
+void SHMEMSpace::fence() { shmem_barrier_all(); }
 
 size_t get_num_pes() { return shmem_n_pes(); }
 size_t get_my_pe() { return shmem_my_pe(); }
@@ -155,13 +151,11 @@ namespace Impl {
 
 Kokkos::Impl::DeepCopy<HostSpace, Kokkos::Experimental::SHMEMSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::SHMEMSpace().fence();
   memcpy(dst, src, n);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace, HostSpace>::DeepCopy(
     void *dst, const void *src, size_t n) {
-  Kokkos::Experimental::SHMEMSpace().fence();
   memcpy(dst, src, n);
 }
 
@@ -170,7 +164,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace,
                                                                    const void
                                                                        *src,
                                                                    size_t n) {
-  Kokkos::Experimental::SHMEMSpace().fence();
   memcpy(dst, src, n);
 }
 
@@ -179,7 +172,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace,
                        Kokkos::Experimental::SHMEMSpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::SHMEMSpace().fence();
   memcpy(dst, src, n);
 }
 
@@ -189,7 +181,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::SHMEMSpace,
                        ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
                                                  void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::SHMEMSpace().fence();
   memcpy(dst, src, n);
 }
 

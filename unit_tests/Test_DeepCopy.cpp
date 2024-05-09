@@ -43,12 +43,11 @@ void test_deepcopy(
   ViewHost_t v_H("HostView", 1, 1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
 
-  RemoteSpace_t().fence();
-
   Kokkos::parallel_for(
       "Team", 1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, 0) = 0x123; });
 
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   ASSERT_EQ(0x123, v_H(0, 0));
 }
@@ -69,11 +68,13 @@ void test_deepcopy(
 
   ViewHost_t v_H("HostView", 1, i1);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) { v_R(my_rank, i) = 0x123; });
 
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i) {
     ASSERT_EQ(0x123, v_H(0, i));
@@ -96,12 +97,14 @@ void test_deepcopy(
 
   ViewHost_t v_H("HostView", 1, i1, i2);
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
+  RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
       "Team", i1, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < i2; ++j) v_R(my_rank, i, j) = 0x123;
       });
 
+  Kokkos::fence();
   Kokkos::deep_copy(v_H, v_R);
   for (int i = 0; i < i1; ++i)
     for (int j = 0; j < i2; ++j) ASSERT_EQ(0x123, v_H(0, i, j));
@@ -123,7 +126,7 @@ void test_deepcopy(
   ViewHost_t v_H("HostView", 1, 1);
   v_H(0, 0)        = 0x123;
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, 1);
-
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
@@ -151,6 +154,7 @@ void test_deepcopy(
   for (int i = 0; i < i1; ++i) v_H(0, i) = 0x123;
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1);
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
@@ -180,7 +184,7 @@ void test_deepcopy(
     for (int j = 0; j < i2; ++j) v_H(0, i, j) = 0x123;
 
   ViewRemote_t v_R = ViewRemote_t("RemoteView", num_ranks, i1, i2);
-
+  RemoteSpace_t::fence();
   Kokkos::deep_copy(v_R, v_H);
 
   Kokkos::parallel_for(
@@ -191,30 +195,31 @@ void test_deepcopy(
   Kokkos::fence();
 }
 
+#define GENBLOCK1(TYPE)                                    \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(); \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>();
+
+#define GENBLOCK2(TYPE)                                      \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>(10); \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(100);
+
+#define GENBLOCK3(TYPE)                                            \
+  test_deepcopy<TYPE, RemoteSpace_t, Kokkos::HostSpace>(100, 200); \
+  test_deepcopy<TYPE, Kokkos::HostSpace, RemoteSpace_t>(100, 200);
+
 TEST(TEST_CATEGORY, test_deepcopy) {
   // scalar
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>();
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>();
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>();
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>();
-
+  GENBLOCK1(int)
+  GENBLOCK1(float)
+  GENBLOCK1(double)
   // 1D
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(10);
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>(100);
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>(200);
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200);
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(300);
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(300);
-
+  GENBLOCK2(int)
+  GENBLOCK2(float)
+  GENBLOCK2(double)
   // 2D
-  test_deepcopy<int, RemoteSpace_t, Kokkos::HostSpace>(100, 200);
-  test_deepcopy<int, Kokkos::HostSpace, RemoteSpace_t>(100, 200);
-  test_deepcopy<int64_t, RemoteSpace_t, Kokkos::HostSpace>(200, 100);
-  test_deepcopy<int64_t, Kokkos::HostSpace, RemoteSpace_t>(200, 100);
-  test_deepcopy<double, RemoteSpace_t, Kokkos::HostSpace>(100, 300);
-  test_deepcopy<double, Kokkos::HostSpace, RemoteSpace_t>(100, 300);
+  GENBLOCK3(int)
+  GENBLOCK3(float)
+  GENBLOCK3(double)
 
-  MPI_Barrier(MPI_COMM_WORLD);
+  RemoteSpace_t::fence();
 }

@@ -117,7 +117,6 @@ void ROCSHMEMSpace::impl_deallocate(
     const Kokkos::Tools::SpaceHandle arg_handle) const {
   if (arg_alloc_ptr) {
     Kokkos::fence("HostSpace::impl_deallocate before free");
-    fence();
     size_t reported_size =
         (arg_logical_size > 0) ? arg_logical_size : arg_alloc_size;
     if (Kokkos::Profiling::profileLibraryLoaded()) {
@@ -128,10 +127,7 @@ void ROCSHMEMSpace::impl_deallocate(
   }
 }
 
-void ROCSHMEMSpace::fence() {
-  Kokkos::fence();
-  roc_shmem_barrier_all();
-}
+void ROCSHMEMSpace::fence() { roc_shmem_barrier_all(); }
 
 KOKKOS_FUNCTION
 size_t get_num_pes() { return roc_shmem_n_pes(); }
@@ -147,14 +143,12 @@ Kokkos::Impl::DeepCopy<
     HostSpace, Kokkos::Experimental::ROCSHMEMSpace>::DeepCopy(void *dst,
                                                               const void *src,
                                                               size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
 Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        HostSpace>::DeepCopy(void *dst, const void *src,
                                             size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
@@ -163,7 +157,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        Kokkos::Experimental::ROCSHMEMSpace,
                        ExecutionSpace>::DeepCopy(void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
@@ -173,7 +166,6 @@ Kokkos::Impl::DeepCopy<Kokkos::Experimental::ROCSHMEMSpace,
                        ExecutionSpace>::DeepCopy(const ExecutionSpace &exec,
                                                  void *dst, const void *src,
                                                  size_t n) {
-  Kokkos::Experimental::ROCSHMEMSpace().fence();
   hipMemcpy(dst, src, n, hipMemcpyDefault);
 }
 
