@@ -24,16 +24,16 @@
 #include <stdlib.h>
 #include <string>
 
-#define USE_GLOBAL_LAYOUT
+//#define USE_GLOBAL_LAYOUT
 //#define USE_PARTITIONED_LAYOUT
-//#define USE_LOCAL_LAYOUT
+#define USE_LOCAL_LAYOUT
 
-#define GENMODE genmode::random_sequence
-//#define GENMODE genmode::linear_sequence
+//#define GENMODE genmode::random_sequence
+#define GENMODE genmode::linear_sequence
 
 // Default values
 #define SIZE 1024
-#define NUM_ITER 100000
+#define NUM_ITER 10000
 #define LEAGUE_SIZE 1
 #define TEAM_SIZE 32
 #define VEC_LEN 1
