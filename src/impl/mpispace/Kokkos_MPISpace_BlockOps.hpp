@@ -30,11 +30,10 @@ namespace Impl {
       const type *ptr, const size_t offset, const size_t nelems, const int pe, \
       const MPI_Win &win) {                                                    \
     assert(win != MPI_WIN_NULL);                                               \
-    int _typesize;                                                             \
     MPI_Request request;                                                       \
-    MPI_Type_size(mpi_type, &_typesize);                                       \
     const void *src_adr = ptr;                                                 \
-    size_t win_offset   = sizeof(SharedAllocationHeader) + offset * _typesize; \
+    size_t win_offset =                                                        \
+        sizeof(SharedAllocationHeader) + offset * sizeof(type);                \
     MPI_Rput(src_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
              &request);                                                        \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
@@ -60,11 +59,10 @@ KOKKOS_REMOTESPACES_PUT(double, MPI_DOUBLE)
       type *ptr, const size_t offset, const size_t nelems, const int pe,       \
       const MPI_Win &win) {                                                    \
     assert(win != MPI_WIN_NULL);                                               \
-    int _typesize;                                                             \
     MPI_Request request;                                                       \
-    MPI_Type_size(mpi_type, &_typesize);                                       \
-    void *dst_adr     = ptr;                                                   \
-    size_t win_offset = sizeof(SharedAllocationHeader) + offset * _typesize;   \
+    void *dst_adr = ptr;                                                       \
+    size_t win_offset =                                                        \
+        sizeof(SharedAllocationHeader) + offset * sizeof(type);                \
     MPI_Rget(dst_adr, nelems, mpi_type, pe, win_offset, nelems, mpi_type, win, \
              &request);                                                        \
     MPI_Wait(&request, MPI_STATUS_IGNORE);                                     \
