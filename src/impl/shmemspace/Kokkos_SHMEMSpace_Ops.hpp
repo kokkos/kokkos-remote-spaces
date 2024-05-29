@@ -424,7 +424,7 @@ struct SHMEMDataElement<
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
     T tmp;
-    tmp = shmem_type_g(ptr, pe);
+    tmp = shmem_type_atomic_fetch(ptr, pe);
     return tmp << val;
   }
 
