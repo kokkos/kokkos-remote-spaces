@@ -162,6 +162,8 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(long, shmem_long_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long, shmem_ulong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(long long, shmem_longlong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long, shmem_ulonglong_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(float, shmem_float_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(double, shmem_double_atomic_swap)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_SWAP
 
