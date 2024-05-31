@@ -99,7 +99,7 @@ KOKKOS_REMOTESPACES_ATOMIC_SET(double, MPI_DOUBLE)
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH(type, mpi_type)                     \
   static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch(                  \
-      type val, int offset, int pe, const MPI_Win &win) {                    \
+      const type val, int offset, int pe, const MPI_Win &win) {              \
     type ret;                                                                \
     MPI_Fetch_and_op(&val, &ret, mpi_type, pe,                               \
                      sizeof(SharedAllocationHeader) + offset * sizeof(type), \
@@ -122,7 +122,7 @@ KOKKOS_REMOTESPACES_ATOMIC_FETCH(unsigned long long, MPI_UNSIGNED_LONG_LONG)
 
 #define KOKKOS_REMOTESPACES_ATOMIC_ADD(type, mpi_type)                        \
   static KOKKOS_INLINE_FUNCTION void mpi_type_atomic_add(                     \
-      type &val, int offset, int pe, const MPI_Win &win) {                    \
+      const type &val, int offset, int pe, const MPI_Win &win) {              \
     MPI_Accumulate(&val, 1, mpi_type, pe,                                     \
                    sizeof(SharedAllocationHeader) + offset * sizeof(type), 1, \
                    mpi_type, MPI_SUM, win);                                   \
@@ -145,7 +145,7 @@ KOKKOS_REMOTESPACES_ATOMIC_ADD(double, MPI_DOUBLE)
 
 #define KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(type, mpi_type)                 \
   static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_fetch_add(              \
-      type &val, int offset, int pe, const MPI_Win &win) {                   \
+      const type &val, int offset, int pe, const MPI_Win &win) {             \
     type ret;                                                                \
     MPI_Fetch_and_op(&val, &ret, mpi_type, pe,                               \
                      sizeof(SharedAllocationHeader) + offset * sizeof(type), \
@@ -168,15 +168,16 @@ KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(float, MPI_FLOAT)
 KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD(double, MPI_DOUBLE)
 #undef KOKKOS_REMOTESPACES_ATOMIC_FETCH_ADD
 
-#define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type, mpi_type)           \
-  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_compare_swap(        \
-      type &newval, type &cond, int offset, int pe, const MPI_Win &win) { \
-    type ret;                                                             \
-    MPI_Compare_and_swap(                                                 \
-        &newval, &cond, &ret, mpi_type, pe,                               \
-        sizeof(SharedAllocationHeader) + offset * sizeof(type), win);     \
-    MPI_Win_flush(pe, win);                                               \
-    return ret;                                                           \
+#define KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(type, mpi_type)       \
+  static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_compare_swap(    \
+      const type &newval, const type &cond, int offset, int pe,       \
+      const MPI_Win &win) {                                           \
+    type ret;                                                         \
+    MPI_Compare_and_swap(                                             \
+        &newval, &cond, &ret, mpi_type, pe,                           \
+        sizeof(SharedAllocationHeader) + offset * sizeof(type), win); \
+    MPI_Win_flush(pe, win);                                           \
+    return ret;                                                       \
   }
 
 KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(char, MPI_SIGNED_CHAR)
@@ -194,7 +195,7 @@ KOKKOS_REMOTESPACES_ATOMIC_COMPARE_SWAP(unsigned long long,
 
 #define KOKKOS_REMOTESPACES_ATOMIC_SWAP(type, mpi_type)                      \
   static KOKKOS_INLINE_FUNCTION type mpi_type_atomic_swap(                   \
-      type &newval, int offset, int pe, const MPI_Win &win) {                \
+      const type &newval, int offset, int pe, const MPI_Win &win) {          \
     type ret;                                                                \
     MPI_Fetch_and_op(&newval, &ret, mpi_type, pe,                            \
                      sizeof(SharedAllocationHeader) + offset * sizeof(type), \
@@ -259,14 +260,14 @@ struct MPIDataElement<
   const_value_type operator++() const {
     T tmp;
     tmp = 1;
-    return mpi_type_atomic_fetch_add(tmp, offset, pe, *win);
+    return mpi_type_atomic_fetch_add(tmp, offset, pe, *win) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
     T tmp;
     tmp = 0 - 1;
-    return mpi_type_atomic_fetch_add(tmp, offset, pe, *win);
+    return mpi_type_atomic_fetch_add(tmp, offset, pe, *win) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
@@ -292,7 +293,7 @@ struct MPIDataElement<
   const_value_type operator-=(const_value_type &val) const {
     T tmp;
     tmp = 0 - val;
-    return mpi_type_atomic_fetch_add(val, offset, pe, *win);
+    return mpi_type_atomic_fetch_add(tmp, offset, pe, *win);
   }
   KOKKOS_INLINE_FUNCTION
   const_value_type operator*=(const_value_type &val) const {

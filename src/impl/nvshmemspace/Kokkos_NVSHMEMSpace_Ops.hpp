@@ -210,14 +210,14 @@ struct NVSHMEMDataElement<
   const_value_type operator++() const {
     T tmp;
     tmp = 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
     T tmp;
     tmp = 0 - 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
