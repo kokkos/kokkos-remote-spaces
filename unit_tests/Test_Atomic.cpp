@@ -42,7 +42,11 @@ void test_atomic_globalview1D(int dim0) {
   RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
-      "Increment", dim0, KOKKOS_LAMBDA(const int i) { v(i)++; });
+      "Increment", dim0, KOKKOS_LAMBDA(const int i) {
+        v(i)++;
+        ++v(i);
+        v(i) += 1;
+      });
 
   Kokkos::fence();
   RemoteSpace_t::fence();
@@ -50,7 +54,7 @@ void test_atomic_globalview1D(int dim0) {
 
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
   for (int i = 0; i < local_range.second - local_range.first; ++i) {
-    ASSERT_EQ(v_h(i), num_ranks);
+    ASSERT_EQ(v_h(i), num_ranks * 3);
   }
 }
 
@@ -75,7 +79,11 @@ void test_atomic_globalview2D(int dim0, int dim1) {
 
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
-        for (int j = 0; j < v.extent(1); ++j) v(i, j)++;
+        for (int j = 0; j < v.extent(1); ++j) {
+          v(i, j)++;
+          ++v(i, j);
+          v(i, j) += 1;
+        }
       });
 
   Kokkos::fence();
@@ -85,7 +93,7 @@ void test_atomic_globalview2D(int dim0, int dim1) {
   auto local_range = Kokkos::Experimental::get_local_range(dim0);
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j) {
-      ASSERT_EQ(v_h(i, j), num_ranks);
+      ASSERT_EQ(v_h(i, j), num_ranks * 3);
     }
 }
 
@@ -111,7 +119,11 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   Kokkos::parallel_for(
       "Increment", dim0, KOKKOS_LAMBDA(const int i) {
         for (int j = 0; j < dim1; ++j)
-          for (int k = 0; k < dim2; ++k) v(i, j, k)++;
+          for (int k = 0; k < dim2; ++k) {
+            v(i, j, k)++;
+            ++v(i, j, k);
+            v(i, j, k) += 1;
+          }
       });
 
   Kokkos::fence();
@@ -122,7 +134,7 @@ void test_atomic_globalview3D(int dim0, int dim1, int dim2) {
   for (int i = 0; i < local_range.second - local_range.first; ++i)
     for (int j = 0; j < v_h.extent(1); ++j)
       for (int l = 0; l < v_h.extent(2); ++l) {
-        ASSERT_EQ(v_h(i, j, l), num_ranks);
+        ASSERT_EQ(v_h(i, j, l), num_ranks * 3);
       }
 }
 
