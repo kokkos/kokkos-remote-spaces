@@ -103,7 +103,7 @@ KOKKOS_REMOTESPACES_ATOMIC_SET(double, MPI_DOUBLE)
     type ret;                                                                \
     MPI_Fetch_and_op(&val, &ret, mpi_type, pe,                               \
                      sizeof(SharedAllocationHeader) + offset * sizeof(type), \
-                     MPI_OP_NULL, win);                                      \
+                     MPI_NO_OP, win);                                        \
     MPI_Win_flush(pe, win);                                                  \
     return ret;                                                              \
   }
