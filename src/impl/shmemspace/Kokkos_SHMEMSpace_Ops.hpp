@@ -162,6 +162,8 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(long, shmem_long_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long, shmem_ulong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(long long, shmem_longlong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long, shmem_ulonglong_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(float, shmem_float_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(double, shmem_double_atomic_swap)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_SWAP
 
@@ -205,14 +207,14 @@ struct SHMEMDataElement<
   const_value_type operator++() const {
     T tmp;
     tmp = 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
     T tmp;
     tmp = 0 - 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
@@ -424,7 +426,7 @@ struct SHMEMDataElement<
   KOKKOS_INLINE_FUNCTION
   const_value_type operator<<(const unsigned int &val) const {
     T tmp;
-    tmp = shmem_type_g(ptr, pe);
+    tmp = shmem_type_atomic_fetch(ptr, pe);
     return tmp << val;
   }
 

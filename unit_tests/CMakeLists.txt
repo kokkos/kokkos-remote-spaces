@@ -13,12 +13,12 @@ endif()
 
 SET(NAME KokkosRemoteSpaces_TestAll)
 
-if (KRS_ENABLE_MPISPACE)
+#if (KRS_ENABLE_MPISPACE)
+# FILE(GLOB TEST_SRCS *.cpp)
+#  list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Atomic\\.cpp$")
+#else()
   FILE(GLOB TEST_SRCS *.cpp)
-  list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Atomic\\.cpp$")
-else()
-  FILE(GLOB TEST_SRCS *.cpp)
-endif()
+#endif()
 
 add_executable(${NAME} ${TEST_SRCS})
 

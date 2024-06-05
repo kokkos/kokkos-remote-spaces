@@ -165,6 +165,8 @@ KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long, nvshmem_ulong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(long long, nvshmem_longlong_atomic_swap)
 KOKKOS_REMOTESPACES_ATOMIC_SWAP(unsigned long long,
                                 nvshmem_ulonglong_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(float, nvshmem_float_atomic_swap)
+KOKKOS_REMOTESPACES_ATOMIC_SWAP(double, nvshmem_double_atomic_swap)
 
 #undef KOKKOS_REMOTESPACES_ATOMIC_SWAP
 
@@ -208,14 +210,14 @@ struct NVSHMEMDataElement<
   const_value_type operator++() const {
     T tmp;
     tmp = 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
   const_value_type operator--() const {
     T tmp;
     tmp = 0 - 1;
-    return shmem_type_atomic_fetch_add(ptr, tmp, pe);
+    return shmem_type_atomic_fetch_add(ptr, tmp, pe) + tmp;
   }
 
   KOKKOS_INLINE_FUNCTION
