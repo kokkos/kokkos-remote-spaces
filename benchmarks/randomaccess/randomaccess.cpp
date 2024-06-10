@@ -60,7 +60,7 @@ enum class genmode { random_sequence, linear_sequence };
 
 template <genmode gm>
 KOKKOS_INLINE_FUNCTION auto get(Generator_t::generator_type &g, int i,
-                                auto team_id, auto team_range, ORDINAL_T start,
+                                int team_id, int team_range, ORDINAL_T start,
                                 ORDINAL_T range) {
   if constexpr (gm == genmode::random_sequence) return start + g.urand64(range);
   if constexpr (gm == genmode::linear_sequence)

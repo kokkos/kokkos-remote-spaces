@@ -130,7 +130,7 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
                                ? first_i + iters_per_team + iters_per_team_mod
                                : first_i + iters_per_team;
     Kokkos::parallel_for(Kokkos::TeamThreadRange(thread, first_i, last_i),
-                         [=, this](const StreamIndex i) { v(i) += 1; });
+                         [=](const StreamIndex i) { v(i) += 1; });
   }
 
   KOKKOS_FUNCTION
@@ -208,7 +208,7 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
                                ? first_i + iters_per_team + iters_per_team_mod
                                : first_i + iters_per_team;
     Kokkos::parallel_for(Kokkos::TeamThreadRange(thread, first_i, last_i),
-                         [=, this](const StreamIndex i) { v(i) += 1; });
+                         [=](const StreamIndex i) { v(i) += 1; });
   }
 
   KOKKOS_FUNCTION
