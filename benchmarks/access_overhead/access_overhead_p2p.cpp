@@ -24,10 +24,7 @@
 #include <type_traits>
 #include <string>
 
-#define NUM_TEAMS 1 /* Recursive subview support needed. TBD */
-#define ACCESS_LDC_USE_MULTI_LDC
-//#define ACCESS_LDC_USE_MULTI_LDC_BUILTIN
-
+#define NUM_TEAMS 256
 //#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
@@ -57,7 +54,7 @@ using policy_check_t           = Kokkos::RangePolicy<CheckTag, size_t>;
 #define default_Mode 0
 #define default_N 134217728
 #define default_Iters 3
-#define default_RmaOp 0  // get
+#define default_RmaOp RMA_GET
 #define TAG 0
 
 std::string modes[4] = {"Kokkos::View", "Kokkos::View-MPIIsCudaAware",
@@ -167,9 +164,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         Kokkos::deep_copy(v_tmp, v_tmp_host);
         Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
-
         Kokkos::fence();
-
         time_b = timer.seconds();
         time += time_b - time_a;
       }
@@ -245,7 +240,6 @@ struct Access_CudaAware<
 
     for (int i = 0; i < iters; i++) {
       time_a = timer.seconds();
-
       if (my_rank == 1) {
         MPI_Send(v.data(), N, MPI_DOUBLE, other_rank, TAG, MPI_COMM_WORLD);
 
@@ -253,9 +247,7 @@ struct Access_CudaAware<
         MPI_Recv(v_tmp.data(), N, MPI_DOUBLE, other_rank, TAG, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
         Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
-
         Kokkos::fence();
-
         time_b = timer.seconds();
         time += time_b - time_a;
       }
@@ -340,6 +332,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
               "access_overhead",
               policy_update_get_t(local_range.first, local_range.second),
               *this);
+          Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
           time += time_b - time_a;
@@ -355,6 +348,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
               "access_overhead",
               policy_update_put_t(local_range.first, local_range.second),
               *this);
+          Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
           time += time_b - time_a;
@@ -450,96 +444,6 @@ struct Access_LDC<
   KOKKOS_FUNCTION
   void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i); }
 
-#ifdef ACCESS_LDC_USE_MULTI_LDC
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag_get &,
-                  typename team_policy_get_update_t::member_type team) const {
-    Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      auto league_size = team.league_size();
-      auto team_ID     = team.league_rank();
-
-      auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
-      auto remote_range =
-          Kokkos::Experimental::get_range(num_ranks * N, other_rank);
-
-      // Local team range
-      auto team_block = (local_range.second - local_range.first) / league_size;
-      auto team_block_mod =
-          (local_range.second - local_range.first) % league_size;
-      auto start_offset = team_ID * team_block;
-      team_block =
-          team_ID == league_size - 1 ? team_block + team_block_mod : team_block;
-      auto team_local_range =
-          Kokkos::pair(local_range.first + start_offset,
-                       local_range.first + start_offset + team_block);
-
-      // Remote team range
-      team_block     = (remote_range.second - remote_range.first) / league_size;
-      team_block_mod = (remote_range.second - remote_range.first) % league_size;
-      start_offset   = team_ID * team_block;
-      team_block =
-          team_ID == league_size - 1 ? team_block + team_block_mod : team_block;
-      auto team_remote_range =
-          Kokkos::pair(remote_range.first + start_offset,
-                       remote_range.first + start_offset + team_block);
-
-      // printf("[%lu, %lu], [%lu, %lu], [%lu, %lu], [%lu, %lu]\n",
-      //        team_remote_range.first, team_remote_range.second,
-      //        team_local_range.first, team_local_range.second,
-      //        remote_range.first, remote_range.second, local_range.first,
-      //        local_range.second);
-
-      // Construct team subviews
-      auto v_subview_remote    = Kokkos::subview(v, team_remote_range);
-      auto v_tmp_subview_local = Kokkos::subview(v_tmp, team_local_range);
-
-      // LDC
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
-                                                          v_subview_remote);
-    });
-  }
-
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag_put &,
-                  typename team_policy_put_update_t::member_type team) const {
-    Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      auto league_size = team.league_size();
-      auto team_ID     = team.league_rank();
-      auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
-      auto remote_range =
-          Kokkos::Experimental::get_range(num_ranks * N, other_rank);
-
-      // Local team range
-      auto team_block = (local_range.second - local_range.first) / league_size;
-      auto team_block_mod =
-          (local_range.second - local_range.first) % league_size;
-      auto start_offset = team_ID * team_block;
-      team_block =
-          team_ID == league_size - 1 ? team_block + team_block_mod : team_block;
-      auto team_local_range =
-          Kokkos::pair(local_range.first + start_offset,
-                       local_range.first + start_offset + team_block);
-
-      // Remote team range
-      team_block     = (remote_range.second - remote_range.first) / league_size;
-      team_block_mod = (remote_range.second - remote_range.first) % league_size;
-      start_offset   = team_ID * team_block;
-      team_block =
-          team_ID == league_size - 1 ? team_block + team_block_mod : team_block;
-      auto team_remote_range =
-          Kokkos::pair(remote_range.first + start_offset,
-                       remote_range.first + start_offset + team_block);
-
-      // Construct team subviews
-      auto v_subview_remote    = Kokkos::subview(v_tmp, team_remote_range);
-      auto v_tmp_subview_local = Kokkos::subview(v, team_local_range);
-
-      // LDC
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
-                                                          v_tmp_subview_local);
-    });
-  }
-#elif defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
   KOKKOS_FUNCTION
   void operator()(const UpdateTag_get &,
                   typename team_policy_get_update_t::member_type team) const {
@@ -563,34 +467,6 @@ struct Access_LDC<
     Kokkos::Experimental::RemoteSpaces::local_deep_copy(team, v_subview_remote,
                                                         v_tmp_subview_local);
   }
-#else  // Single LDC
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag_get &,
-                  typename team_policy_get_update_t::member_type team) const {
-    Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
-      auto remote_range =
-          Kokkos::Experimental::get_range(num_ranks * N, other_rank);
-      auto v_subview_remote    = Kokkos::subview(v, remote_range);
-      auto v_tmp_subview_local = Kokkos::subview(v_tmp, local_range);
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_tmp_subview_local,
-                                                          v_subview_remote);
-    });
-  }
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag_put &,
-                  typename team_policy_put_update_t::member_type team) const {
-    Kokkos::single(Kokkos::PerTeam(team), [&]() {
-      auto local_range = Kokkos::Experimental::get_local_range(num_ranks * N);
-      auto remote_range =
-          Kokkos::Experimental::get_range(num_ranks * N, other_rank);
-      auto v_subview_remote    = Kokkos::subview(v_tmp, remote_range);
-      auto v_tmp_subview_local = Kokkos::subview(v, local_range);
-      Kokkos::Experimental::RemoteSpaces::local_deep_copy(v_subview_remote,
-                                                          v_tmp_subview_local);
-    });
-  }
-#endif
 
   // run copy benchmark
   void run() {
@@ -612,16 +488,11 @@ struct Access_LDC<
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
           time_a = timer.seconds();
-#if defined(ACCESS_LDC_USE_MULTI_LDC) || \
-    defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
           Kokkos::parallel_for("block_transfer",
                                team_policy_get_update_t(NUM_TEAMS, 1), *this);
-#else
-          Kokkos::parallel_for("block_transfer", team_policy_get_update_t(1, 1),
-                               *this);
-#endif
+
           Kokkos::fence();
-#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (1)
+#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
           Kokkos::parallel_for(
               "printf values for debugging",
               Kokkos::RangePolicy(local_range.first, local_range.second),
@@ -643,16 +514,11 @@ struct Access_LDC<
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
           time_a = timer.seconds();
-#if defined(ACCESS_LDC_USE_MULTI_LDC) || \
-    defined(ACCESS_LDC_USE_MULTI_LDC_BUILTIN)
           Kokkos::parallel_for("block_transfer",
                                team_policy_put_update_t(NUM_TEAMS, 1), *this);
-#else
-          Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
-#endif
           Kokkos::fence();
-#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG) && (0)
+          RemoteSpace_t().fence();
+#if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
           Kokkos::parallel_for(
               "printf values for debugging",
               Kokkos::RangePolicy(local_range.first, local_range.second),
@@ -661,7 +527,7 @@ struct Access_LDC<
           Kokkos::parallel_for(
               "update", policy_update_t(local_range.first, local_range.second),
               *this);
-
+          Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
           time += time_b - time_a;
@@ -683,6 +549,7 @@ struct Access_LDC<
             "access_overhead-check",
             policy_check_t(local_range.first, local_range.second), *this);
         Kokkos::fence();
+        RemoteSpace_t().fence();
       }
     } else {
       // check on rank 1
@@ -691,6 +558,7 @@ struct Access_LDC<
             "access_overhead-check",
             policy_check_t(local_range.first, local_range.second), *this);
         Kokkos::fence();
+        RemoteSpace_t().fence();
       }
     }
 #endif
