@@ -24,12 +24,14 @@
 #include <stdlib.h>
 #include <string>
 
-//#define USE_GLOBAL_LAYOUT
+// Select View-type
+#define USE_GLOBAL_LAYOUT
 //#define USE_PARTITIONED_LAYOUT
-#define USE_LOCAL_LAYOUT
+//#define USE_LOCAL_LAYOUT
 
-//#define GENMODE genmode::random_sequence
-#define GENMODE genmode::linear_sequence
+// Select generator-type
+#define GENMODE genmode::random_sequence
+//#define GENMODE genmode::linear_sequence
 
 // Default values
 #define SIZE 1024
@@ -153,7 +155,7 @@ int main(int argc, char *argv[]) {
     TeamPolicy policy = TeamPolicy(league_size, team_size, vec_len);
 
     ORDINAL_T num_elems_per_rank, elems_per_team, iters_per_team;
-    num_elems_per_rank = ceil(1.0 * num_elems / num_ranks);
+    num_elems_per_rank = (num_elems + num_ranks - 1) / num_ranks;
     num_elems          = num_ranks * num_elems_per_rank;
 
     ORDINAL_T default_start = my_rank * num_elems_per_rank;
@@ -181,8 +183,8 @@ int main(int argc, char *argv[]) {
     do {
       // Set execution parameters
       num_iters      = next_iters;
-      iters_per_team = ceil(num_iters / league_size);
-      elems_per_team = floor(num_elems_per_rank / league_size);
+      iters_per_team = (num_iters + league_size - 1) / league_size;
+      elems_per_team = num_elems_per_rank / league_size;
       num_iters      = iters_per_team * league_size;
       Kokkos::Timer timer;
 
