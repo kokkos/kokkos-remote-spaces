@@ -114,8 +114,7 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
     Kokkos::fence();
 #ifdef KRS_ENABLE_NVSHMEMSPACE
     nvshmem_barrier_all();  // Not sure why this impacts perf
@@ -123,15 +122,14 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
 
     time_a = timer.seconds();
     for (int i = 0; i < iters; i++) {
-      Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
+      Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
       RemoteSpace_t().fence();
     }
     time_b = timer.seconds();
     time += time_b - time_a;
 
 #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N), *this);
     Kokkos::fence();
 #endif
 
@@ -179,21 +177,19 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
     Kokkos::fence();
 
     time_a = timer.seconds();
     for (int i = 0; i < iters; i++) {
-      Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}), *this);
+      Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
       RemoteSpace_t().fence();
     }
     time_b = timer.seconds();
     time += time_b - time_a;
 
 #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N), *this);
     Kokkos::fence();
 #endif
 

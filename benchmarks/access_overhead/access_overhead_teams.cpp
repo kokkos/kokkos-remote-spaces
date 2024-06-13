@@ -145,8 +145,7 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
     Kokkos::fence();
 #ifdef KRS_ENABLE_NVSHMEMSPACE
     nvshmem_barrier_all();  // Not sure why this impacts perf
@@ -163,8 +162,7 @@ struct Access<ViewType_t, typename std::enable_if_t<!std::is_same<
     }
 
 #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N), *this);
     Kokkos::fence();
 #endif
 
@@ -225,8 +223,7 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
 
     Kokkos::fence();
 #ifdef KRS_ENABLE_NVSHMEMSPACE
@@ -243,8 +240,7 @@ struct Access<ViewType_t, typename std::enable_if_t<std::is_same<
     }
 
 #ifdef CHECK_FOR_CORRECTNESS
-    Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N), *this);
     Kokkos::fence();
 #endif
 

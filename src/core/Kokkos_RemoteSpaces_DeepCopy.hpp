@@ -579,11 +579,8 @@ void view_copy_RemoteSpaces(
     int64_t strides[DstType::rank + 1];
     dst.stride(strides);
     Kokkos::Iterate iterate;
-    if (Kokkos::is_layouttiled<typename DstType::array_layout>::value) {
-      iterate = Kokkos::layout_iterate_type_selector<
-          typename DstType::array_layout>::outer_iteration_pattern;
-    } else if (std::is_same<typename DstType::array_layout,
-                            Kokkos::LayoutRight>::value) {
+    if (std::is_same<typename DstType::array_layout,
+                     Kokkos::LayoutRight>::value) {
       iterate = Kokkos::Iterate::Right;
     } else if (std::is_same<typename DstType::array_layout,
                             Kokkos::LayoutLeft>::value) {
@@ -666,11 +663,8 @@ void view_copy_RemoteSpaces(
   int64_t strides[DstType::rank + 1];
   dst.stride(strides);
   Kokkos::Iterate iterate;
-  if (Kokkos::is_layouttiled<typename DstType::array_layout>::value) {
-    iterate = Kokkos::layout_iterate_type_selector<
-        typename DstType::array_layout>::outer_iteration_pattern;
-  } else if (std::is_same<typename DstType::array_layout,
-                          Kokkos::LayoutRight>::value) {
+  if (std::is_same<typename DstType::array_layout,
+                   Kokkos::LayoutRight>::value) {
     iterate = Kokkos::Iterate::Right;
   } else if (std::is_same<typename DstType::array_layout,
                           Kokkos::LayoutLeft>::value) {

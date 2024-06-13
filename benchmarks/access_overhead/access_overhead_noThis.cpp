@@ -89,7 +89,7 @@ void run_1(Args_t& args) {
   int mode  = args.mode;  /* View type */
 
   Kokkos::parallel_for(
-      "access_overhead-init", policy_t({0}, {N}),
+      "access_overhead-init", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
@@ -100,7 +100,7 @@ void run_1(Args_t& args) {
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
-        "access_overhead", policy_t({0}, {N}),
+        "access_overhead", policy_t(0, N),
         KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
@@ -109,7 +109,7 @@ void run_1(Args_t& args) {
 
 #ifdef CHECK_FOR_CORRECTNESS
   Kokkos::parallel_for(
-      "access_overhead-check", policy_t({0}, {N}),
+      "access_overhead-check", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
   Kokkos::fence();
 #endif
@@ -135,7 +135,7 @@ void run_2(Args_t& args) {
   int mode  = args.mode;  /* View type */
 
   Kokkos::parallel_for(
-      "access_overhead-init", policy_t({0}, {N}),
+      "access_overhead-init", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
@@ -146,7 +146,7 @@ void run_2(Args_t& args) {
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
-        "access_overhead", policy_t({0}, {N}),
+        "access_overhead", policy_t(0, N),
         KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
@@ -155,7 +155,7 @@ void run_2(Args_t& args) {
 
 #ifdef CHECK_FOR_CORRECTNESS
   Kokkos::parallel_for(
-      "access_overhead-check", policy_t({0}, {N}),
+      "access_overhead-check", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
   Kokkos::fence();
 #endif
@@ -182,7 +182,7 @@ void run_3(Args_t& args) {
   UnmanagedView_t v(rv.data(), N);
 
   Kokkos::parallel_for(
-      "access_overhead-init", policy_t({0}, {N}),
+      "access_overhead-init", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { v(i) = 0.0; });
 
   Kokkos::fence();
@@ -193,7 +193,7 @@ void run_3(Args_t& args) {
   time_a = timer.seconds();
   for (int i = 0; i < iters; i++) {
     Kokkos::parallel_for(
-        "access_overhead", policy_t({0}, {N}),
+        "access_overhead", policy_t(0, N),
         KOKKOS_LAMBDA(const size_t i) { v(i) += 1; });
     RemoteSpace_t().fence();
   }
@@ -202,7 +202,7 @@ void run_3(Args_t& args) {
 
 #ifdef CHECK_FOR_CORRECTNESS
   Kokkos::parallel_for(
-      "access_overhead-check", policy_t({0}, {N}),
+      "access_overhead-check", policy_t(0, N),
       KOKKOS_LAMBDA(const size_t i) { assert(v(i) == iters * 1.0); });
   Kokkos::fence();
 #endif

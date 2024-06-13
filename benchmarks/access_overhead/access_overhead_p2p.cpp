@@ -148,8 +148,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
     Kokkos::fence();
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -167,8 +166,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
         MPI_Recv(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         Kokkos::deep_copy(v_tmp, v_tmp_host);
-        Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}),
-                             *this);
+        Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
 
         Kokkos::fence();
 
@@ -180,7 +178,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
     if (my_rank == 0) {
 #ifdef CHECK_FOR_CORRECTNESS
-      Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
+      Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N),
                            *this);
       Kokkos::fence();
 #endif
@@ -241,8 +239,7 @@ struct Access_CudaAware<
     time_a = time_b = 0;
     double time     = 0;
 
-    Kokkos::parallel_for("access_overhead-init", policy_init_t({0}, {N}),
-                         *this);
+    Kokkos::parallel_for("access_overhead-init", policy_init_t(0, N), *this);
     Kokkos::fence();
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -255,8 +252,7 @@ struct Access_CudaAware<
       } else {
         MPI_Recv(v_tmp.data(), N, MPI_DOUBLE, other_rank, TAG, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
-        Kokkos::parallel_for("access_overhead", policy_update_t({0}, {N}),
-                             *this);
+        Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
 
         Kokkos::fence();
 
@@ -268,7 +264,7 @@ struct Access_CudaAware<
 
     if (my_rank == 0) {
 #ifdef CHECK_FOR_CORRECTNESS
-      Kokkos::parallel_for("access_overhead-check", policy_check_t({0}, {N}),
+      Kokkos::parallel_for("access_overhead-check", policy_check_t(0, N),
                            *this);
       Kokkos::fence();
 #endif
