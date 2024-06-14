@@ -21,10 +21,21 @@
   https://mantevo.github.io/pdfs/MantevoOverview.pdf
 */
 
+#include <Kokkos_RemoteSpaces.hpp>
 #include <generate_matrix.hpp>
+#include <mpi.h>
+#include <presend.hpp>
+
+using SendRecvLists = Impl::SendRecvLists;
 
 template <class YType, class AType, class XType>
-void spmv(YType y, AType A, XType x) {
+void spmv(YType y, AType A, XType x, SendRecvLists &srl) {
+  int numRanks = 1, myRank = 0;
+  int64_t nrows     = y.extent(0);
+  int vector_length = 8;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+
 #ifdef KOKKOS_ENABLE_CUDA
   int rows_per_team = 16;
   int team_size     = 16;
@@ -32,41 +43,47 @@ void spmv(YType y, AType A, XType x) {
   int rows_per_team = 512;
   int team_size     = 1;
 #endif
-  int64_t nrows = y.extent(0);
+
+  Kokkos::View<double *> x_pack = Impl::presend_exchange_data(A, x, srl);
+
+  auto policy =
+      require(Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
+                                   team_size, vector_length),
+              Kokkos::Experimental::WorkItemProperty::HintHeavyWeight);
   Kokkos::parallel_for(
-      "SPMV",
-      Kokkos::TeamPolicy<>((nrows + rows_per_team - 1) / rows_per_team,
-                           team_size, 8),
-      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+      "spmv", policy,
+      KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type &team) {
         const int64_t first_row = team.league_rank() * rows_per_team;
         const int64_t last_row  = first_row + rows_per_team < nrows
                                      ? first_row + rows_per_team
                                      : nrows;
-        Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_row, last_row),
-                             [&](const int64_t row) {
-                               const int64_t row_start = A.row_ptr(row);
-                               const int64_t row_length =
-                                   A.row_ptr(row + 1) - row_start;
-
-                               double y_row;
-                               Kokkos::parallel_reduce(
-                                   Kokkos::ThreadVectorRange(team, row_length),
-                                   [=](const int64_t i, double& sum) {
-                                     sum += A.values(i + row_start) *
-                                            x(A.col_idx(i + row_start));
-                                   },
-                                   y_row);
-                               y(row) = y_row;
-                             });
+        Kokkos::parallel_for(
+            Kokkos::TeamThreadRange(team, first_row, last_row),
+            [&](const int64_t row) {
+              const int64_t row_start  = A.row_ptr(row);
+              const int64_t row_length = A.row_ptr(row + 1) - row_start;
+              double y_row             = 0.0;
+              Kokkos::parallel_reduce(
+                  Kokkos::ThreadVectorRange(team, row_length),
+                  [=](const int64_t i, double &sum) {
+                    int64_t current_row = row_start + i;
+                    sum += A.values(current_row) * x_pack(current_row);
+                  },
+                  y_row);
+              y(row) = y_row;
+            });
       });
+
+  Kokkos::fence();
 }
 
 template <class YType, class XType>
 double dot(YType y, XType x) {
-  double result;
+  double result = 0.0;
+  int64_t n     = y.extent(0);
   Kokkos::parallel_reduce(
-      "DOT", y.extent(0),
-      KOKKOS_LAMBDA(const int64_t& i, double& lsum) { lsum += y(i) * x(i); },
+      "DOT", n,
+      KOKKOS_LAMBDA(const int64_t &i, double &lsum) { lsum += y(i) * x(i); },
       result);
   return result;
 }
@@ -76,7 +93,7 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
   int64_t n = z.extent(0);
   Kokkos::parallel_for(
       "AXPBY", n,
-      KOKKOS_LAMBDA(const int& i) { z(i) = alpha * x(i) + beta * y(i); });
+      KOKKOS_LAMBDA(const int &i) { z(i) = alpha * x(i) + beta * y(i); });
 }
 
 template <class VType>
@@ -93,8 +110,10 @@ void print_vector(int label, VType v) {
 }
 
 template <class VType, class AType>
-int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
-  int myproc    = 0;
+int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance,
+             SendRecvLists &srl) {
+  int myproc = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
   int num_iters = 0;
 
   double normr     = 0;
@@ -106,21 +125,23 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
   if (print_freq < 1) print_freq = 1;
   VType x("x", b.extent(0));
   VType r("r", x.extent(0));
-  VType p("r", x.extent(0));  // Needs to be global
-  VType Ap("r", x.extent(0));
+  VType p("p", x.extent(0));
+  VType Ap("Ap", x.extent(0));
+
   double one  = 1.0;
   double zero = 0.0;
-  axpby(p, one, x, zero, x);
 
-  spmv(Ap, A, p);
+  spmv(Ap, A, p, srl);
   axpby(r, one, b, -one, Ap);
 
   rtrans = dot(r, r);
-
+  MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   normr = std::sqrt(rtrans);
 
-  if (myproc == 0) {
-    std::cout << "Initial Residual = " << normr << std::endl;
+  if (false) {
+    if (myproc == 0) {
+      std::cout << "Initial Residual = " << normr << std::endl;
+    }
   }
 
   double brkdown_tol = std::numeric_limits<double>::epsilon();
@@ -129,30 +150,37 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
     if (k == 1) {
       axpby(p, one, r, zero, r);
     } else {
-      oldrtrans   = rtrans;
-      rtrans      = dot(r, r);
+      oldrtrans = rtrans;
+      rtrans    = dot(r, r);
+      MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM,
+                    MPI_COMM_WORLD);
       double beta = rtrans / oldrtrans;
       axpby(p, one, r, beta, p);
     }
 
     normr = std::sqrt(rtrans);
 
-    if (myproc == 0 && (k % print_freq == 0 || k == max_iter)) {
-      std::cout << "Iteration = " << k << "   Residual = " << normr
-                << std::endl;
+    if (false) {
+      if (myproc == 0 && (k % print_freq == 0 || k == max_iter)) {
+        std::cout << "Iteration = " << k << "   Residual = " << normr
+                  << std::endl;
+      }
     }
 
     double alpha    = 0;
     double p_ap_dot = 0;
 
-    spmv(Ap, A, p);
-
+    spmv(Ap, A, p, srl);
     p_ap_dot = dot(Ap, p);
+
+    MPI_Allreduce(MPI_IN_PLACE, &p_ap_dot, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
 
     if (p_ap_dot < brkdown_tol) {
       if (p_ap_dot < 0) {
         std::cerr << "miniFE::cg_solve ERROR, numerical breakdown!"
                   << std::endl;
+        num_iters = k;
         return num_iters;
       } else
         brkdown_tol = 0.1 * p_ap_dot;
@@ -166,63 +194,102 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance) {
   return num_iters;
 }
 
-int main(int argc, char* argv[]) {
-  Kokkos::initialize(argc, argv);
+int main(int argc, char *argv[]) {
+  MPI_Init(&argc, &argv);
+
+  int myRank, numRanks;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_init();
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  MPI_Comm mpi_comm;
+  nvshmemx_init_attr_t attr;
+  mpi_comm      = MPI_COMM_WORLD;
+  attr.mpi_comm = &mpi_comm;
+  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+#endif
+
   {
+    Kokkos::ScopeGuard guard(argc, argv);
+
     int N                            = argc > 1 ? atoi(argv[1]) : 100;
     int max_iter                     = argc > 2 ? atoi(argv[2]) : 200;
-    double tolerance                 = argc > 3 ? atoi(argv[3]) : 1e-7;
+    double tolerance                 = 1e-7;
     CrsMatrix<Kokkos::HostSpace> h_A = Impl::generate_miniFE_matrix(N);
-    Kokkos::View<double*, Kokkos::HostSpace> h_x =
+    Kokkos::View<double *, Kokkos::HostSpace> h_x =
         Impl::generate_miniFE_vector(N);
 
-    Kokkos::View<int64_t*> row_ptr("row_ptr", h_A.row_ptr.extent(0));
-    Kokkos::View<int64_t*> col_idx("col_idx", h_A.col_idx.extent(0));
-    Kokkos::View<double*> values("values", h_A.values.extent(0));
+    Kokkos::View<int64_t *> row_ptr("row_ptr", h_A.row_ptr.extent(0));
+    Kokkos::View<int64_t *> col_idx("col_idx", h_A.col_idx.extent(0));
+    Kokkos::View<double *> values("values", h_A.values.extent(0));
     CrsMatrix<Kokkos::DefaultExecutionSpace::memory_space> A(
         row_ptr, col_idx, values, h_A.num_cols());
-    Kokkos::View<double*> x("X", h_x.extent(0));
-    Kokkos::View<double*> y("Y", h_x.extent(0));
+    Kokkos::View<double *> x("X", h_x.extent(0));
+    Kokkos::View<double *> y("Y", A.num_rows());
 
     Kokkos::deep_copy(x, h_x);
     Kokkos::deep_copy(A.row_ptr, h_A.row_ptr);
     Kokkos::deep_copy(A.col_idx, h_A.col_idx);
     Kokkos::deep_copy(A.values, h_A.values);
 
+    SendRecvLists srl = Impl::presend_assemble_indices(h_A, h_x.extent(0));
+
     Kokkos::Timer timer;
-    int num_iters = cg_solve(y, A, x, max_iter, tolerance);
-    double time   = timer.seconds();
+    int num_iters = cg_solve(y, A, x, max_iter, tolerance, srl);
+
+    double time = timer.seconds();
 
     // Compute Bytes and Flops
-    double spmv_bytes = A.num_rows() * sizeof(int64_t) +
-                        A.nnz() * sizeof(int64_t) + A.nnz() * sizeof(double) +
-                        A.nnz() * sizeof(double) +
-                        A.num_rows() * sizeof(double);
-
-    double dot_bytes   = x.extent(0) * sizeof(double) * 2;
-    double axpby_bytes = x.extent(0) * sizeof(double) * 3;
+    double spmv_bytes = A.num_rows() * sizeof(int64_t) +  // A.row_ptr
+                        A.nnz() * sizeof(int64_t) +       // A.col_idx
+                        A.nnz() * sizeof(double) +        // A.values
+                        A.nnz() * sizeof(double) +        // input vector
+                        A.num_rows() * sizeof(double);    // output vector
+    double dot_bytes   = A.num_rows() * sizeof(double) * 2;
+    double axpby_bytes = A.num_rows() * sizeof(double) * 3;
 
     double spmv_flops  = A.nnz() * 2;
-    double dot_flops   = x.extent(0) * 2;
-    double axpby_flops = x.extent(0) * 3;
+    double dot_flops   = A.num_rows() * 2;
+    double axpby_flops = A.num_rows() * 3;
 
     int spmv_calls  = 1 + num_iters;
     int dot_calls   = num_iters;
     int axpby_calls = 2 + num_iters * 3;
 
-    printf("CGSolve for 3D (%i %i %i); %i iterations; %lf time\n", N, N, N,
-           num_iters, time);
-    printf(
-        "Performance: %lf GFlop/s %lf GB/s (Calls SPMV: %i Dot: %i AXPBY: %i\n",
-        1e-9 *
-            (spmv_flops * spmv_calls + dot_flops * dot_calls +
-             axpby_flops * axpby_calls) /
-            time,
-        (1.0 / 1024 / 1024 / 1024) *
-            (spmv_bytes * spmv_calls + dot_bytes * dot_calls +
-             axpby_bytes * axpby_calls) /
-            time,
-        spmv_calls, dot_calls, axpby_calls);
+    double total_flops = spmv_flops * spmv_calls + dot_flops * dot_calls +
+                         axpby_flops * axpby_calls;
+
+    double total_bytes = spmv_bytes * spmv_calls + dot_bytes * dot_calls +
+                         axpby_bytes * axpby_calls;
+
+    MPI_Allreduce(MPI_IN_PLACE, &total_flops, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &total_bytes, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+
+    double GFlops = 1e-9 * total_flops / time;
+    double GBs    = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
+
+    if (myRank == 0) {
+      printf(
+          "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, "
+          "%.2e, %.6lf, %.6lf, %.6lf\n",
+          N, num_iters, total_flops, time, GFlops, GBs);
+    }
   }
+
   Kokkos::finalize();
+
+#ifdef KOKKOS_ENABLE_SHMEMSPACE
+  shmem_finalize();
+#endif
+#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
+  nvshmem_finalize();
+#endif
+  MPI_Finalize();
+
+  return 0;
 }

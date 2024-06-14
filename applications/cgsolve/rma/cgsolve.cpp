@@ -25,6 +25,8 @@
 #include <generate_matrix.hpp>
 #include <mpi.h>
 
+#include <iostream>
+
 #define USE_GLOBAL_LAYOUT
 
 typedef Kokkos::Experimental::DefaultRemoteMemorySpace RemoteMemSpace_t;
