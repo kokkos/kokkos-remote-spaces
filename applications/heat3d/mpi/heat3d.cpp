@@ -59,10 +59,7 @@ struct CommHelper {
     up    = y == ny - 1 ? -1 : me + nx;
     front = z == 0 ? -1 : me - nx * ny;
     back  = z == nz - 1 ? -1 : me + nx * ny;
-
-#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
-    printf("NumRanks: %i Me: %i Grid: %i %i %i MyPos: %i %i %i\n", nranks, me,
-           nx, ny, nz, x, y, z);
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("Me: %i MyNeighs: %i %i %i %i %i %i\n", me, left, right, down, up,
            front, back);
 #endif
@@ -101,8 +98,7 @@ struct System {
   // Temperature and delta Temperature
   Kokkos::View<double***> T, dT;
   // Halo data
-  using buffer_t =
-      Kokkos::View<double**, Kokkos::LayoutLeft, Kokkos::DefaultExecutionSpace>;
+  using buffer_t = Kokkos::View<double**>;
   buffer_t T_left, T_right, T_up, T_down, T_front, T_back;
   buffer_t T_left_out, T_right_out, T_up_out, T_down_out, T_front_out,
       T_back_out;
@@ -271,7 +267,7 @@ struct System {
       time_inner += time_b - time_a;
       time_surface += time_c - time_b;
       time_update += time_d - time_c;
-      T_ave /= 1e-9 * (X * Y * Z);
+      T_ave /= X * Y * Z;
 #ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
       if ((t % I == 0 || t == N) && (comm.me == 0))
         printf("Timestep: %i/%i t_avg: %lf\n", t, N, T_ave);
@@ -301,7 +297,6 @@ struct System {
     dT_xyz += q * (T(x, y + 1, z) - T_xyz);
     dT_xyz += q * (T(x, y, z - 1) - T_xyz);
     dT_xyz += q * (T(x, y, z + 1) - T_xyz);
-
     dT(x, y, z) = dT_xyz;
   }
   void compute_inner_dT() {
@@ -385,7 +380,7 @@ struct System {
     // Incoming Power
     if (x == 0 && X_lo == 0) dT_xyz += P;
 
-    // thermal radiation
+    // Thermal radiation
     int num_surfaces = ((x == 0 && X_lo == 0) ? 1 : 0) +
                        ((x == (NX - 1) && X_hi == X) ? 1 : 0) +
                        ((y == 0 && Y_lo == 0) ? 1 : 0) +
@@ -558,7 +553,7 @@ struct System {
     Kokkos::parallel_reduce(
         "UpdateT",
         Kokkos::Experimental::require(
-            policy_t(E_bulk, {0, 0, 0}, {X, Y, Z}, {10, 10, 10}),
+            policy_t(E_bulk, {0, 0, 0}, {X, Y, Z}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         UpdateT(T, dT, dt), my_T);
     double sum_T;
