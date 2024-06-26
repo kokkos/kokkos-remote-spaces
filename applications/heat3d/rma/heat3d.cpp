@@ -76,16 +76,6 @@ struct CommHelper {
 };
 
 struct System {
-  // Using theoretical physicists' way of describing the system,
-  // i.e. we stick to everything in as few constants as possible
-  // let i and i+1 two timesteps dt apart:
-  // T(x,y,z)_(i+1) =  T(x,y,z)_(i) + dT(x,y,z)*dt
-  // dT(x,y,z) = q * sum_{dxdydz}( T(x + dx, y + dy, z + dz) - T(x,y,z))
-  // If it's the surface of the body, add
-  // dT(x,y,z) += -sigma * T(x,y,z)^4
-  // If it's the z == 0 surface, add incoming radiation energy
-  // dT(x,y,0) += P
-
   // Communicator
   CommHelper comm;
 
@@ -183,7 +173,7 @@ struct System {
 
     auto local_range = Kokkos::Experimental::get_local_range(dX);
     my_lo_x          = local_range.first;
-    my_hi_x          = local_range.second + 1;
+    my_hi_x          = local_range.second;
 
 #if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
@@ -191,7 +181,7 @@ struct System {
 #endif
     T   = RemoteView_t("System::T", dX, dY, dZ);
     T_h = HostView_t("Host::T", T.extent(0), dY, dZ);
-    dT  = LocalView_t("System::dT", dX, dY, dZ);
+    dT  = LocalView_t("System::dT", T.extent(0), dY, dZ);
 
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
@@ -284,7 +274,6 @@ struct System {
 
     // radiation
     dT_xyz -= sigma * T_xyz * T_xyz * T_xyz * T_xyz * num_surfaces;
-
     dT(x, y, z) = dT_xyz;
   }
 
@@ -296,10 +285,9 @@ struct System {
             policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}, {16, 8, 8}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         *this);
+    Kokkos::fence();
   }
 
-  // Some compilers have deduction issues if this were just a tagget operator
-  // So it is instead a full Functor
   struct updateT {
     RemoteView_t T;
     LocalView_t dT;
@@ -324,20 +312,18 @@ struct System {
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
         updateT(T, dT, dt), my_T);
     double sum_T;
-    RemoteSpace_t().fence();
-    Kokkos::fence();
-    MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM,
-                  comm.comm); /* also a barrier */
+    MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM, comm.comm);
     return sum_T;
   }
 
-  // run time loops
+  // run_time_loops
   void timestep() {
     Kokkos::Timer timer;
-    double old_time = 0.0;
-    double GUPs     = 0.0;
     double time_a, time_b, time_c, time_update, time_compute, time_all;
-    time_all = time_update = time_compute = 0.0;
+    time_update = time_compute = 0.0;
+
+    double time_z = timer.seconds();
+
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */
       time_a = timer.seconds();
@@ -349,25 +335,19 @@ struct System {
       time_compute += time_b - time_a;
       time_update += time_c - time_b;
       T_ave /= 1e-9 * (X * Y * Z);
-      if ((t % I == 0 || t == N) && (comm.me == 0)) {
-        double time = timer.seconds();
-        time_all += time - old_time;
-        GUPs += 1e-9 * (dT.size() / time_compute);
-#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
-        if ((t % I == 0 || t == N) && (comm.me == 0)) {
-#else
-        if ((t == N) && (comm.me == 0)) {
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+      if ((t % I == 0 || t == N) && (comm.me == 0))
+        printf("Timestep: %i/%i t_avg: %lf\n", t, N, T_ave);
 #endif
-          printf(
-              "heat3D,KokkosRemoteSpaces,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%"
-              "f\n",
-              comm.nranks, t, T_ave, 0.0, time_compute, time_update,
-              time - old_time, /* time last iter */
-              time_all,        /* current runtime  */
-              GUPs / t, X, 1e-6 * (dT.size() * sizeof(double)));
-          old_time = time;
-        }
-      }
+    }
+
+    time_all = timer.seconds() - time_z;
+
+    if (comm.me == 0) {
+      printf("heat3D,KokkosRemoteSpaces,%i,%lf,%lf,%lf,%i,%lf,%lf,%lf\n",
+             comm.nranks, time_compute / N, double(0), time_update / N, X,
+             double(2 * T.span() * sizeof(double)) / 1024 / 1024, time_all / N,
+             time_all);
     }
   }
 };

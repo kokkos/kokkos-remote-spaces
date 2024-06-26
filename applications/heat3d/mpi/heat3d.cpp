@@ -19,38 +19,6 @@
 #include <Kokkos_Core.hpp>
 #include <mpi.h>
 
-template <class ExecSpace>
-struct SpaceInstance {
-  static ExecSpace create() { return ExecSpace(); }
-  static void destroy(ExecSpace&) {}
-  static bool overlap() { return false; }
-};
-
-#ifndef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
-#ifdef KOKKOS_ENABLE_CUDA
-template <>
-struct SpaceInstance<Kokkos::Cuda> {
-  static Kokkos::Cuda create() {
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
-    return Kokkos::Cuda(stream);
-  }
-  static void destroy(Kokkos::Cuda& space) {
-    cudaStream_t stream = space.cuda_stream();
-    cudaStreamDestroy(stream);
-  }
-  static bool overlap() {
-    bool value          = true;
-    auto local_rank_str = std::getenv("CUDA_LAUNCH_BLOCKING");
-    if (local_rank_str) {
-      value = (std::stoi(local_rank_str) == 0);
-    }
-    return value;
-  }
-};
-#endif
-#endif
-
 struct CommHelper {
   MPI_Comm comm;
 
@@ -111,16 +79,6 @@ struct CommHelper {
 };
 
 struct System {
-  // Using theoretical physicists way of describing system,
-  // i.e. we stick everything in as few constants as possible
-  // be i and i+1 two timesteps dt apart:
-  // T(x,y,z)_(i+1) = T(x,y,z)_(i)+dT(x,y,z)*dt;
-  // dT(x,y,z) = q * sum_dxdydz( T(x+dx,y+dy,z+dz) - T(x,y,z) )
-  // If its surface of the body add:
-  // dT(x,y,z) += -sigma*T(x,y,z)^4
-  // If its z==0 surface add incoming radiation energy
-  // dT(x,y,0) += P
-
   // Communicator
   CommHelper comm;
   MPI_Request mpi_requests_recv[6];
@@ -180,30 +138,22 @@ struct System {
 #else
     I = N - 1;
 #endif
-    T       = Kokkos::View<double***>();
-    dT      = Kokkos::View<double***>();
-    T0      = 0.0;
-    dt      = 0.1;
-    q       = 1.0;
-    sigma   = 1.0;
-    P       = 1.0;
-    E_left  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_right = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_up    = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_down  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_front = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_back  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-    E_bulk  = SpaceInstance<Kokkos::DefaultExecutionSpace>::create();
-  }
-
-  void destroy_exec_spaces() {
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_left);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_right);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_front);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_back);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_up);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_down);
-    SpaceInstance<Kokkos::DefaultExecutionSpace>::destroy(E_bulk);
+    T              = Kokkos::View<double***>();
+    dT             = Kokkos::View<double***>();
+    T0             = 0.0;
+    dt             = 0.1;
+    q              = 1.0;
+    sigma          = 1.0;
+    P              = 1.0;
+    auto exec_inst = Kokkos::Experimental::partition_space(
+        Kokkos::DefaultExecutionSpace(), 1, 1, 1, 1, 1, 1, 1);
+    E_left  = exec_inst[left];
+    E_right = exec_inst[right];
+    E_up    = exec_inst[up];
+    E_down  = exec_inst[down];
+    E_front = exec_inst[front];
+    E_back  = exec_inst[back];
+    E_bulk  = exec_inst[bulk];
   }
 
   void setup_subdomain() {
@@ -299,12 +249,12 @@ struct System {
   // run_time_loops
   void timestep() {
     Kokkos::Timer timer;
-    double old_time = 0.0;
-    double time_all = 0.0;
-    double GUPs     = 0.0;
     double time_a, time_b, time_c, time_d;
-    double time_inner, time_surface, time_update;
-    time_inner = time_surface = time_update = 0.0;
+    double time_inner, time_surface, time_update, time_all;
+    time_inner = time_surface = time_update = time_all = 0.0;
+
+    double time_z = timer.seconds();
+
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0;
       time_a = timer.seconds();
@@ -322,23 +272,19 @@ struct System {
       time_surface += time_c - time_b;
       time_update += time_d - time_c;
       T_ave /= 1e-9 * (X * Y * Z);
-      if ((t % I == 0 || t == N) && (comm.me == 0)) {
-        double time = timer.seconds();
-        time_all += time - old_time;
-        GUPs += 1e-9 * (dT.size() / time_inner);
-#if KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
-        if ((t % I == 0 || t == N) && (comm.me == 0)) {
-#else
-        if ((t == N) && (comm.me == 0)) {
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+      if ((t % I == 0 || t == N) && (comm.me == 0))
+        printf("Timestep: %i/%i t_avg: %lf\n", t, N, T_ave);
 #endif
-          printf("heat3D,Kokkos+MPI,%i,%i,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%i,%f\n",
-                 comm.nranks, t, T_ave, time_inner, time_surface, time_update,
-                 time - old_time, /* time last iter */
-                 time_all,        /* current runtime  */
-                 GUPs / t, X, 1e-6 * (X * sizeof(double)));
-          old_time = time;
-        }
-      }
+    }
+
+    time_all += timer.seconds() - time_z;
+
+    if (comm.me == 0) {
+      printf("heat3D,Kokkos+MPI,%i,%lf,%lf,%lf,%i,%lf,%lf,%lf\n", comm.nranks,
+             time_inner / N, time_surface / N, time_update / N, X,
+             double(2 * T.span() * sizeof(double)) / 1024 / 1024, time_all / N,
+             time_all);
     }
   }
 
@@ -374,7 +320,7 @@ struct System {
 
   // Compute non-exposed surface
   // Dispatch makes sure that we don't hit elements twice
-  enum { left, right, down, up, front, back };
+  enum { left, right, down, up, front, back, bulk };
 
   template <int Surface>
   struct ComputeSurfaceDT {};
@@ -627,7 +573,7 @@ int main(int argc, char* argv[]) {
   {
     System sys(MPI_COMM_WORLD);
     if (sys.check_args(argc, argv)) sys.timestep();
-    sys.destroy_exec_spaces();
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   Kokkos::finalize();
