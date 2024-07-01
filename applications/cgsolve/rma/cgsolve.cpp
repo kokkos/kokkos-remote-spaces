@@ -21,13 +21,16 @@
   https://mantevo.github.io/pdfs/MantevoOverview.pdf
 */
 
+#define USE_GLOBAL_LAYOUT
+//#define USE_EXPLICIT_INDEXING
+
 #include <Kokkos_RemoteSpaces.hpp>
 #include <generate_matrix.hpp>
 #include <mpi.h>
 
-#include <iostream>
+#include <comm.hpp>
 
-#define USE_GLOBAL_LAYOUT
+#include <iostream>
 
 typedef Kokkos::Experimental::DefaultRemoteMemorySpace RemoteMemSpace_t;
 #ifdef USE_GLOBAL_LAYOUT
@@ -77,18 +80,17 @@ void spmv(YType y, AType A, XType x) {
                                      int64_t idx = A.col_idx(current_row);
 
 #ifdef USE_GLOBAL_LAYOUT
-                                     // Enable for faster pid and offset
-                                     // calculation. Caution: will not work with
-                                     // GlobalLayout int64_t pid = idx / MASK;
-                                     // int64_t offset = idx % MASK;
                                      sum += A.values(current_row) * x(idx);
 #else
-                    // Enable for faster pid and offset calculation. May result in unfair comparison
-                    //int64_t pid = idx / MASK;
-                    //int64_t offset = idx % MASK;
-                    int64_t pid = idx / nrows;
-                    int64_t offset = idx % nrows;
-                    sum += A.values(current_row) * x(pid, offset);
+#ifdef USE_EXPLICIT_INDEXING
+    // Enable for faster pid and offset calculation. May result in unfair comparison
+    int64_t pid = idx / MASK;
+    int64_t offset = idx % MASK;
+#else
+    int64_t pid = idx / nrows;
+    int64_t offset = idx % nrows;
+#endif
+    sum += A.values(current_row) * x(pid, offset);
 #endif
                                    },
                                    y_row);
@@ -96,6 +98,7 @@ void spmv(YType y, AType A, XType x) {
                              });
       });
 
+  Kokkos::fence();
   RemoteMemSpace_t().fence();
 }
 
@@ -116,6 +119,7 @@ void axpby(ZType z, double alpha, XType x, double beta, YType y) {
   Kokkos::parallel_for(
       "AXPBY", n,
       KOKKOS_LAMBDA(const int &i) { z(i) = alpha * x(i) + beta * y(i); });
+  Kokkos::fence();
 }
 
 template <class VType>
@@ -154,6 +158,7 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   double zero = 0.0;
 
   axpby(p, one, x, zero, x);
+  Kokkos::fence();
   RemoteMemSpace_t().fence();
   spmv(Ap, A, p_global);
   axpby(r, one, b, -one, Ap);
@@ -162,11 +167,13 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
   MPI_Allreduce(MPI_IN_PLACE, &rtrans, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   normr = std::sqrt(rtrans);
 
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
   if (true) {
     if (myproc == 0) {
       std::cout << "Initial Residual = " << normr << std::endl;
     }
   }
+#endif
 
   double brkdown_tol = std::numeric_limits<double>::epsilon();
 
@@ -184,12 +191,14 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
 
     normr = std::sqrt(rtrans);
 
+#ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
     if (true) {
       if (myproc == 0 && (k % print_freq == 0 || k == max_iter)) {
         std::cout << "Iteration = " << k << "   Residual = " << normr
                   << std::endl;
       }
     }
+#endif
 
     double alpha    = 0;
     double p_ap_dot = 0;
@@ -218,34 +227,10 @@ int cg_solve(VType y, AType A, VType b, PType p_global, int max_iter,
 }
 
 int main(int argc, char *argv[]) {
-  int mpi_thread_level_available;
-  int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
-
-#ifdef KOKKOS_ENABLE_DEFAULT_DEVICE_TYPE_SERIAL
-  mpi_thread_level_required = MPI_THREAD_SINGLE;
-#endif
-
-  MPI_Init_thread(&argc, &argv, mpi_thread_level_required,
-                  &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_init_thread(mpi_thread_level_required, &mpi_thread_level_available);
-  assert(mpi_thread_level_available >= mpi_thread_level_required);
-#endif
-
+  comm_init(argc, argv);
   int myRank, numRanks;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm      = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
-
   Kokkos::initialize(argc, argv);
   {
     int N                            = argc > 1 ? atoi(argv[1]) : 100;
@@ -276,8 +261,7 @@ int main(int argc, char *argv[]) {
 #endif
     Kokkos::Timer timer;
     int num_iters = cg_solve(y, A, x, p, max_iter, tolerance);
-
-    double time = timer.seconds();
+    double time   = timer.seconds();
 
     // Compute Bytes and Flops
     double spmv_bytes = A.num_rows() * sizeof(int64_t) +  // A.row_ptr
@@ -311,21 +295,19 @@ int main(int argc, char *argv[]) {
     double GBs    = (1.0 / 1024 / 1024 / 1024) * total_bytes / time;
 
     if (myRank == 0) {
+#ifndef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
+      printf("%i, %i, %.2e, %.6lf, %.6lf, %.6lf\n", N, num_iters, total_flops,
+             time, GFlops, GBs);
+#else
       printf(
           "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, %.2e, "
           "%.6lf, %.6lf, %.6lf\n",
           N, num_iters, total_flops, time, GFlops, GBs);
+#endif
     }
   }
 
   Kokkos::finalize();
-#ifdef KRS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KRS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
-
+  comm_fini();
   return 0;
 }

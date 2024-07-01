@@ -26,6 +26,8 @@
 #include <mpi.h>
 #include <presend.hpp>
 
+#include <comm.hpp>
+
 using SendRecvLists = Impl::SendRecvLists;
 
 template <class YType, class AType, class XType>
@@ -195,26 +197,12 @@ int cg_solve(VType y, AType A, VType b, int max_iter, double tolerance,
 }
 
 int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
-
+  comm_init(argc, argv);
   int myRank, numRanks;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_init();
-#endif
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  MPI_Comm mpi_comm;
-  nvshmemx_init_attr_t attr;
-  mpi_comm      = MPI_COMM_WORLD;
-  attr.mpi_comm = &mpi_comm;
-  nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
-#endif
-
+  Kokkos::initialize(argc, argv);
   {
-    Kokkos::ScopeGuard guard(argc, argv);
-
     int N                            = argc > 1 ? atoi(argv[1]) : 100;
     int max_iter                     = argc > 2 ? atoi(argv[2]) : 200;
     double tolerance                 = 1e-7;
@@ -280,16 +268,7 @@ int main(int argc, char *argv[]) {
           N, num_iters, total_flops, time, GFlops, GBs);
     }
   }
-
   Kokkos::finalize();
-
-#ifdef KOKKOS_ENABLE_SHMEMSPACE
-  shmem_finalize();
-#endif
-#ifdef KOKKOS_ENABLE_NVSHMEMSPACE
-  nvshmem_finalize();
-#endif
-  MPI_Finalize();
-
+  comm_fini();
   return 0;
 }

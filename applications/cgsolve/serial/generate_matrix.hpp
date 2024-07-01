@@ -56,14 +56,11 @@ static void miniFE_get_row(int64_t* rows, S* vals, GO* cols, int64_t startrow,
                            int64_t c1, int64_t c2, int64_t c3, int64_t val,
                            int64_t& miniFE_a, int64_t& miniFE_b,
                            int64_t& miniFE_c) {
-  // FIXME (mfh 25 Jun 2014) Seriously, "val27"???  Who writes
-  // code like this???
-
   bool val27 = false;
   if (c1 * c2 * c3 == 27) {
     val27 = true;
   }
-  // printf("%li %li %li\n",c1,c2,c3);
+
   if ((row >= startrow) && (row < endrow)) {
     int64_t offset           = rows[row - startrow];
     rows[row + 1 - startrow] = offset + c1 * c2 * c3;
