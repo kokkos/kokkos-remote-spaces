@@ -26,9 +26,8 @@
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using LocalView_t   = Kokkos::View<double***>;
 using RemoteView_t  = Kokkos::View<double***, RemoteSpace_t>;
-using UnmanagedView_t =
-    Kokkos::View<double***, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-using HostView_t = typename RemoteView_t::HostMirror;
+using HostView_t    = typename RemoteView_t::HostMirror;
+using Exec_t        = Kokkos::DefaultExecutionSpace;
 
 struct CommHelper {
   MPI_Comm comm;
@@ -87,10 +86,11 @@ struct System {
   int I;
 
   // Temperature and delta Temperature
-  LocalView_t dT;
   RemoteView_t T;
-  UnmanagedView_t dT_u;
+  LocalView_t dT, T_l;
   HostView_t T_h;
+
+  Exec_t E_left, E_right, E_up, E_down, E_front, E_back, E_bulk;
 
   // Initial Temmperature
   double T0;
@@ -128,6 +128,16 @@ struct System {
     q     = 1.0;
     sigma = 1.0;
     P     = 1.0;
+
+    auto exec_inst =
+        Kokkos::Experimental::partition_space(Exec_t(), 1, 1, 1, 1, 1, 1, 1);
+    E_left  = exec_inst[left];
+    E_right = exec_inst[right];
+    E_up    = exec_inst[up];
+    E_down  = exec_inst[down];
+    E_front = exec_inst[front];
+    E_back  = exec_inst[back];
+    E_bulk  = exec_inst[bulk];
   }
 
   void setup_subdomain() {
@@ -144,10 +154,10 @@ struct System {
     printf("My Domain: %i (%i %i %i) (%i %i %i)\n", comm.me, my_lo_x, Y_lo,
            Z_lo, my_hi_x, Y_hi, Z_hi);
 #endif
-    T    = RemoteView_t("System::T", X, Y, Z);
-    T_h  = HostView_t("Host::T", T.extent(0), Y, Z);
-    dT   = LocalView_t("System::dT", T.extent(0), Y, Z);
-    dT_u = UnmanagedView_t(dT.data(), T.extent(0), Y, Z);
+    T   = RemoteView_t("System::T", X, Y, Z);
+    T_l = LocalView_t(T.data(), T.extent(0), Y, Z);
+    T_h = HostView_t("Host::T", T.extent(0), Y, Z);
+    dT  = LocalView_t("System::dT", T.extent(0), Y, Z);
 
     Kokkos::deep_copy(T_h, T0);
     Kokkos::deep_copy(T, T_h);
@@ -192,12 +202,63 @@ struct System {
   }
 
   // compute both inner and outer updates. This function is suitable for both.
-  struct ComputeDT {};
+  struct ComputeInnerDT {};
+  template <int Surface>
+  struct ComputeSurfaceDT {};
+
+  enum { left, right, down, up, front, back, bulk };
 
   KOKKOS_FUNCTION
-  void operator()(ComputeDT, int x, int y, int z) const {
+  void operator()(ComputeInnerDT, int x, int y, int z) const {
+    double dT_xyz = 0.0;
+    double T_xyz  = T_l(x, y, z);
+    dT_xyz += q * (T_l(x - 1, y, z) - T_xyz);
+    dT_xyz += q * (T_l(x + 1, y, z) - T_xyz);
+    dT_xyz += q * (T_l(x, y - 1, z) - T_xyz);
+    dT_xyz += q * (T_l(x, y + 1, z) - T_xyz);
+    dT_xyz += q * (T_l(x, y, z - 1) - T_xyz);
+    dT_xyz += q * (T_l(x, y, z + 1) - T_xyz);
+    dT(x, y, z) = dT_xyz;
+  }
+
+  template <int Surface>
+  KOKKOS_FUNCTION void operator()(ComputeSurfaceDT<Surface>, int i,
+                                  int j) const {
+    int x, y, z;
+    if (Surface == left) {
+      x = my_lo_x;
+      y = i;
+      z = j;
+    }
+    if (Surface == right) {
+      x = my_hi_x - 1;
+      y = i;
+      z = j;
+    }
+    if (Surface == down) {
+      x = i;
+      y = 0;
+      z = j;
+    }
+    if (Surface == up) {
+      x = i;
+      y = Y - 1;
+      z = j;
+    }
+    if (Surface == front) {
+      x = i;
+      y = j;
+      z = 0;
+    }
+    if (Surface == back) {
+      x = i;
+      y = j;
+      z = Z - 1;
+    }
+
     double dT_xyz = 0.0;
     double T_xyz  = T(x, y, z);
+
     // Heat conduction on body (local accesses)
     if (x > 0) dT_xyz += q * (T(x - 1, y, z) - T_xyz);
     if (x < X - 1) dT_xyz += q * (T(x + 1, y, z) - T_xyz);
@@ -216,34 +277,23 @@ struct System {
 
     // Thermal radiation
     int num_surfaces = ((x == 0 && X_lo == 0) ? 1 : 0) +
-                       ((x == (X - 1) && X_hi == X) ? 1 : 0) +
+                       ((x == (X - 1) && my_hi_x == X) ? 1 : 0) +
                        ((y == 0) ? 1 : 0) + (y == (Y - 1) ? 1 : 0) +
                        ((z == 0) ? 1 : 0) + (z == (Z - 1) ? 1 : 0);
     dT_xyz -= sigma * T_xyz * T_xyz * T_xyz * T_xyz * num_surfaces;
     dT(x, y, z) = dT_xyz;
   }
 
-  void compute_dT() {
-    using policy_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeDT, int>;
-    Kokkos::parallel_for(
-        "ComputeDT",
-        Kokkos::Experimental::require(
-            policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}),
-            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        *this);
-    Kokkos::fence();
-  }
-
-  struct computeT {
+  struct updateT {
     RemoteView_t T;
-    UnmanagedView_t dT_u;
+    LocalView_t dT;
     double dt;
-    computeT(RemoteView_t T_, UnmanagedView_t dT_u_, double dt_)
-        : T(T_), dT_u(dT_u_), dt(dt_) {}
+    updateT(RemoteView_t T_, LocalView_t dT_, double dt_)
+        : T(T_), dT(dT_), dt(dt_) {}
     KOKKOS_FUNCTION
     void operator()(int x, int y, int z, double& sum_T) const {
       sum_T += T(x, y, z);
-      T(x, y, z) += dt * dT_u(x, y, z);
+      T(x, y, z) += dt * dT(x, y, z);
     }
   };
 
@@ -256,31 +306,107 @@ struct System {
         Kokkos::Experimental::require(
             policy_t({my_lo_x, 0, 0}, {my_hi_x, Y, Z}),
             Kokkos::Experimental::WorkItemProperty::HintLightWeight),
-        computeT(T, dT_u, dt), my_T);
+        updateT(T, dT, dt), my_T);
     double sum_T;
     MPI_Allreduce(&my_T, &sum_T, 1, MPI_DOUBLE, MPI_SUM, comm.comm);
     return sum_T;
   }
 
-  // run time loops
+  void compute_inner_dT() {
+    using policy_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<3>, ComputeInnerDT, int>;
+    int myX = T_l.extent(0);
+    int myY = T_l.extent(1);
+    int myZ = T_l.extent(2);
+    Kokkos::parallel_for(
+        "ComputeInnerDT",
+        Kokkos::Experimental::require(
+            policy_t(E_bulk, {1, 1, 1}, {myX - 1, myY - 1, myZ - 1}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+  };
+
+  void compute_surface_dT() {
+    using policy_left_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<left>, int>;
+    using policy_right_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<right>, int>;
+    using policy_down_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<down>, int>;
+    using policy_up_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<up>, int>;
+    using policy_front_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<front>, int>;
+    using policy_back_t =
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>, ComputeSurfaceDT<back>, int>;
+
+    int Y = T.extent(1);
+    int Z = T.extent(2);
+
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_Left",
+        Kokkos::Experimental::require(
+            policy_left_t(E_left, {0, 0}, {Y, Z}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_Right",
+        Kokkos::Experimental::require(
+            policy_right_t(E_right, {0, 0}, {Y, Z}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_Down",
+        Kokkos::Experimental::require(
+            policy_down_t(E_down, {my_lo_x + 1, 0}, {my_hi_x - 1, Z}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_Up",
+        Kokkos::Experimental::require(
+            policy_up_t(E_up, {my_lo_x + 1, 0}, {my_hi_x - 1, Z}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_front",
+        Kokkos::Experimental::require(
+            policy_front_t(E_front, {my_lo_x + 1, 1}, {my_hi_x - 1, Y - 1}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+    Kokkos::parallel_for(
+        "ComputeSurfaceDT_back",
+        Kokkos::Experimental::require(
+            policy_back_t(E_back, {my_lo_x + 1, 1}, {my_hi_x - 1, Y - 1}),
+            Kokkos::Experimental::WorkItemProperty::HintLightWeight),
+        *this);
+  }
+
+  // run_time_loops
   void timestep() {
     Kokkos::Timer timer;
-    double time_a, time_b, time_c, time_update, time_compute, time_all;
-    time_update = time_compute = 0.0;
+    double time_a, time_b, time_c, time_d;
+    double time_inner, time_surface, time_update, time_all;
+    time_inner = time_surface = time_update = time_all = 0.0;
 
     double time_z = timer.seconds();
 
     for (int t = 0; t <= N; t++) {
       if (t > N / 2) P = 0.0; /* stop heat in halfway through */
       time_a = timer.seconds();
-      compute_dT();
+      compute_inner_dT();
+      Kokkos::fence();
+      time_b = timer.seconds();
+      compute_surface_dT();
+      Kokkos::fence();
       RemoteSpace_t().fence();
-      time_b       = timer.seconds();
-      double T_ave = update_T();
       time_c       = timer.seconds();
-      time_compute += time_b - time_a;
-      time_update += time_c - time_b;
-      T_ave /= X * Y * Z;
+      double T_ave = update_T();
+      time_d       = timer.seconds();
+      time_inner += time_b - time_a;
+      time_surface += time_c - time_b;
+      time_update += time_d - time_c;
+      T_ave /= (X * Y * Z);
 #ifdef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
       if ((t % I == 0 || t == N) && (comm.me == 0))
         printf("Timestep: %i/%i t_avg: %lf\n", t, N, T_ave);
@@ -290,10 +416,11 @@ struct System {
     time_all = timer.seconds() - time_z;
 
     if (comm.me == 0) {
-      printf("heat3D,KokkosRemoteSpaces_opt,%i,%lf,%lf,%lf,%i,%lf,%lf,%lf\n",
-             comm.nranks, time_compute / N, double(0), time_update / N, X,
-             double(2 * T.span() * sizeof(double)) / 1024 / 1024, time_all / N,
-             time_all);
+      printf(
+          "heat3D,KokkosRemoteSpaces_more_opt,%i,%lf,%lf,%lf,%i,%lf,%lf,%lf\n",
+          comm.nranks, time_inner / N, time_surface / N, time_update / N, X,
+          double(2 * T.span() * sizeof(double)) / 1024 / 1024, time_all / N,
+          time_all);
     }
   }
 };

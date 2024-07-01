@@ -39,7 +39,7 @@
 #define LEAGUE_SIZE 1
 #define TEAM_SIZE 32
 #define VEC_LEN 1
-#define SPREAD 1
+#define SPREAD 0
 
 #define ORDINAL_T int64_t
 
@@ -72,7 +72,7 @@ KOKKOS_INLINE_FUNCTION auto get(Generator_t::generator_type &g, int i,
 int main(int argc, char *argv[]) {
   ORDINAL_T num_elems = (SIZE << 10) / sizeof(ORDINAL_T);
   ORDINAL_T num_iters = NUM_ITER;
-  float spread        = SPREAD;
+  float spread        = SPREAD / 100;
   int league_size     = LEAGUE_SIZE;
   int team_size       = TEAM_SIZE;
   int vec_len         = VEC_LEN;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
       case 's':
         num_elems = (std::atoi(optarg) << 10) / sizeof(ORDINAL_T);
         break;
-      case 'p': spread = std::atof(optarg); break;
+      case 'p': spread = std::atof(optarg) / 100; break;
       case 'l': league_size = std::atoi(optarg); break;
       case 't': team_size = std::atoi(optarg); break;
     }
@@ -228,10 +228,10 @@ int main(int argc, char *argv[]) {
     float MBs            = MUPs * static_cast<float>(sizeof(ORDINAL_T));
     float access_latency = time / num_iters * 1.0e6;
 
-    printf("%s,%i,%i,%i,%i,%ld,%ld,%ld,%.3f,%.3f,%.3f,%.3f,%.3f\n",
+    printf("%s,%i,%i,%i,%i,%ld,%ld,%ld,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
            view_name.c_str(), num_ranks, league_size, team_size, vec_len,
-           num_elems, start_idx, idx_range, MB, access_latency, time, MUPs,
-           MBs);
+           num_elems, start_idx, idx_range, MB, spread, access_latency, time,
+           MUPs, MBs);
   }
 
   MPI_Finalize();

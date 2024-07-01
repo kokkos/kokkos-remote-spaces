@@ -22,69 +22,91 @@
 #include <sys/time.h>
 
 #define STREAM_ARRAY_SIZE 134217728
-#define STREAM_NTIMES 20
+#define STREAM_NTIMES 10
 
-using RemoteSpace_t     = Kokkos::Experimental::DefaultRemoteMemorySpace;
+#define USE_REMOTE_SPACES
+#define CHECK_CORRECTNESS
+
+using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
+#ifdef USE_REMOTE_SPACES
+#define MEM_FENCE RemoteSpace_t().fence();
 using StreamDeviceArray = Kokkos::View<double*, RemoteSpace_t>;
-using StreamHostArray   = Kokkos::View<double*, Kokkos::HostSpace>;
-using StreamIndex       = size_t;
-using Policy            = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
+#define NAME "gobal_view"
+#else
+#define MEM_FENCE
+using StreamDeviceArray = Kokkos::View<double*>;
+#define NAME "local_view"
+#endif
 
-void perform_set(StreamDeviceArray& a, const double scalar) {
+using StreamHostArray = Kokkos::View<double*, Kokkos::HostSpace>;
+using StreamIndex     = size_t;
+using Policy          = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
+
+void perform_set(StreamDeviceArray& a, const double scalar,
+                 Kokkos::pair<size_t, size_t>& local_range) {
   Kokkos::parallel_for(
-      "set", Policy(0, a.extent(0)),
+      "set", Policy(local_range.first, local_range.second),
       KOKKOS_LAMBDA(const StreamIndex i) { a(i) = scalar; });
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  MEM_FENCE
 }
 
-void perform_incr(StreamDeviceArray& a, const double scalar) {
+void perform_copy(StreamDeviceArray& a, StreamDeviceArray& c,
+                  Kokkos::pair<size_t, size_t>& local_range) {
   Kokkos::parallel_for(
-      "set", Policy(0, a.extent(0)),
-      KOKKOS_LAMBDA(const StreamIndex i) { a(i) += scalar; });
-  RemoteSpace_t().fence();
-}
-
-void perform_copy(StreamDeviceArray& a, StreamDeviceArray& b) {
-  Kokkos::parallel_for(
-      "copy", Policy(0, a.extent(0)), KOKKOS_LAMBDA(const StreamIndex i) {
+      "copy", Policy(local_range.first, local_range.second),
+      KOKKOS_LAMBDA(const StreamIndex i) {
         double tmp = a(i);
-        b(i)       = tmp;
+        c(i)       = tmp;
       });
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  MEM_FENCE
 }
 
 void perform_scale(StreamDeviceArray& b, StreamDeviceArray& c,
-                   const double scalar) {
+                   const double scalar,
+                   Kokkos::pair<size_t, size_t>& local_range) {
   Kokkos::parallel_for(
-      "scale", Policy(0, b.extent(0)),
+      "scale", Policy(local_range.first, local_range.second),
       KOKKOS_LAMBDA(const StreamIndex i) { b(i) = scalar * c(i); });
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  MEM_FENCE
 }
 
 void perform_add(StreamDeviceArray& a, StreamDeviceArray& b,
-                 StreamDeviceArray& c) {
+                 StreamDeviceArray& c,
+                 Kokkos::pair<size_t, size_t>& local_range) {
   Kokkos::parallel_for(
-      "add", Policy(0, a.extent(0)),
+      "add", Policy(local_range.first, local_range.second),
       KOKKOS_LAMBDA(const StreamIndex i) { c(i) = a(i) + b(i); });
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  MEM_FENCE
 }
 
 void perform_triad(StreamDeviceArray& a, StreamDeviceArray& b,
-                   StreamDeviceArray& c, const double scalar) {
+                   StreamDeviceArray& c, const double scalar,
+                   Kokkos::pair<size_t, size_t>& local_range) {
   Kokkos::parallel_for(
-      "triad", Policy(0, a.extent(0)),
+      "triad", Policy(local_range.first, local_range.second),
       KOKKOS_LAMBDA(const StreamIndex i) { a(i) = b(i) + scalar * c(i); });
-  RemoteSpace_t().fence();
+  Kokkos::fence();
+  MEM_FENCE
 }
 
 int perform_validation(StreamHostArray& a, StreamHostArray& b,
                        StreamHostArray& c, const StreamIndex arraySize,
-                       const double scalar) {
+                       const double scalar,
+                       Kokkos::pair<size_t, size_t>& local_range) {
   double ai = 1.0;
   double bi = 2.0;
   double ci = 0.0;
 
-  for (StreamIndex i = 0; i < arraySize; ++i) {
+  auto start = local_range.first;
+  auto end   = local_range.second;
+  auto size  = end - start;
+
+  for (StreamIndex i = start; i < end; ++i) {
+    ai = 1.5;
     ci = ai;
     bi = scalar * ci;
     ci = ai + bi;
@@ -95,15 +117,15 @@ int perform_validation(StreamHostArray& a, StreamHostArray& b,
   double bError = 0.0;
   double cError = 0.0;
 
-  for (StreamIndex i = 0; i < arraySize; ++i) {
-    aError = std::abs(a[i] - ai);
-    bError = std::abs(b[i] - bi);
-    cError = std::abs(c[i] - ci);
+  for (StreamIndex i = start; i < end; ++i) {
+    aError += std::abs(a[i] - ai);
+    bError += std::abs(b[i] - bi);
+    cError += std::abs(c[i] - ci);
   }
 
-  double aAvgError = aError / (double)arraySize;
-  double bAvgError = bError / (double)arraySize;
-  double cAvgError = cError / (double)arraySize;
+  double aAvgError = aError / (double)size;
+  double bAvgError = bError / (double)size;
+  double cAvgError = cError / (double)size;
 
   const double epsilon = 1.0e-13;
   int errorCount       = 0;
@@ -130,8 +152,7 @@ int perform_validation(StreamHostArray& a, StreamHostArray& b,
   return errorCount;
 }
 
-int run_benchmark(uint64_t size, uint64_t reps, uint64_t ls, uint64_t ts,
-                  uint64_t vs) {
+int run_benchmark(uint64_t size, uint64_t reps) {
   StreamDeviceArray dev_a("a", size);
   StreamDeviceArray dev_b("b", size);
   StreamDeviceArray dev_c("c", size);
@@ -143,14 +164,20 @@ int run_benchmark(uint64_t size, uint64_t reps, uint64_t ls, uint64_t ts,
   const double scalar = 3.0;
 
   double setTime   = std::numeric_limits<double>::max();
-  double incrTime  = std::numeric_limits<double>::max();
   double copyTime  = std::numeric_limits<double>::max();
   double scaleTime = std::numeric_limits<double>::max();
   double addTime   = std::numeric_limits<double>::max();
   double triadTime = std::numeric_limits<double>::max();
 
+#ifdef USE_REMOTE_SPACES
+  auto local_range = Kokkos::Experimental::get_local_range(size);
+#else
+  auto local_range = Kokkos::pair<uint64_t, uint64_t>(0, size);
+#endif
+
   Kokkos::parallel_for(
-      "init", Kokkos::RangePolicy<>(0, size), KOKKOS_LAMBDA(const int i) {
+      "init", Kokkos::RangePolicy<>(local_range.first, local_range.second),
+      KOKKOS_LAMBDA(const int i) {
         dev_a(i) = 1.0;
         dev_b(i) = 2.0;
         dev_c(i) = 0.0;
@@ -160,35 +187,31 @@ int run_benchmark(uint64_t size, uint64_t reps, uint64_t ls, uint64_t ts,
 
   for (StreamIndex k = 0; k < reps; ++k) {
     timer.reset();
-    perform_set(dev_c, 1.5);
+    perform_set(dev_a, 1.5, local_range);
     setTime = std::min(setTime, timer.seconds());
 
     timer.reset();
-    perform_incr(dev_c, 1);
-    incrTime = std::min(incrTime, timer.seconds());
-
-    timer.reset();
-    perform_copy(dev_a, dev_c);
+    perform_copy(dev_a, dev_c, local_range);
     copyTime = std::min(copyTime, timer.seconds());
 
     timer.reset();
-    perform_scale(dev_b, dev_c, scalar);
+    perform_scale(dev_b, dev_c, scalar, local_range);
     scaleTime = std::min(scaleTime, timer.seconds());
 
     timer.reset();
-    perform_add(dev_a, dev_b, dev_c);
+    perform_add(dev_a, dev_b, dev_c, local_range);
     addTime = std::min(addTime, timer.seconds());
 
     timer.reset();
-    perform_triad(dev_a, dev_b, dev_c, scalar);
+    perform_triad(dev_a, dev_b, dev_c, scalar, local_range);
     triadTime = std::min(triadTime, timer.seconds());
   }
 
-  printf("%lu,%lu,%lu,%lu,%li,%li,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\n", ls, ts, vs,
-         static_cast<uint64_t>(size), (size * sizeof(double)) >> 20,
-         ((size * sizeof(double)) >> 20) * 3,
+  std::string name = NAME;
+
+  printf("%s,%li,%li,%.5f,%.5f,%.5f,%.5f,%.5f\n", name.c_str(), size,
+         3 * (sizeof(double) * size) >> 10 /*kB*/,
          (1.0e-06 * 1.0 * (double)sizeof(double) * (double)size) / setTime,
-         (1.0e-06 * 1.0 * (double)sizeof(double) * (double)size) / incrTime,
          (1.0e-06 * 2.0 * (double)sizeof(double) * (double)size) / copyTime,
          (1.0e-06 * 2.0 * (double)sizeof(double) * (double)size) / scaleTime,
          (1.0e-06 * 3.0 * (double)sizeof(double) * (double)size) / addTime,
@@ -198,10 +221,15 @@ int run_benchmark(uint64_t size, uint64_t reps, uint64_t ls, uint64_t ts,
   Kokkos::deep_copy(host_b, dev_b);
   Kokkos::deep_copy(host_c, dev_c);
 
-  return perform_validation(host_a, host_b, host_c, size, scalar);
+#ifdef CHECK_CORRECTNESS
+  return perform_validation(host_a, host_b, host_c, size, scalar, local_range);
+#else
+  return 0;
+#endif
 }
 
 int main(int argc, char* argv[]) {
+#ifdef USE_REMOTE_SPACES
   int mpi_thread_level_available;
   int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
 
@@ -226,19 +254,20 @@ int main(int argc, char* argv[]) {
   nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
 #endif
 
+#endif
+
   uint64_t array_size  = STREAM_ARRAY_SIZE;
   uint64_t repetitions = STREAM_NTIMES;
-  uint64_t ls = 32, vs = 32, ts = 32;
 
   array_size  = argc > 1 ? atoi(argv[1]) : array_size;
   repetitions = argc > 2 ? atoi(argv[2]) : repetitions;
-  ls          = argc > 3 ? atoi(argv[3]) : ls;
-  ts          = argc > 4 ? atoi(argv[4]) : ts;
-  vs          = argc > 5 ? atoi(argv[5]) : vs;
 
   Kokkos::initialize(argc, argv);
-  const int rc = run_benchmark(array_size, repetitions, ls, ts, vs);
+  const int rc = run_benchmark(array_size, repetitions);
   Kokkos::finalize();
+
+#ifdef USE_REMOTE_SPACES
+
 #ifdef KRS_ENABLE_SHMEMSPACE
   shmem_finalize();
 #endif
@@ -246,5 +275,7 @@ int main(int argc, char* argv[]) {
   nvshmem_finalize();
 #endif
   MPI_Finalize();
+#endif
+
   return rc;
 }
