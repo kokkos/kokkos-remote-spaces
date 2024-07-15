@@ -101,10 +101,7 @@ static void miniFE_get_row(int64_t *rows, S *vals, GO *cols,
         for (int64_t k = 0; k < c3; k++) {
           int64_t m       = i * c2 * c3 + j * c2 + k;
           int64_t col_idx = o + i * nx1 * nx1 + j * nx1 + k;
-#ifndef USE_GLOBAL_LAYOUT
-          cols[offset + m] = col_idx;
-          // Enable for faster pid and offset calculation. May result in unfair
-          // comparison
+#if !defined(USE_GLOBAL_LAYOUT) && defined(USE_EXPLICIT_INDEXING)
           cols[offset + m] =
               (col_idx / rows_per_proc) * MASK + col_idx % rows_per_proc;
 #else
@@ -281,17 +278,10 @@ Kokkos::View<double *, Kokkos::HostSpace> generate_miniFE_vector(int64_t nx) {
   int64_t nrows_superblock = (1 + (nx - 1) + 1) * nrows_block;
   int64_t nrows            = (1 + (nx - 1) + 1) * nrows_superblock;
 
-#ifdef USE_GLOBAL_LAYOUT
-  auto range    = Kokkos::Experimental::getRange(nrows, myRank);
-  int64_t block = range.second - range.first;
-  int64_t start = range.first;
-  int64_t end   = range.second;
-#else
   int64_t block = (nrows + numRanks - 1) / numRanks;
   int64_t start = block * myRank;
-  int64_t end = start + block;
+  int64_t end   = start + block;
   if (end > nrows) end = nrows;
-#endif
 
   Kokkos::View<double *, Kokkos::HostSpace> x("X_host", block);
   double *vec = x.data();

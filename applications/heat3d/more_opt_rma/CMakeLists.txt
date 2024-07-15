@@ -1,0 +1,4 @@
+add_executable(more_opt_rma_heat3d heat3d.cpp)
+target_link_libraries(more_opt_rma_heat3d PRIVATE Kokkos::kokkosremotespaces)
+target_include_directories(more_opt_rma_heat3d PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(more_opt_rma_heat3d PRIVATE KRS_ENABLE_NVSHMEM_PTR)

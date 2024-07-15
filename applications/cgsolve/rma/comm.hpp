@@ -16,6 +16,11 @@
 //
 //@HEADER
 
+/*
+  Adapted from the Mantevo Miniapp Suite.
+  https://mantevo.github.io/pdfs/MantevoOverview.pdf
+*/
+
 void comm_init(int argc, char* argv[]) {
   int mpi_thread_level_available;
   int mpi_thread_level_required = MPI_THREAD_MULTIPLE;
