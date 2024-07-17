@@ -148,6 +148,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), dst_rank);
 #endif
       data_block.put();
+      nvshmem_quiet();
 #ifdef KRS_ENABLE_MPISPACE
       MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
@@ -202,6 +203,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), src_rank);
 #endif
     data_block.get();
+    nvshmem_quiet();
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
@@ -215,6 +217,7 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), dst_rank);
 #endif
     data_block.put();
+    nvshmem_quiet();
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
