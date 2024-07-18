@@ -52,18 +52,18 @@ KOKKOS_REMOTESPACES_PUT(double, nvshmem_double_put)
     op(dst, src, nelems, pe);                                             \
   }
 
-KOKKOS_REMOTESPACES_GET(char, nvshmemx_char_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(unsigned char, nvshmemx_uchar_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(short, nvshmemx_short_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(unsigned short, nvshmemx_ushort_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(int, nvshmemx_int_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(unsigned int, nvshmemx_uint_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(long, nvshmemx_long_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(unsigned long, nvshmemx_ulong_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(long long, nvshmemx_longlong_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmemx_ulonglong_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(float, nvshmemx_float_get_nbi_block)
-KOKKOS_REMOTESPACES_GET(double, nvshmemx_double_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get_nbi)
+KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned short, nvshmem_ushort_get_nbi)
+KOKKOS_REMOTESPACES_GET(int, nvshmem_int_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned int, nvshmem_uint_get_nbi)
+KOKKOS_REMOTESPACES_GET(long, nvshmem_long_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned long, nvshmem_ulong_get_nbi)
+KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get_nbi)
+KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get_nbi)
+KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get_nbi)
 
 #undef KOKKOS_REMOTESPACES_GET
 
