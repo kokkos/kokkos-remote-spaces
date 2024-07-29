@@ -19,7 +19,7 @@
 #ifndef KOKKOS_REMOTESPACES_MPISPACE_BLOCK_OPS_HPP
 #define KOKKOS_REMOTESPACES_MPISPACE_BLOCK_OPS_HPP
 
-#include <shmem.h>
+#include <mpi.h>
 #include <type_traits>
 
 namespace Kokkos {
