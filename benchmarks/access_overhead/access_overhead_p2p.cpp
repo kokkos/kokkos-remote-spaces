@@ -489,8 +489,9 @@ struct Access_LDC<
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
           time_a = timer.seconds();
-          Kokkos::parallel_for("block_transfer",
-                               team_policy_get_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
+          Kokkos::parallel_for(
+              "block_transfer",
+              team_policy_get_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
 
           Kokkos::fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
@@ -516,8 +517,9 @@ struct Access_LDC<
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
           time_a = timer.seconds();
-          Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
+          Kokkos::parallel_for(
+              "block_transfer",
+              team_policy_put_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)

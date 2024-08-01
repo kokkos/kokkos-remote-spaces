@@ -27,13 +27,11 @@ namespace Impl {
 
 //#define KRS_USES_NBI
 
-#define KOKKOS_REMOTESPACES_PUT(type, op)                  \
-  static __device__ void shmem_block_type_put( \
-      type *dst, const type *src, size_t nelems, int pe) { \
-    op(dst, src, nelems, pe);                              \
+#define KOKKOS_REMOTESPACES_PUT(type, op)                                 \
+  static __device__ void shmem_block_type_put(type *dst, const type *src, \
+                                              size_t nelems, int pe) {    \
+    op(dst, src, nelems, pe);                                             \
   }
-
-
 
 #define KOKKOS_REMOTESPACES_GET(type, op)                                 \
   static __device__ void shmem_block_type_get(type *dst, const type *src, \
@@ -67,7 +65,7 @@ KOKKOS_REMOTESPACES_GET(long long, nvshmemx_longlong_get_nbi_block)
 KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmemx_ulonglong_get_nbi_block)
 KOKKOS_REMOTESPACES_GET(float, nvshmemx_float_get_nbi_block)
 KOKKOS_REMOTESPACES_GET(double, nvshmemx_double_get_nbi_block)
-#elif defined (KRS_USES_NBI)
+#elif defined(KRS_USES_NBI)
 KOKKOS_REMOTESPACES_PUT(char, nvshmem_char_put_nbi)
 KOKKOS_REMOTESPACES_PUT(unsigned char, nvshmem_uchar_put_nbi)
 KOKKOS_REMOTESPACES_PUT(short, nvshmem_short_put_nbi)
@@ -119,7 +117,6 @@ KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get)
 KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get)
 #endif
 
-
 #undef KOKKOS_REMOTESPACES_PUT
 #undef KOKKOS_REMOTESPACES_GET
 
@@ -137,8 +134,7 @@ struct NVSHMEMBlockDataElement<T, Traits> {
 
   KOKKOS_INLINE_FUNCTION
   NVSHMEMBlockDataElement(T *src_, T *dst_, size_t size_, int pe_)
-      : src(src_), dst(dst_), nelems(size_), pe(pe_) {
-  }
+      : src(src_), dst(dst_), nelems(size_), pe(pe_) {}
 
   KOKKOS_INLINE_FUNCTION
   void put() const { shmem_block_type_put(dst, src, nelems, pe); }
