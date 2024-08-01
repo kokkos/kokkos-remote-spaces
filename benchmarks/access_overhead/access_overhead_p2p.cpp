@@ -24,8 +24,9 @@
 #include <type_traits>
 #include <string>
 
-#define NUM_TEAMS 256
-#define CHECK_FOR_CORRECTNESS
+#define LDC_LEAGUE_SIZE 4096
+#define LDC_TEAM_SIZE 1
+//#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
@@ -489,7 +490,7 @@ struct Access_LDC<
         if (my_rank == 0) {
           time_a = timer.seconds();
           Kokkos::parallel_for("block_transfer",
-                               team_policy_get_update_t(NUM_TEAMS, 1), *this);
+                               team_policy_get_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
 
           Kokkos::fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
@@ -502,6 +503,7 @@ struct Access_LDC<
           Kokkos::parallel_for(
               "update", policy_update_t(local_range.first, local_range.second),
               *this);
+          Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
           time += time_b - time_a;
@@ -515,7 +517,7 @@ struct Access_LDC<
         if (my_rank == 0) {
           time_a = timer.seconds();
           Kokkos::parallel_for("block_transfer",
-                               team_policy_put_update_t(NUM_TEAMS, 1), *this);
+                               team_policy_put_update_t(LDC_LEAGUE_SIZE, LDC_TEAM_SIZE), *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
 #if defined(KOKKOS_REMOTE_SPACES_ENABLE_DEBUG)
