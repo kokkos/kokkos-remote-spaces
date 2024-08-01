@@ -52,18 +52,18 @@ KOKKOS_REMOTESPACES_PUT(double, nvshmem_double_put)
     op(dst, src, nelems, pe);                                             \
   }
 
-KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get_nbi)
-KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get_nbi)
-KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get_nbi)
-KOKKOS_REMOTESPACES_GET(unsigned short, nvshmem_ushort_get_nbi)
-KOKKOS_REMOTESPACES_GET(int, nvshmem_int_get_nbi)
-KOKKOS_REMOTESPACES_GET(unsigned int, nvshmem_uint_get_nbi)
-KOKKOS_REMOTESPACES_GET(long, nvshmem_long_get_nbi)
-KOKKOS_REMOTESPACES_GET(unsigned long, nvshmem_ulong_get_nbi)
-KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get_nbi)
-KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get_nbi)
-KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get_nbi)
-KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get_nbi)
+KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get)
+KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get)
+KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get)
+KOKKOS_REMOTESPACES_GET(unsigned short, nvshmem_ushort_get)
+KOKKOS_REMOTESPACES_GET(int, nvshmem_int_get)
+KOKKOS_REMOTESPACES_GET(unsigned int, nvshmem_uint_get)
+KOKKOS_REMOTESPACES_GET(long, nvshmem_long_get)
+KOKKOS_REMOTESPACES_GET(unsigned long, nvshmem_ulong_get)
+KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get)
+KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get)
+KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get)
+KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get)
 
 #undef KOKKOS_REMOTESPACES_GET
 
@@ -81,7 +81,8 @@ struct NVSHMEMBlockDataElement<T, Traits> {
 
   KOKKOS_INLINE_FUNCTION
   NVSHMEMBlockDataElement(T *src_, T *dst_, size_t size_, int pe_)
-      : src(src_), dst(dst_), nelems(size_), pe(pe_) {}
+      : src(src_), dst(dst_), nelems(size_), pe(pe_) {
+  }
 
   KOKKOS_INLINE_FUNCTION
   void put() const { shmem_block_type_put(dst, src, nelems, pe); }

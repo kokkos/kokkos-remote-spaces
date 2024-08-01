@@ -52,7 +52,7 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
 
 template <class T>
 auto KOKKOS_INLINE_FUNCTION get_view_adr(T view) {
-  return view.impl_map().handle().ptr;
+  return view.impl_map().get_ptr();
 }
 }  // namespace Impl
 
@@ -118,7 +118,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   auto dst_subview_ptr = Kokkos::Impl::get_view_adr(dst_subview);
 
   if (src_rank != my_rank) {
-    //   team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       src_data_block_t data_block = src_data_block_t(
@@ -130,13 +129,15 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), src_rank);
 #endif
       data_block.get();
+
+#ifdef KRS_ENABLE_NVSHMEMSPACE
       nvshmem_quiet();
+#endif
 #ifdef KRS_ENABLE_MPISPACE
       MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
     });
   } else if (dst_rank != my_rank) {
-    //  team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       dst_data_block_t data_block = dst_data_block_t(
@@ -148,7 +149,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
           src_data_block_t(dst_subview_ptr, src_subview_ptr, src_subview.span(), dst_rank);
 #endif
       data_block.put();
+#ifdef KRS_ENABLE_NVSHMEMSPACE
       nvshmem_quiet();
+#endif
 #ifdef KRS_ENABLE_MPISPACE
       MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
