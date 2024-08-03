@@ -333,19 +333,22 @@ class ViewMapping<
     } else
       switch_to_local_indexing = true;
 
+    auto total_offset =
+        src.m_offset(extents.domain_offset(0), extents.domain_offset(1),
+                     extents.domain_offset(2), extents.domain_offset(3),
+                     extents.domain_offset(4), extents.domain_offset(5),
+                     extents.domain_offset(6), extents.domain_offset(7));
+
+    auto local_offset =
+        src.m_offset(0 /*Global indexing uses R0_offset for this dim offset*/,
+                     extents.domain_offset(1), extents.domain_offset(2),
+                     extents.domain_offset(3), extents.domain_offset(4),
+                     extents.domain_offset(5), extents.domain_offset(6),
+                     extents.domain_offset(7));
+
     typename view_type::size_type offset;
-    offset =
-        switch_to_local_indexing
-            ? src.m_offset(extents.domain_offset(0), extents.domain_offset(1),
-                           extents.domain_offset(2), extents.domain_offset(3),
-                           extents.domain_offset(4), extents.domain_offset(5),
-                           extents.domain_offset(6), extents.domain_offset(7))
-            : src.m_offset(
-                  0 /*Global indexing uses R0_offset for this dim offset*/,
-                  extents.domain_offset(1), extents.domain_offset(2),
-                  extents.domain_offset(3), extents.domain_offset(4),
-                  extents.domain_offset(5), extents.domain_offset(6),
-                  extents.domain_offset(7));
+    offset = switch_to_local_indexing ? total_offset : local_offset;
+    dst.remote_view_props.total_offset = total_offset;
 
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
@@ -396,6 +399,9 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   KOKKOS_INLINE_FUNCTION
   int get_PE() const { return remote_view_props.my_PE; }
+
+  KOKKOS_INLINE_FUNCTION
+  auto get_ptr() const { return handle().ptr + remote_view_props.total_offset; }
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT(T)) const {

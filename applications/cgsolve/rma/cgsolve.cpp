@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
     // Allocate global size (runtime splits into chunks)
     RemoteView_t p = RemoteView_t("MyView", numRanks * h_x.extent(0));
 #else
-    RemoteView_t p = RemoteView_t("MyView", h_x.extent(0));
+    RemoteView_t p = RemoteView_t("MyView", numRanks, h_x.extent(0));
 #endif
     Kokkos::Timer timer;
     int num_iters = cg_solve(y, A, x, p, max_iter, tolerance);
@@ -296,13 +296,14 @@ int main(int argc, char *argv[]) {
 
     if (myRank == 0) {
 #ifndef KOKKOS_REMOTE_SPACES_ENABLE_DEBUG
-      printf("%i, %i, %.2e, %.6lf, %.6lf, %.6lf\n", N, num_iters, total_flops,
-             time, GFlops, GBs);
+      printf("%i, %i, %i, %.2e, %.6lf, %.6lf, %.6lf\n", numRanks, N, num_iters,
+             total_flops, time, GFlops, GBs);
 #else
       printf(
-          "N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, %.2e, "
+          "ranks, N, num_iters, total_flops, time, GFlops, BW(GB/sec), %i, %i, "
+          "%i, %.2e, "
           "%.6lf, %.6lf, %.6lf\n",
-          N, num_iters, total_flops, time, GFlops, GBs);
+          numRanks, N, num_iters, total_flops, time, GFlops, GBs);
 #endif
     }
   }

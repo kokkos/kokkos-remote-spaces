@@ -52,7 +52,7 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
 
 template <class T>
 auto KOKKOS_INLINE_FUNCTION get_view_adr(T view) {
-  return view.impl_map().handle().ptr;
+  return view.impl_map().get_ptr();
 }
 }  // namespace Impl
 
@@ -118,7 +118,6 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   auto dst_subview_ptr = Kokkos::Impl::get_view_adr(dst_subview);
 
   if (src_rank != my_rank) {
-    team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       src_data_block_t data_block = src_data_block_t(
@@ -133,9 +132,11 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 #ifdef KRS_ENABLE_MPISPACE
       MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+      nvshmem_quiet();
+#endif
     });
   } else if (dst_rank != my_rank) {
-    team.team_barrier();
     Kokkos::single(Kokkos::PerTeam(team), [&]() {
 #ifdef KRS_ENABLE_MPISPACE
       dst_data_block_t data_block = dst_data_block_t(
@@ -149,6 +150,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
       data_block.put();
 #ifdef KRS_ENABLE_MPISPACE
       MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+      nvshmem_quiet();
 #endif
     });
   } else {
@@ -204,6 +208,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
 #endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+    nvshmem_quiet();
+#endif
   } else if (dst_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
     dst_data_block_t data_block = dst_data_block_t(
@@ -216,6 +223,9 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
     data_block.put();
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+    nvshmem_quiet();
 #endif
   } else {
     static_assert("Unable to determine view data location");
@@ -265,12 +275,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy(
   if (dst.data() == nullptr) {
     return;
   }
-
-  const size_t N = dst.extent(0);
-
-  team.team_barrier();
-  Kokkos::parallel_for(Kokkos::TeamThreadRange(team, N),
-                       [&](const int &i) { dst(i) = src(i); });
+  Kokkos::Experimental::RemoteSpaces::local_deep_copy_contiguous(team, dst,
+                                                                 src);
   team.team_barrier();
 }
 
