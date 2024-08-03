@@ -205,9 +205,11 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), src_rank);
 #endif
     data_block.get();
-    nvshmem_quiet();
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+    nvshmem_quiet();
 #endif
   } else if (dst_rank != my_rank) {
 #ifdef KRS_ENABLE_MPISPACE
@@ -219,9 +221,11 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
         dst_subview_ptr, src_subview_ptr, src.span(), dst_rank);
 #endif
     data_block.put();
-    nvshmem_quiet();
 #ifdef KRS_ENABLE_MPISPACE
     MPI_Win_flush_all(src.impl_map().m_handle.loc.win);
+#endif
+#ifdef KRS_ENABLE_NVSHMEMSPACE
+    nvshmem_quiet();
 #endif
   } else {
     static_assert("Unable to determine view data location");
