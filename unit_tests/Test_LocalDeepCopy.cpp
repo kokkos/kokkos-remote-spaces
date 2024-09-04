@@ -22,7 +22,7 @@
 enum flavor : int { with_team, without_team };
 enum subview_gen : int { with_ranges, with_scalar };
 enum block_ops : int { get_op, put_op };
-enum team_sizes : int { big = 32, small = 2, very_small = 3 };
+enum team_sizes : int { big = 32, small = 8, very_small = 2 };
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 

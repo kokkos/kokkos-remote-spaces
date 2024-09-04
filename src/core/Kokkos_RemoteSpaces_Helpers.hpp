@@ -25,6 +25,22 @@ namespace Kokkos {
 namespace Experimental {
 
 template <class T>
+struct Is_LayoutLeft {
+  enum : bool {
+    value = std::is_same<typename T::traits::array_layout,
+                         Kokkos::LayoutLeft>::value
+  };
+};
+
+template <class T>
+struct Is_LayoutRight {
+  enum : bool {
+    value = std::is_same<typename T::traits::array_layout,
+                         Kokkos::LayoutRight>::value
+  };
+};
+
+template <class T>
 struct Is_Partitioned_Layout {
   enum : bool {
     value = std::is_base_of<Kokkos::PartitionedLayout,

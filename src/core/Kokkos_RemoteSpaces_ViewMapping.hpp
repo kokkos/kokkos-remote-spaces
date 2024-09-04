@@ -171,7 +171,7 @@ class ViewMapping<
 
 /*
  * ViewMapping type used by View copy-ctr and subview() to specialize new
- * (sub-) view type
+ * (sub-) view type and View-type has PartitionedLayout*
  */
 
 template <class SrcTraits, class... Args>
@@ -322,9 +322,6 @@ class ViewMapping<
     dst.remote_view_props         = src.remote_view_props;
     bool switch_to_local_indexing = false;
 
-    /* Currently we only have a restricted support of subviews of subviews.
-     */
-
     if (!src.remote_view_props.using_local_indexing) {
       // if subview, switch to local indexing
       dst.remote_view_props.using_local_indexing = !R0 ? true : false;
@@ -348,7 +345,7 @@ class ViewMapping<
 
     typename view_type::size_type offset;
     offset = switch_to_local_indexing ? total_offset : local_offset;
-    dst.remote_view_props.total_offset = total_offset;
+    dst.remote_view_props.total_offset = offset;
 
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
@@ -401,7 +398,12 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
   int get_PE() const { return remote_view_props.my_PE; }
 
   KOKKOS_INLINE_FUNCTION
-  auto get_ptr() const { return handle().ptr + remote_view_props.total_offset; }
+  auto get_ptr() const {
+    if (remote_view_props.using_local_indexing)
+      return handle().ptr + remote_view_props.total_offset;
+    else
+      return handle().ptr;
+  }
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT(T)) const {

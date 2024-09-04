@@ -534,8 +534,7 @@ void test_partitioned_subview2D_byRank_localRank(int i1, int i2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = my_rank;
+  deep_copy(v_h, my_rank);
 
   auto v_sub = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -571,8 +570,7 @@ void test_partitioned_subview2D_byRank_nextRank(int i1, int i2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = my_rank;
+  deep_copy(v_h, my_rank);
 
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -611,8 +609,7 @@ void test_partitioned_subviewOfSubviewRange_2D(int i1, int i2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = my_rank;
+  deep_copy(v_h, my_rank);
 
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
@@ -656,25 +653,29 @@ void test_partitioned_subviewOfSubviewScalar_2D(int i1, int i2) {
   ViewHost_3D_t v_h("HostView", 1, i1, i2);
 
   // Init
-  for (int i = 0; i < i1; ++i)
-    for (int j = 0; j < i2; ++j) v_h(0, i, j) = my_rank;
-
+  deep_copy(v_h, my_rank);
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
                                Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
-  auto v_sub_next_half = Kokkos::subview(v_sub_next, i1_half, Kokkos::ALL);
+
+  // auto v_sub_next_1D = Kokkos::subview(v_sub_next, Kokkos::ALL, i1_half);
+  auto v_sub_next_1D = Kokkos::subview(v_sub_next, i1_half, Kokkos::ALL);
 
   Kokkos::deep_copy(v_sub, v_h);
   RemoteSpace_t::fence();
 
   Kokkos::parallel_for(
-      "Increment", v_sub_next_half.extent(0),
-      KOKKOS_LAMBDA(const int i) { v_sub_next_half(i)++; });
+      "Increment", v_sub_next_1D.extent(0),
+      KOKKOS_LAMBDA(const int i) { v_sub_next_1D(i)++; });
 
   Kokkos::fence();
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_h, v_sub);
+  /*
+      for (int i = 0; i < i1; ++i)
+      for (int j = 0; j < i2; ++j) printf("%i, %i, %i\n", i, j, v_h(0, i, j));
 
+  */
   for (int i = 0; i < i1; ++i)
     if (i != i1_half)
       for (int j = 0; j < i2; ++j) ASSERT_EQ(v_h(0, i, j), my_rank);
@@ -730,7 +731,7 @@ void test_partitioned_subviewOfSubviewScalar_2D(int i1, int i2) {
   test_partitioned_subviewOfSubviewRange_2D<TYPE, LAYOUT>(50, 77);
 
 #define GENBLOCK9(TYPE, LAYOUT)                                     \
-  test_partitioned_subviewOfSubviewScalar_2D<TYPE, LAYOUT>(8, 1);   \
+  test_partitioned_subviewOfSubviewScalar_2D<TYPE, LAYOUT>(8, 5);   \
   test_partitioned_subviewOfSubviewScalar_2D<TYPE, LAYOUT>(55, 20); \
   test_partitioned_subviewOfSubviewScalar_2D<TYPE, LAYOUT>(50, 77);
 
@@ -815,9 +816,9 @@ TEST(TEST_CATEGORY, test_subview) {
   GENBLOCK8(double, PLL_t);
 
   // Subiew of subview with PartitionedLayout* and scalar
-  GENBLOCK9(int, PLL_t);
-  GENBLOCK9(float, PLL_t);
-  GENBLOCK9(double, PLL_t);
+  GENBLOCK9(int, PLR_t);
+  GENBLOCK9(float, PLR_t);
+  GENBLOCK9(double, PLR_t);
 
   GENBLOCK9(int, PLL_t);
   GENBLOCK9(float, PLL_t);
