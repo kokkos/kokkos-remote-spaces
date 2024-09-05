@@ -51,6 +51,28 @@ pipeline {
                               make -j8 && cd unit_tests && mpirun -np 2 ./KokkosRemoteSpaces_TestAll'''
                     }
                 }
+                stage('nvshmem') {
+                    agent {
+                        dockerfile {
+                            filename 'Dockerfile.nvshmem'
+                            dir 'scripts/docker'
+                            label 'nvidia-docker && large_images'
+                        }
+                    }
+                    steps {
+                        sh '''rm -rf build && mkdir -p build && cd build && \
+                              cmake \
+                                -DCMAKE_BUILD_TYPE=Release \
+                                -DKokkos_DIR=${KOKKOS_ROOT} \
+                                -DCMAKE_CXX_COMPILER=${KOKKOS_ROOT}/bin/nvcc_wrapper \
+                                -DKRS_ENABLE_NVSHMEMSPACE=ON \
+                                -DNVSHMEM_ROOT=/opt/nvidia/hpc_sdk/Linux_x86_64/23.7/comm_libs/nvshmem \
+                                -DKRS_ENABLE_TESTS=ON \
+                                -DCMAKE_CXX_FLAGS=-Werror \
+                              .. && \
+                              make -j8 && cd unit_tests && mpirun -np 2 ./KokkosRemoteSpaces_TestAll'''
+                    }
+                }
             }
         }
     }
