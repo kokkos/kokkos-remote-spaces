@@ -25,6 +25,22 @@ namespace Kokkos {
 namespace Experimental {
 
 template <class T>
+struct Is_LayoutLeft {
+  enum : bool {
+    value = std::is_same<typename T::traits::array_layout,
+                         Kokkos::LayoutLeft>::value
+  };
+};
+
+template <class T>
+struct Is_LayoutRight {
+  enum : bool {
+    value = std::is_same<typename T::traits::array_layout,
+                         Kokkos::LayoutRight>::value
+  };
+};
+
+template <class T>
 struct Is_Partitioned_Layout {
   enum : bool {
     value = std::is_base_of<Kokkos::PartitionedLayout,
@@ -79,6 +95,8 @@ struct RemoteSpaces_View_Properties {
   T R0_offset;
   /* Num local elems in dim0  */
   T R0_size;
+  /* Total offset incl. R0 */
+  T total_offset;
   /* Com size and rank*/
   int num_PEs;
   int my_PE;
@@ -86,6 +104,7 @@ struct RemoteSpaces_View_Properties {
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties() {
     using_local_indexing = false;
+    total_offset         = 0;
     R0_offset            = 0;
     R0_size              = 0;
     num_PEs              = Kokkos::Experimental::get_num_pes();
@@ -95,6 +114,7 @@ struct RemoteSpaces_View_Properties {
   KOKKOS_FUNCTION
   RemoteSpaces_View_Properties(const RemoteSpaces_View_Properties &rhs) {
     using_local_indexing = rhs.using_local_indexing;
+    total_offset         = rhs.total_offset;
     R0_offset            = rhs.R0_offset;
     R0_size              = rhs.R0_size;
     num_PEs              = rhs.num_PEs;
@@ -104,6 +124,7 @@ struct RemoteSpaces_View_Properties {
   KOKKOS_FUNCTION RemoteSpaces_View_Properties &operator=(
       const RemoteSpaces_View_Properties &rhs) {
     using_local_indexing = rhs.using_local_indexing;
+    total_offset         = rhs.total_offset;
     R0_offset            = rhs.R0_offset;
     R0_size              = rhs.R0_size;
     num_PEs              = rhs.num_PEs;

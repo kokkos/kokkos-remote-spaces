@@ -171,7 +171,7 @@ class ViewMapping<
 
 /*
  * ViewMapping type used by View copy-ctr and subview() to specialize new
- * (sub-) view type
+ * (sub-) view type and View-type has PartitionedLayout*
  */
 
 template <class SrcTraits, class... Args>
@@ -225,35 +225,33 @@ class ViewMapping<
   };
 
   // Subview's layout
-  using array_layout_candidate =
-
-      typename std::conditional<
-          (            /* Same array layout IF */
-           (rank == 0) /* output rank zero */
-           || SubviewLegalArgsCompileTime<
-                  typename SrcTraits::array_layout,
-                  typename SrcTraits::array_layout, rank, SrcTraits::rank, 0,
-                  Args...>::value ||  // OutputRank 1 or 2, InputLayout Left,
-                                      // Interval 0 because single stride one or
-                                      // second index has a stride.
-           (rank <= 2 && R0 &&
-            (std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::LayoutLeft>::value ||
-             std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutLeft>::value))  // replace
-                                                                   // with input
-                                                                   // rank
-           ||
-           // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
-           // because single stride one or second index has a stride.
-           (rank <= 2 && R0_rev &&
-            (std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::LayoutRight>::value ||
-             std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutRight>::value)  // replace
-                                                                   // input rank
-            )),
-          typename SrcTraits::array_layout, Kokkos::LayoutStride>::type;
+  using array_layout_candidate = typename std::conditional<
+      (            /* Same array layout IF */
+       (rank == 0) /* output rank zero */
+       || SubviewLegalArgsCompileTime<
+              typename SrcTraits::array_layout,
+              typename SrcTraits::array_layout, rank, SrcTraits::rank, 0,
+              Args...>::value ||  // OutputRank 1 or 2, InputLayout Left,
+                                  // Interval 0 because single stride one or
+                                  // second index has a stride.
+       (rank <= 2 && R0 &&
+        (std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::LayoutLeft>::value ||
+         std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::PartitionedLayoutLeft>::value))  // replace
+                                                               // with input
+                                                               // rank
+       ||
+       // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
+       // because single stride one or second index has a stride.
+       (rank <= 2 && R0_rev &&
+        (std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::LayoutRight>::value ||
+         std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::PartitionedLayoutRight>::value)  // replace
+                                                               // input rank
+        )),
+      typename SrcTraits::array_layout, Kokkos::LayoutStride>::type;
 
   // Check if Kokkos::LayoutStride should become PartitionedLayoutStride
   using array_layout = typename std::conditional<
@@ -322,9 +320,6 @@ class ViewMapping<
     dst.remote_view_props         = src.remote_view_props;
     bool switch_to_local_indexing = false;
 
-    /* Currently we only have a restricted support of subviews of subviews.
-     */
-
     if (!src.remote_view_props.using_local_indexing) {
       // if subview, switch to local indexing
       dst.remote_view_props.using_local_indexing = !R0 ? true : false;
@@ -333,19 +328,22 @@ class ViewMapping<
     } else
       switch_to_local_indexing = true;
 
+    auto total_offset =
+        src.m_offset(extents.domain_offset(0), extents.domain_offset(1),
+                     extents.domain_offset(2), extents.domain_offset(3),
+                     extents.domain_offset(4), extents.domain_offset(5),
+                     extents.domain_offset(6), extents.domain_offset(7));
+
+    auto local_offset =
+        src.m_offset(0 /*Global indexing uses R0_offset for this dim offset*/,
+                     extents.domain_offset(1), extents.domain_offset(2),
+                     extents.domain_offset(3), extents.domain_offset(4),
+                     extents.domain_offset(5), extents.domain_offset(6),
+                     extents.domain_offset(7));
+
     typename view_type::size_type offset;
-    offset =
-        switch_to_local_indexing
-            ? src.m_offset(extents.domain_offset(0), extents.domain_offset(1),
-                           extents.domain_offset(2), extents.domain_offset(3),
-                           extents.domain_offset(4), extents.domain_offset(5),
-                           extents.domain_offset(6), extents.domain_offset(7))
-            : src.m_offset(
-                  0 /*Global indexing uses R0_offset for this dim offset*/,
-                  extents.domain_offset(1), extents.domain_offset(2),
-                  extents.domain_offset(3), extents.domain_offset(4),
-                  extents.domain_offset(5), extents.domain_offset(6),
-                  extents.domain_offset(7));
+    offset = switch_to_local_indexing ? total_offset : local_offset;
+    dst.remote_view_props.total_offset = offset;
 
 #ifdef KRS_ENABLE_MPISPACE
     // Subviews propagate MPI_Window of the original view
@@ -396,6 +394,14 @@ class ViewMapping<Traits, Kokkos::Experimental::RemoteSpaceSpecializeTag> {
 
   KOKKOS_INLINE_FUNCTION
   int get_PE() const { return remote_view_props.my_PE; }
+
+  KOKKOS_INLINE_FUNCTION
+  auto get_ptr() const {
+    if (remote_view_props.using_local_indexing)
+      return handle().ptr + remote_view_props.total_offset;
+    else
+      return handle().ptr;
+  }
 
   template <typename T = Traits>
   KOKKOS_INLINE_FUNCTION int get_logical_PE(ENABLE_IF_GLOBAL_LAYOUT(T)) const {

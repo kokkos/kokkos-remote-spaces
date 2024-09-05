@@ -25,12 +25,72 @@
 namespace Kokkos {
 namespace Impl {
 
-#define KOKKOS_REMOTESPACES_PUT(type, op)                  \
-  static KOKKOS_INLINE_FUNCTION void shmem_block_type_put( \
-      type *dst, const type *src, size_t nelems, int pe) { \
-    op(dst, src, nelems, pe);                              \
+//#define KRS_USES_NBI
+
+#define KOKKOS_REMOTESPACES_PUT(type, op)                                 \
+  static __device__ void shmem_block_type_put(type *dst, const type *src, \
+                                              size_t nelems, int pe) {    \
+    op(dst, src, nelems, pe);                                             \
   }
 
+#define KOKKOS_REMOTESPACES_GET(type, op)                                 \
+  static __device__ void shmem_block_type_get(type *dst, const type *src, \
+                                              size_t nelems, int pe) {    \
+    op(dst, src, nelems, pe);                                             \
+  }
+
+#ifdef KRS_USES_NBI_BLOCK
+#error Not supported
+KOKKOS_REMOTESPACES_PUT(char, nvshmemx_char_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(unsigned char, nvshmemx_uchar_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(short, nvshmemx_short_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(unsigned short, nvshmemx_ushort_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(int, nvshmemx_int_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(unsigned int, nvshmemx_uint_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(long, nvshmemx_long_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(unsigned long, nvshmemx_ulong_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(long long, nvshmemx_longlong_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(unsigned long long, nvshmemx_ulonglong_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(float, nvshmemx_float_put_nbi_block)
+KOKKOS_REMOTESPACES_PUT(double, nvshmemx_double_put_nbi_block)
+KOKKOS_REMOTESPACES_GET(char, nvshmemx_char_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(unsigned char, nvshmemx_uchar_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(short, nvshmemx_short_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(unsigned short, nvshmemx_ushort_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(int, nvshmemx_int_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(unsigned int, nvshmemx_uint_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(long, nvshmemx_long_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(unsigned long, nvshmemx_ulong_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(long long, nvshmemx_longlong_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmemx_ulonglong_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(float, nvshmemx_float_get_nbi_block)
+KOKKOS_REMOTESPACES_GET(double, nvshmemx_double_get_nbi_block)
+#elif defined(KRS_USES_NBI)
+KOKKOS_REMOTESPACES_PUT(char, nvshmem_char_put_nbi)
+KOKKOS_REMOTESPACES_PUT(unsigned char, nvshmem_uchar_put_nbi)
+KOKKOS_REMOTESPACES_PUT(short, nvshmem_short_put_nbi)
+KOKKOS_REMOTESPACES_PUT(unsigned short, nvshmem_ushort_put_nbi)
+KOKKOS_REMOTESPACES_PUT(int, nvshmem_int_put_nbi)
+KOKKOS_REMOTESPACES_PUT(unsigned int, nvshmem_uint_put_nbi)
+KOKKOS_REMOTESPACES_PUT(long, nvshmem_long_put_nbi)
+KOKKOS_REMOTESPACES_PUT(unsigned long, nvshmem_ulong_put_nbi)
+KOKKOS_REMOTESPACES_PUT(long long, nvshmem_longlong_put_nbi)
+KOKKOS_REMOTESPACES_PUT(unsigned long long, nvshmem_ulonglong_put_nbi)
+KOKKOS_REMOTESPACES_PUT(float, nvshmem_float_put_nbi)
+KOKKOS_REMOTESPACES_PUT(double, nvshmem_double_put_nbi)
+KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get_nbi)
+KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned short, nvshmem_ushort_get_nbi)
+KOKKOS_REMOTESPACES_GET(int, nvshmem_int_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned int, nvshmem_uint_get_nbi)
+KOKKOS_REMOTESPACES_GET(long, nvshmem_long_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned long, nvshmem_ulong_get_nbi)
+KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get_nbi)
+KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get_nbi)
+KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get_nbi)
+KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get_nbi)
+#else
 KOKKOS_REMOTESPACES_PUT(char, nvshmem_char_put)
 KOKKOS_REMOTESPACES_PUT(unsigned char, nvshmem_uchar_put)
 KOKKOS_REMOTESPACES_PUT(short, nvshmem_short_put)
@@ -43,15 +103,6 @@ KOKKOS_REMOTESPACES_PUT(long long, nvshmem_longlong_put)
 KOKKOS_REMOTESPACES_PUT(unsigned long long, nvshmem_ulonglong_put)
 KOKKOS_REMOTESPACES_PUT(float, nvshmem_float_put)
 KOKKOS_REMOTESPACES_PUT(double, nvshmem_double_put)
-
-#undef KOKKOS_REMOTESPACES_PUT
-
-#define KOKKOS_REMOTESPACES_GET(type, op)                  \
-  static KOKKOS_INLINE_FUNCTION void shmem_block_type_get( \
-      type *dst, const type *src, size_t nelems, int pe) { \
-    op(dst, src, nelems, pe);                              \
-  }
-
 KOKKOS_REMOTESPACES_GET(char, nvshmem_char_get)
 KOKKOS_REMOTESPACES_GET(unsigned char, nvshmem_uchar_get)
 KOKKOS_REMOTESPACES_GET(short, nvshmem_short_get)
@@ -64,7 +115,9 @@ KOKKOS_REMOTESPACES_GET(long long, nvshmem_longlong_get)
 KOKKOS_REMOTESPACES_GET(unsigned long long, nvshmem_ulonglong_get)
 KOKKOS_REMOTESPACES_GET(float, nvshmem_float_get)
 KOKKOS_REMOTESPACES_GET(double, nvshmem_double_get)
+#endif
 
+#undef KOKKOS_REMOTESPACES_PUT
 #undef KOKKOS_REMOTESPACES_GET
 
 template <class T, class Traits, typename Enable = void>

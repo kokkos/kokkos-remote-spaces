@@ -66,6 +66,27 @@ KOKKOS_REMOTESPACES_G(double, nvshmem_double_g)
 
 #undef KOKKOS_REMOTESPACES_G
 
+#define KOKKOS_REMOTESPACES_G_3(type, op)            \
+  static KOKKOS_INLINE_FUNCTION void shmem_type_g_3( \
+      type *dst, type *const src, const int pe) {    \
+    return op(dst, src, 3, pe);                      \
+  }
+
+KOKKOS_REMOTESPACES_G_3(char, nvshmem_char_get)
+KOKKOS_REMOTESPACES_G_3(unsigned char, nvshmem_uchar_get)
+KOKKOS_REMOTESPACES_G_3(short, nvshmem_short_get)
+KOKKOS_REMOTESPACES_G_3(unsigned short, nvshmem_ushort_get)
+KOKKOS_REMOTESPACES_G_3(int, nvshmem_int_get)
+KOKKOS_REMOTESPACES_G_3(unsigned int, nvshmem_uint_get)
+KOKKOS_REMOTESPACES_G_3(long, nvshmem_long_get)
+KOKKOS_REMOTESPACES_G_3(unsigned long, nvshmem_ulong_get)
+KOKKOS_REMOTESPACES_G_3(long long, nvshmem_longlong_get)
+KOKKOS_REMOTESPACES_G_3(unsigned long long, nvshmem_ulonglong_get)
+KOKKOS_REMOTESPACES_G_3(float, nvshmem_float_get)
+KOKKOS_REMOTESPACES_G_3(double, nvshmem_double_get)
+
+#undef KOKKOS_REMOTESPACES_G_3
+
 #define KOKKOS_REMOTESPACES_ATOMIC_SET(type, op)            \
   static KOKKOS_INLINE_FUNCTION void shmem_type_atomic_set( \
       type *ptr, type value, int pe) {                      \
@@ -494,7 +515,8 @@ struct NVSHMEMDataElement<
 template <class T, class Traits>
 struct NVSHMEMDataElement<
     T, Traits,
-    typename std::enable_if<!Traits::memory_traits::is_atomic>::type> {
+    typename std::enable_if<!Traits::memory_traits::is_atomic &&
+                            !std::is_same<T, double3>::value>::type> {
   typedef const T const_value_type;
   typedef T non_const_value_type;
   T *ptr;
@@ -795,6 +817,28 @@ struct NVSHMEMDataElement<
   operator const_value_type() const {
     T tmp;
     tmp = shmem_type_g(ptr, pe);
+    return tmp;
+  }
+};
+
+// Operators for double3 type
+template <class T, class Traits>
+struct NVSHMEMDataElement<
+    T, Traits,
+    typename std::enable_if<!Traits::memory_traits::is_atomic &&
+                            std::is_same<T, double3>::value>::type> {
+  typedef const T const_value_type;
+  typedef T non_const_value_type;
+  T *ptr;
+  int pe;
+
+  KOKKOS_INLINE_FUNCTION
+  NVSHMEMDataElement(T *ptr_, int pe_, int i_) : ptr(ptr_ + i_), pe(pe_) {}
+
+  KOKKOS_INLINE_FUNCTION
+  operator const_value_type() const {
+    T tmp;
+    shmem_type_g_3(&tmp.x, &(*ptr).x, pe);
     return tmp;
   }
 };
