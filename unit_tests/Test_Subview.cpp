@@ -36,8 +36,6 @@ void test_subview1D(int i1) {
   using ViewRemote_1D_t = Kokkos::View<Data_t *, Layout, RemoteSpace_t>;
   using ViewHost_1D_t   = typename ViewRemote_1D_t::HostMirror;
 
-  using TeamPolicy_t = Kokkos::TeamPolicy<>;
-
   ViewRemote_1D_t v = ViewRemote_1D_t("RemoteView", i1);
   ViewHost_1D_t v_h("HostView", v.extent(0));
 

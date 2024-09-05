@@ -225,35 +225,33 @@ class ViewMapping<
   };
 
   // Subview's layout
-  using array_layout_candidate =
-
-      typename std::conditional<
-          (            /* Same array layout IF */
-           (rank == 0) /* output rank zero */
-           || SubviewLegalArgsCompileTime<
-                  typename SrcTraits::array_layout,
-                  typename SrcTraits::array_layout, rank, SrcTraits::rank, 0,
-                  Args...>::value ||  // OutputRank 1 or 2, InputLayout Left,
-                                      // Interval 0 because single stride one or
-                                      // second index has a stride.
-           (rank <= 2 && R0 &&
-            (std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::LayoutLeft>::value ||
-             std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutLeft>::value))  // replace
-                                                                   // with input
-                                                                   // rank
-           ||
-           // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
-           // because single stride one or second index has a stride.
-           (rank <= 2 && R0_rev &&
-            (std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::LayoutRight>::value ||
-             std::is_same<typename SrcTraits::array_layout,
-                          Kokkos::PartitionedLayoutRight>::value)  // replace
-                                                                   // input rank
-            )),
-          typename SrcTraits::array_layout, Kokkos::LayoutStride>::type;
+  using array_layout_candidate = typename std::conditional<
+      (            /* Same array layout IF */
+       (rank == 0) /* output rank zero */
+       || SubviewLegalArgsCompileTime<
+              typename SrcTraits::array_layout,
+              typename SrcTraits::array_layout, rank, SrcTraits::rank, 0,
+              Args...>::value ||  // OutputRank 1 or 2, InputLayout Left,
+                                  // Interval 0 because single stride one or
+                                  // second index has a stride.
+       (rank <= 2 && R0 &&
+        (std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::LayoutLeft>::value ||
+         std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::PartitionedLayoutLeft>::value))  // replace
+                                                               // with input
+                                                               // rank
+       ||
+       // OutputRank 1 or 2, InputLayout Right, Interval [InputRank-1]
+       // because single stride one or second index has a stride.
+       (rank <= 2 && R0_rev &&
+        (std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::LayoutRight>::value ||
+         std::is_same<typename SrcTraits::array_layout,
+                      Kokkos::PartitionedLayoutRight>::value)  // replace
+                                                               // input rank
+        )),
+      typename SrcTraits::array_layout, Kokkos::LayoutStride>::type;
 
   // Check if Kokkos::LayoutStride should become PartitionedLayoutStride
   using array_layout = typename std::conditional<

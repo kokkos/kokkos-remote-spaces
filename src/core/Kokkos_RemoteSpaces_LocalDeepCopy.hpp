@@ -33,16 +33,26 @@ auto KOKKOS_INLINE_FUNCTION get_local_subview(T view, P r) {
   } else if constexpr (T::traits::dimension::rank == 2) {
     return Kokkos::subview(view, r, Kokkos::ALL);
   } else if constexpr (T::traits::dimension::rank == 3) {
+    /*Not supported, FIXME*/
+    static_assert("Unsupported view type");
     return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL);
   } else if constexpr (T::traits::dimension::rank == 4) {
+    /*Not supported, FIXME*/
+    static_assert("Unsupported view type");
     return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
   } else if constexpr (T::traits::dimension::rank == 5) {
+    /*Not supported, FIXME*/
+    static_assert("Unsupported view type");
     return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
                            Kokkos::ALL);
   } else if constexpr (T::traits::dimension::rank == 6) {
+    /*Not supported, FIXME*/
+    static_assert("Unsupported view type");
     return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
                            Kokkos::ALL, Kokkos::ALL);
   } else if constexpr (T::traits::dimension::rank == 7) {
+    /*Not supported, FIXME*/
+    static_assert("Unsupported view type");
     return Kokkos::subview(view, r, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL,
                            Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
   } else {
