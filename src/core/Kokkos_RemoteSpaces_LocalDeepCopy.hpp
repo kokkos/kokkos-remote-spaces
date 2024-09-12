@@ -119,6 +119,8 @@ void KOKKOS_INLINE_FUNCTION local_deep_copy_contiguous(
   auto team_range = Kokkos::pair(size_type(start_offset),
                                  size_type(start_offset + team_block));
 
+  if(team_range.first == team_range.second) return; //nothing to be done
+  
   // Construct per-team subviews
   auto src_subview = Kokkos::Impl::get_local_subview(src, team_range);
   auto dst_subview = Kokkos::Impl::get_local_subview(dst, team_range);

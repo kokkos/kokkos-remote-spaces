@@ -2,7 +2,7 @@
 BENCHMARK=$1
 HOST1=$2
 HOST2=$3
-DEFAULT_SIZE=33554432 #128
+DEFAULT_SIZE=128
 
 #exports
 export OMP_PROC_BIND=spread 
@@ -13,7 +13,7 @@ ITERS=30
 
 #NVLInk (=||=)
 DEVICE_ID_1=0
-DEVICE_ID_2=1
+DEVICE_ID_2=0
 
 #XBus (Summit-like systems)
 #DEVICE_ID_1=0
@@ -28,7 +28,8 @@ FILENAME="${BENCHMARK}_${HASH}_p2p.res"
 echo $FILENAME
 echo "name,type,N,size,iters,time,gups,bw" | tee $FILENAME 
 VARS0="--bind-to core --map-by socket"
-VARS1="-x LD_LIBRARY_PATH=/projects/ppc64le-pwr9-rhel8/tpls/cuda/11.8.0/gcc/9.3.0/base/c3ajoqf/lib64/:$LD_LIBRARY_PATH -x NVSHMEM_SYMMETRIC_SIZE=12884901888"
+#VARS1="-x LD_LIBRARY_PATH=/projects/ppc64le-pwr9-rhel8/tpls/cuda/11.8.0/gcc/9.3.0/base/c3ajoqf/lib64/:$LD_LIBRARY_PATH -x NVSHMEM_SYMMETRIC_SIZE=12884901888"
+VARS1="--oversubscribe -x LD_LIBRARY_PATH=/home/jciesko/software/nvshmem_src_3.0.6-4_blake/install/lib:$LD_LIBRARY_PATH -x NVSHMEM_SYMMETRIC_SIZE=12884901888"
 
 # Some more potential optimizations
 #VARS1="" #-x UCX_WARN_UNUSED_ENV_VARS=n  -x HCOLL_RCACHE=^ucs -x \

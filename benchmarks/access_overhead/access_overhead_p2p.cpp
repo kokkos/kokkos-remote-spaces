@@ -24,13 +24,14 @@
 #include <type_traits>
 #include <string>
 
-#define LDC_LEAGUE_SIZE 4096
+#define LDC_LEAGUE_SIZE 2
 #define LDC_TEAM_SIZE 1
-//#define CHECK_FOR_CORRECTNESS
+
+#define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
-using PlainView_t   = Kokkos::View<double *, Kokkos::LayoutLeft>;
+using PlainView_t   = Kokkos::View<double *>;
 using UnmanagedView_t =
     Kokkos::View<double *, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 using HostView_t = typename RemoteView_t::HostMirror;
@@ -53,8 +54,8 @@ using policy_check_t           = Kokkos::RangePolicy<CheckTag, size_t>;
 
 // Default values
 #define default_Mode 0
-#define default_N 134217728
-#define default_Iters 3
+#define default_N 128
+#define default_Iters 1
 #define default_RmaOp RMA_GET
 #define TAG 0
 
