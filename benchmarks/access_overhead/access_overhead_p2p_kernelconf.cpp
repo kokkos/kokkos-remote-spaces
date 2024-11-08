@@ -24,10 +24,13 @@
 #include <type_traits>
 #include <string>
 
-#define LDC_LEAGUE_SIZE 2
-#define LDC_TEAM_SIZE 1
-
 #define CHECK_FOR_CORRECTNESS
+
+#define LEAGUE_SIZE 1024
+#define TEAM_SIZE 32
+
+#define LDC_LEAGUE_SIZE 4096
+#define LDC_TEAM_SIZE 1
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;
@@ -48,15 +51,18 @@ using policy_init_t            = Kokkos::RangePolicy<InitTag, size_t>;
 using policy_update_t          = Kokkos::RangePolicy<UpdateTag, size_t>;
 using policy_update_put_t      = Kokkos::RangePolicy<UpdateTag_put, size_t>;
 using policy_update_get_t      = Kokkos::RangePolicy<UpdateTag_get, size_t>;
+using team_policy_update_t     = Kokkos::TeamPolicy<UpdateTag, size_t>;
 using team_policy_get_update_t = Kokkos::TeamPolicy<UpdateTag_get, size_t>;
 using team_policy_put_update_t = Kokkos::TeamPolicy<UpdateTag_put, size_t>;
 using policy_check_t           = Kokkos::RangePolicy<CheckTag, size_t>;
 
 // Default values
 #define default_Mode 0
-#define default_N 128
-#define default_Iters 1
+#define default_N 4096
+#define default_Iters 3
 #define default_RmaOp RMA_GET
+#define default_ts TEAM_SIZE
+#define default_ls LEAGUE_SIZE
 #define TAG 0
 
 std::string modes[4] = {"Kokkos::View", "Kokkos::View-MPIIsCudaAware",
@@ -70,6 +76,8 @@ struct Args_t {
   int N      = default_N;
   int iters  = default_Iters;
   int rma_op = default_RmaOp;
+  int ts = default_ts;
+  int ls = default_ls;
 };
 
 void print_help() {
@@ -77,6 +85,8 @@ void print_help() {
   printf("  -N IARG: (%i) num elements in the vector\n", default_N);
   printf("  -I IARG: (%i) num repititions\n", default_Iters);
   printf("  -M IARG: (%i) mode (view type)\n", default_Mode);
+  printf("  -T IARG: (%i) teams ize\n", default_Mode);
+  printf("  -L IARG: (%i) league size\n", default_Mode);
   printf("  -O IARG: (%i) rma operation (0...get, 1...put)\n", default_RmaOp);
   printf("     modes:\n");
   printf("       0: Kokkos (Normal)  View\n");
@@ -96,6 +106,8 @@ bool read_args(int argc, char *argv[], Args_t &args) {
     if (strcmp(argv[i], "-N") == 0) args.N = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-I") == 0) args.iters = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-M") == 0) args.mode = atoi(argv[i + 1]);
+    if (strcmp(argv[i], "-T") == 0) args.ts = atoi(argv[i + 1]);
+    if (strcmp(argv[i], "-L") == 0) args.ls = atoi(argv[i + 1]);
     if (strcmp(argv[i], "-O") == 0) args.rma_op = atoi(argv[i + 1]);
   }
   return true;
@@ -116,6 +128,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
   ViewType_t v;
   ViewType_t v_tmp;
 
+  int iters_per_team;
+  int iters_per_team_mod;
+
   Access(Args_t args)
       : N(args.N),
         iters(args.iters),
@@ -126,13 +141,23 @@ struct Access<ViewType_t, typename std::enable_if_t<
     MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
     other_rank = my_rank ^ 1;
     assert(num_ranks == 2);
+    iters_per_team = args.N / LEAGUE_SIZE;
+    iters_per_team_mod = args.N % LEAGUE_SIZE;
   };
 
   KOKKOS_FUNCTION
   void operator()(const InitTag &, const size_t i) const { v(i) = my_rank + 1; }
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i); }
+  void operator()(const UpdateTag &, typename team_policy_update_t::member_type team) const { 
+      int team_id = team.league_rank();
+      int start =  team_id * iters_per_team;
+      int end = start + iters_per_team;
+      int mod = (team_id == LEAGUE_SIZE - 1) ? iters_per_team_mod : 0;
+      Kokkos::parallel_for( Kokkos::TeamThreadRange(team, start, end + mod), [&](const int i){
+        v(i) += v_tmp(i); 
+    });
+  }
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
@@ -159,13 +184,14 @@ struct Access<ViewType_t, typename std::enable_if_t<
         Kokkos::deep_copy(v_tmp_host, v);
         MPI_Send(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
                  MPI_COMM_WORLD);
-
       } else {
         auto v_tmp_host = Kokkos::create_mirror_view(v_tmp);
         MPI_Recv(v_tmp_host.data(), N, MPI_DOUBLE, other_rank, TAG,
                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         Kokkos::deep_copy(v_tmp, v_tmp_host);
-        Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
+        Kokkos::parallel_for(
+              "access_overhead",
+              team_policy_update_t(LEAGUE_SIZE, TEAM_SIZE), *this);
         Kokkos::fence();
         time_b = timer.seconds();
         time += time_b - time_a;
@@ -205,6 +231,9 @@ struct Access_CudaAware<
   ViewType_t v;
   ViewType_t v_tmp;
 
+  int iters_per_team;
+  int iters_per_team_mod;
+
   Access_CudaAware(Args_t args)
       : N(args.N),
         iters(args.iters),
@@ -215,13 +244,23 @@ struct Access_CudaAware<
     MPI_Comm_size(MPI_COMM_WORLD, &num_ranks);
     other_rank = my_rank ^ 1;
     assert(num_ranks == 2);
+    iters_per_team = args.N / LEAGUE_SIZE;
+    iters_per_team_mod = args.N % LEAGUE_SIZE;
   };
 
   KOKKOS_FUNCTION
   void operator()(const InitTag &, const size_t i) const { v(i) = my_rank + 1; }
 
   KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i); }
+  void operator()(const UpdateTag &, typename team_policy_update_t::member_type team) const { 
+      int team_id = team.league_rank();
+      int start =  team_id * iters_per_team;
+      int end = start + iters_per_team;
+      int mod = (team_id == LEAGUE_SIZE - 1) ? iters_per_team_mod : 0;
+      Kokkos::parallel_for( Kokkos::TeamThreadRange(team, start, end + mod), [&](const int i){
+        v(i) += v_tmp(i); 
+    });
+  }
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
@@ -248,7 +287,9 @@ struct Access_CudaAware<
       } else {
         MPI_Recv(v_tmp.data(), N, MPI_DOUBLE, other_rank, TAG, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
-        Kokkos::parallel_for("access_overhead", policy_update_t(0, N), *this);
+        Kokkos::parallel_for(
+              "access_overhead",
+              team_policy_update_t(LEAGUE_SIZE, TEAM_SIZE), *this);
         Kokkos::fence();
         time_b = timer.seconds();
         time += time_b - time_a;
@@ -284,6 +325,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
 
   ViewType_t v;
 
+  int iters_per_team;
+  int iters_per_team_mod;
+
   Access(Args_t args)
       : N(args.N), iters(args.iters), mode(args.mode), rma_op(args.rma_op) {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -291,6 +335,10 @@ struct Access<ViewType_t, typename std::enable_if_t<
     assert(num_ranks == 2);
     other_rank = my_rank ^ 1;
     v          = ViewType_t(std::string(typeid(v).name()), num_ranks * args.N);
+    auto local_range =
+        Kokkos::Experimental::get_local_range(num_ranks * args.N);
+    iters_per_team = (local_range.second - local_range.first) / LEAGUE_SIZE;
+    iters_per_team_mod = (local_range.second - local_range.first) % LEAGUE_SIZE;
   };
 
   KOKKOS_FUNCTION
@@ -301,10 +349,30 @@ struct Access<ViewType_t, typename std::enable_if_t<
     v(i) += v(other_rank * N + i);
   }
 
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag_put &, const size_t i) const {
-    v(other_rank * N + i) = v(i);
+    KOKKOS_FUNCTION
+  void operator()(const UpdateTag_get &, typename team_policy_update_t::member_type team) const { 
+      int team_id = team.league_rank();
+      int start =  team_id * iters_per_team;
+      int end = start + iters_per_team;
+      int mod = (team_id == LEAGUE_SIZE - 1) ? iters_per_team_mod : 0;
+      Kokkos::parallel_for( Kokkos::TeamThreadRange(team, start, end + mod), [&](const int i){
+        v(i) += v(other_rank * N + i);
+    });
   }
+
+
+
+    KOKKOS_FUNCTION
+  void operator()(const UpdateTag_put &, typename team_policy_update_t::member_type team) const { 
+      int team_id = team.league_rank();
+      int start =  team_id * iters_per_team;
+      int end = start + iters_per_team;
+      int mod = (team_id == LEAGUE_SIZE - 1) ? iters_per_team_mod : 0;
+      Kokkos::parallel_for( Kokkos::TeamThreadRange(team, start, end + mod), [&](const int i){
+        v(other_rank * N + i) = v(i);
+    });
+  }
+
 
   KOKKOS_FUNCTION
   void operator()(const CheckTag &, const size_t i) const {
@@ -330,10 +398,9 @@ struct Access<ViewType_t, typename std::enable_if_t<
       for (int i = 0; i < iters; i++) {
         if (my_rank == 0) {
           time_a = timer.seconds();
-          Kokkos::parallel_for(
+           Kokkos::parallel_for(
               "access_overhead",
-              policy_update_get_t(local_range.first, local_range.second),
-              *this);
+              team_policy_get_update_t(LEAGUE_SIZE, TEAM_SIZE), *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
@@ -348,7 +415,7 @@ struct Access<ViewType_t, typename std::enable_if_t<
           time_a = timer.seconds();
           Kokkos::parallel_for(
               "access_overhead",
-              policy_update_put_t(local_range.first, local_range.second),
+              team_policy_put_update_t(local_range.first, local_range.second),
               *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
@@ -417,6 +484,10 @@ struct Access_LDC<
   ViewType_t v, v_tmp;
   ViewType_t v_subview_remote;
 
+  int iters_per_team;
+  int iters_per_team_mod;
+
+
   Access_LDC(Args_t args)
       : N(args.N), iters(args.iters), mode(args.mode), rma_op(args.rma_op) {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -425,6 +496,10 @@ struct Access_LDC<
     other_rank = my_rank ^ 1;
     v          = ViewType_t(std::string(typeid(v).name()), num_ranks * args.N);
     v_tmp      = ViewType_t(std::string(typeid(v).name()), num_ranks * args.N);
+    auto local_range =
+        Kokkos::Experimental::get_local_range(num_ranks * args.N);
+    iters_per_team = (local_range.second - local_range.first) / LEAGUE_SIZE;
+    iters_per_team_mod = (local_range.second - local_range.first) % LEAGUE_SIZE;
   };
 
   KOKKOS_FUNCTION
@@ -443,8 +518,16 @@ struct Access_LDC<
                        iters * (other_rank + 1) + (my_rank + 1)));
   }
 
-  KOKKOS_FUNCTION
-  void operator()(const UpdateTag &, const size_t i) const { v(i) += v_tmp(i); }
+ KOKKOS_FUNCTION
+  void operator()(const UpdateTag &, typename team_policy_update_t::member_type team) const { 
+      int team_id = team.league_rank();
+      int start =  team_id * iters_per_team;
+      int end = start + iters_per_team;
+      int mod = (team_id == LEAGUE_SIZE - 1) ? iters_per_team_mod : 0;
+      Kokkos::parallel_for( Kokkos::TeamThreadRange(team, start, end + mod), [&](const int i){
+        v(i) += v_tmp(i); 
+    });
+  }
 
   KOKKOS_FUNCTION
   void operator()(const UpdateTag_get &,
@@ -503,8 +586,8 @@ struct Access_LDC<
           Kokkos::fence();
 #endif
           Kokkos::parallel_for(
-              "update", policy_update_t(local_range.first, local_range.second),
-              *this);
+              "access_overhead",
+              team_policy_update_t(LEAGUE_SIZE, TEAM_SIZE), *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();
@@ -530,8 +613,8 @@ struct Access_LDC<
               *this);
 #endif
           Kokkos::parallel_for(
-              "update", policy_update_t(local_range.first, local_range.second),
-              *this);
+              "access_overhead",
+              team_policy_update_t(LEAGUE_SIZE, TEAM_SIZE), *this);
           Kokkos::fence();
           RemoteSpace_t().fence();
           time_b = timer.seconds();

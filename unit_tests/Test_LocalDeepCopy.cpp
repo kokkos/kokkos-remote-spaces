@@ -295,7 +295,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -383,7 +383,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -412,7 +412,7 @@ void test_localdeepcopy_withSubview(
   // Copy from next
   if (my_rank % 2 == 0) {
     Kokkos::parallel_for(
-        "Team", TeamPolicy_t(team_sizes::big, 1),
+        "Team", TeamPolicy_t(team_sizes::small, 1),
         KOKKOS_LAMBDA(typename TeamPolicy_t::member_type team) {
           Kokkos::Experimental::RemoteSpaces::local_deep_copy(
               team, v_R_subview_local, v_R_subview_next);
@@ -464,7 +464,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -554,7 +554,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -634,7 +634,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -722,7 +722,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -806,7 +806,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -896,7 +896,7 @@ void test_localdeepcopy_withSubview(
   prev_rank = (my_rank - 1) < 0 ? num_ranks - 1 : my_rank - 1;
   next_rank = (my_rank + 1) % num_ranks;
 
-  if (num_ranks % 2 && num_ranks > 1) return;  // skip
+  if (num_ranks % 2 || num_ranks < 2) return;  // skip
 
   using ViewRemote_t = Kokkos::View<Data_t ***, Layout_t, Space_B>;
   using ViewHost_t   = typename ViewRemote_t::HostMirror;
@@ -988,10 +988,10 @@ void test_localdeepcopy_withSubview(
   test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, \
                                  get_op, IS_RANGES, LAYOUT>(12, 15);          \
   /* 2D with Subviews (put block transfer) */                                 \
-  test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, \
+ test_localdeepcopy_withSubview<int, Kokkos::HostSpace, RemoteSpace_t, TEAM, \
                                  put_op, IS_RANGES, LAYOUT>(5, 16);           \
   /* 2D with Subviews (get block transfer)*/                                  \
-  test_localdeepcopy_withSubview<int64_t, Kokkos::HostSpace, RemoteSpace_t,   \
+ test_localdeepcopy_withSubview<int64_t, Kokkos::HostSpace, RemoteSpace_t,   \
                                  TEAM, get_op, IS_RANGES, LAYOUT>(12, 15);    \
   /* 2D with Subviews (put block transfer)*/                                  \
   test_localdeepcopy_withSubview<int64_t, Kokkos::HostSpace, RemoteSpace_t,   \
