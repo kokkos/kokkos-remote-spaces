@@ -38,11 +38,14 @@ is_Layout_PL(Layout) test_viewinit(Args... args) {
   RemoteView_t view("MyRemoteView", numRanks, args...);
   RemoteSpace_t().fence();
 
-  Kokkos::parallel_reduce("Check zero",view.span(),KOKKOS_LAMBDA(int i, int & err){
-    err += view.data()[i] == ZERO ? ZERO : ONE;
-  }, err_out);
+  Kokkos::parallel_reduce(
+      "Check zero", view.span(),
+      KOKKOS_LAMBDA(int i, int& err) {
+        err += view.data()[i] == ZERO ? ZERO : ONE;
+      },
+      err_out);
 
-  ASSERT_EQ(err_out,ZERO);
+  ASSERT_EQ(err_out, ZERO);
 }
 
 template <class DataType, class Layout, class RemoteSpace, class... Args>
@@ -52,20 +55,23 @@ is_Layout_GL(Layout) test_viewinit(Args... args) {
   RemoteView_t view("MyRemoteView", args...);
   RemoteSpace_t().fence();
 
-  Kokkos::parallel_reduce("Check zero",view.span(),KOKKOS_LAMBDA(int i, int & err){
-    err += view.data()[i] == ZERO ? ZERO : ONE;
-  }, err_out);
+  Kokkos::parallel_reduce(
+      "Check zero", view.span(),
+      KOKKOS_LAMBDA(int i, int& err) {
+        err += view.data()[i] == ZERO ? ZERO : ONE;
+      },
+      err_out);
 
-  ASSERT_EQ(err_out,ZERO);
+  ASSERT_EQ(err_out, ZERO);
 }
 
-#define GENBLOCK(TYPE, LAYOUT, SPACE)      \
-test_viewinit<TYPE, LAYOUT, SPACE>(1);     \
-test_viewinit<TYPE, LAYOUT, SPACE>(4567);  \
-test_viewinit<TYPE, LAYOUT, SPACE>(45617); \
-test_viewinit<TYPE, LAYOUT, SPACE>(1,3);   \
-test_viewinit<TYPE, LAYOUT, SPACE>(23,12); \
-test_viewinit<TYPE, LAYOUT, SPACE>(1,5617);
+#define GENBLOCK(TYPE, LAYOUT, SPACE)         \
+  test_viewinit<TYPE, LAYOUT, SPACE>(1);      \
+  test_viewinit<TYPE, LAYOUT, SPACE>(4567);   \
+  test_viewinit<TYPE, LAYOUT, SPACE>(45617);  \
+  test_viewinit<TYPE, LAYOUT, SPACE>(1, 3);   \
+  test_viewinit<TYPE, LAYOUT, SPACE>(23, 12); \
+  test_viewinit<TYPE, LAYOUT, SPACE>(1, 5617);
 
 TEST(TEST_CATEGORY, test_viewinit) {
   using PLL_t = Kokkos::PartitionedLayoutLeft;
@@ -82,5 +88,5 @@ TEST(TEST_CATEGORY, test_viewinit) {
   GENBLOCK(double, LL_t, RemoteSpace_t)
   GENBLOCK(double, LR_t, RemoteSpace_t)
 
-  RemoteSpace_t::fence(); 
+  RemoteSpace_t::fence();
 }

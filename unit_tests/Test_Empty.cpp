@@ -21,6 +21,9 @@
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 
-void test_empty() { RemoteSpace_t::fence(); }
+void test_empty() {}
 
-TEST(TEST_CATEGORY, test_empty) { test_empty(); }
+TEST(TEST_CATEGORY, test_empty) {
+  test_empty();
+  RemoteSpace_t::fence();
+}
