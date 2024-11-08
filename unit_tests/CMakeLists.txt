@@ -12,13 +12,7 @@ if(NOT googletest_POPULATED)
 endif()
 
 SET(NAME KokkosRemoteSpaces_TestAll)
-
-#if (KRS_ENABLE_MPISPACE)
-# FILE(GLOB TEST_SRCS *.cpp)
-#  list(FILTER TEST_SRCS EXCLUDE REGEX ".*Test_Atomic\\.cpp$")
-#else()
-  FILE(GLOB TEST_SRCS *.cpp)
-#endif()
+FILE(GLOB TEST_SRCS *.cpp)
 
 add_executable(${NAME} ${TEST_SRCS})
 
