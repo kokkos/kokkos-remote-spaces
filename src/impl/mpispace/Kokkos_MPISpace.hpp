@@ -55,9 +55,9 @@ class MPISpace {
   using size_type    = size_t;
 
   MPISpace();
-  MPISpace(MPISpace &&rhs)      = default;
-  MPISpace(const MPISpace &rhs) = default;
-  MPISpace &operator=(MPISpace &&) = default;
+  MPISpace(MPISpace &&rhs)              = default;
+  MPISpace(const MPISpace &rhs)         = default;
+  MPISpace &operator=(MPISpace &&)      = default;
   MPISpace &operator=(const MPISpace &) = default;
   ~MPISpace()                           = default;
 

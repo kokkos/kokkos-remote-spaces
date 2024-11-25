@@ -26,12 +26,12 @@
 
 // Select View-type
 #define USE_GLOBAL_LAYOUT
-//#define USE_PARTITIONED_LAYOUT
-//#define USE_LOCAL_LAYOUT
+// #define USE_PARTITIONED_LAYOUT
+// #define USE_LOCAL_LAYOUT
 
 // Select generator-type
 #define GENMODE genmode::random_sequence
-//#define GENMODE genmode::linear_sequence
+// #define GENMODE genmode::linear_sequence
 
 // Default values
 #define SIZE 1024
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
     ORDINAL_T end_idx = my_rank == num_ranks - 1
                             ? num_elems
                             : default_end + (num_elems - default_end) * spread;
-    idx_range = end_idx - start_idx;
+    idx_range         = end_idx - start_idx;
 
 #if defined(USE_PARTITIONED_LAYOUT)
     View_t v("PartitionedView", num_ranks, num_elems_per_rank);

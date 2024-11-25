@@ -413,7 +413,7 @@ void test_partitioned_subview1D(int i1, int i2, int sub1, int sub2) {
   deep_copy(v_h, VAL);
 
   auto v_sub   = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
+                                 Kokkos::ALL, Kokkos::ALL);
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, sub2);
   auto v_sub_2 = ViewRemote_1D_t(v, Kokkos::ALL, sub1, sub2);
   Kokkos::deep_copy(v_sub, v_h);
@@ -454,7 +454,7 @@ void test_partitioned_subview2D(int i1, int i2, int sub1) {
   deep_copy(v_h, VAL);
 
   auto v_sub   = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
+                                 Kokkos::ALL, Kokkos::ALL);
   auto v_sub_1 = Kokkos::subview(v, Kokkos::ALL, sub1, Kokkos::ALL);
   auto v_sub_2 = ViewRemote_2D_t(v, Kokkos::ALL, sub1, Kokkos::ALL);
   Kokkos::deep_copy(v_sub, v_h);
@@ -571,7 +571,7 @@ void test_partitioned_subview2D_byRank_nextRank(int i1, int i2) {
   deep_copy(v_h, my_rank);
 
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
+                                    Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
   RemoteSpace_t::fence();
   Kokkos::deep_copy(v_sub, v_h);
@@ -610,7 +610,7 @@ void test_partitioned_subviewOfSubviewRange_2D(int i1, int i2) {
   deep_copy(v_h, my_rank);
 
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
+                                    Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next_half = Kokkos::subview(
       v_sub_next, Kokkos::pair<int, int>(i1_half, i1), Kokkos::ALL);
@@ -653,7 +653,7 @@ void test_partitioned_subviewOfSubviewScalar_2D(int i1, int i2) {
   // Init
   deep_copy(v_h, my_rank);
   auto v_sub      = Kokkos::subview(v, std::make_pair(my_rank, my_rank + 1),
-                               Kokkos::ALL, Kokkos::ALL);
+                                    Kokkos::ALL, Kokkos::ALL);
   auto v_sub_next = Kokkos::subview(v, next_rank, Kokkos::ALL, Kokkos::ALL);
 
   // auto v_sub_next_1D = Kokkos::subview(v_sub_next, Kokkos::ALL, i1_half);

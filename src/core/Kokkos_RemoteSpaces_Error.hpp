@@ -63,9 +63,9 @@ class RemoteSpacesMemoryAllocationFailure : public std::bad_alloc {
   RemoteSpacesMemoryAllocationFailure(
       RemoteSpacesMemoryAllocationFailure &&) noexcept = default;
 
-  RemoteSpacesMemoryAllocationFailure &operator             =(
+  RemoteSpacesMemoryAllocationFailure &operator=(
       RemoteSpacesMemoryAllocationFailure const &) noexcept = default;
-  RemoteSpacesMemoryAllocationFailure &operator             =(
+  RemoteSpacesMemoryAllocationFailure &operator=(
       RemoteSpacesMemoryAllocationFailure &&) noexcept = default;
 
   ~RemoteSpacesMemoryAllocationFailure() noexcept override = default;
