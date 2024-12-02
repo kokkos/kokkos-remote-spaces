@@ -34,7 +34,7 @@ class SharedAllocationRecord<Kokkos::Experimental::SHMEMSpace, void>
   using base_t = SharedAllocationRecordCommon<Kokkos::Experimental::SHMEMSpace>;
   using RecordBase = SharedAllocationRecord<void, void>;
 
-  SharedAllocationRecord(const SharedAllocationRecord&) = delete;
+  SharedAllocationRecord(const SharedAllocationRecord&)            = delete;
   SharedAllocationRecord& operator=(const SharedAllocationRecord&) = delete;
 
 #ifdef KOKKOS_ENABLE_DEBUG

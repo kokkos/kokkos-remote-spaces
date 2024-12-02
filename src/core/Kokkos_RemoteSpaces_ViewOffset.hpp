@@ -255,8 +255,8 @@ struct ViewOffset<
     return *this;
   }
 #else
-  ViewOffset()                   = default;
-  ViewOffset(const ViewOffset &) = default;
+  ViewOffset()                              = default;
+  ViewOffset(const ViewOffset &)            = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
 
@@ -582,8 +582,8 @@ struct ViewOffset<
   }
 #else
 
-  ViewOffset()                   = default;
-  ViewOffset(const ViewOffset &) = default;
+  ViewOffset()                              = default;
+  ViewOffset(const ViewOffset &)            = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
 
@@ -897,8 +897,8 @@ struct ViewOffset<
   }
 #else
 
-  ViewOffset()                   = default;
-  ViewOffset(const ViewOffset &) = default;
+  ViewOffset()                              = default;
+  ViewOffset(const ViewOffset &)            = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
 
@@ -1224,8 +1224,8 @@ struct ViewOffset<
   }
 #else
 
-  ViewOffset()                   = default;
-  ViewOffset(const ViewOffset &) = default;
+  ViewOffset()                              = default;
+  ViewOffset(const ViewOffset &)            = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
 
@@ -1572,8 +1572,8 @@ struct ViewOffset<Dimension, Kokkos::PartitionedLayoutStride, void> {
   }
 #else
 
-  ViewOffset()                   = default;
-  ViewOffset(const ViewOffset &) = default;
+  ViewOffset()                              = default;
+  ViewOffset(const ViewOffset &)            = default;
   ViewOffset &operator=(const ViewOffset &) = default;
 #endif
 

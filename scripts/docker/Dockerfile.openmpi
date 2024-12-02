@@ -1,46 +1,45 @@
-FROM ubuntu:20.04                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                             
-ENV DEBIAN_FRONTEND=noninteractive                                                                                                                                                                                                           
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \                                                                                                                                                                             
-    build-essential \                                                                                                                                                                                                                        
-    wget \                                                                                                                                                                                                                                   
-    git \                                                                                                                                                                                                                                    
-    bc \                                                                                                                                                                                                                                     
-    ninja-build \                                                                                                                                                                                                                            
-    git \                                                                                                                                                                                                                                    
-    libev-dev \                                                                                                                                                                                                                              
-    libevent-dev \                                                                                                                                                                                                                           
-    libhwloc-dev \                                                                                                                                                                                                                           
-    pkg-config \                                                                                                                                                                                                                             
-    clang-format-8 \                                                                                                                                                                                                                         
-    && \                                                                                                                                                                                                                                     
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    build-essential \
+    wget \
+    git \
+    bc \
+    ninja-build \
+    git \
+    libev-dev \
+    libevent-dev \
+    libhwloc-dev \
+    pkg-config \
+    && \
     apt-get clean && rm -rf /var/lib/apt/list
 
-ENV PREFIX=/scratch                                                                                                                                                                                                                          
-ENV ARCHIVE_DIR=${PREFIX}/archive                                                                                                                                                                                                            
-ENV SOURCE_DIR=${PREFIX}/source                                                                                                                                                                                                              
-ENV BUILD_DIR=${PREFIX}/build                                                                                                                                                                                                                
-ENV INSTALL_DIR=/opt                                                                                                                                                                                                                         
-                                                                                                                                                                                                                                             
-RUN mkdir -p ${PREFIX} && \                                                                                                                                                                                                                  
-    cd ${PREFIX} && \                                                                                                                                                                                                                        
-    mkdir archive && \                                                                                                                                                                                                                       
-    mkdir source && \                                                                                                                                                                                                                        
-    mkdir build                                                                                                                                                                                                                              
+ENV PREFIX=/scratch
+ENV ARCHIVE_DIR=${PREFIX}/archive
+ENV SOURCE_DIR=${PREFIX}/source
+ENV BUILD_DIR=${PREFIX}/build
+ENV INSTALL_DIR=/opt
+
+RUN mkdir -p ${PREFIX} && \
+    cd ${PREFIX} && \
+    mkdir archive && \
+    mkdir source && \
+    mkdir build
                                                                                                                                                                                                                                              
 # Install CMake                                                                                                                                                                                                                              
-RUN export CMAKE_VERSION=3.22.2 && \                                                                                                                                                                                                         
-    export CMAKE_SHA256=38b3befdee8fd2bac06954e2a77cb3072e6833c69d8cc013c0a3b26f1cfdfe37 && \                                                                                                                                                
-    export CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \                                                                                                    
-    export CMAKE_ARCHIVE=${ARCHIVE_DIR}/cmake.tar.gz && \                                                                                                                                                                                    
-    export CMAKE_BUILD_DIR=${BUILD_DIR}/cmake && \                                                                                                                                                                                           
-    wget --quiet ${CMAKE_URL} --output-document=${CMAKE_ARCHIVE} && \                                                                                                                                                                        
-    echo "${CMAKE_SHA256} ${CMAKE_ARCHIVE}" | sha256sum -c && \                                                                                                                                                                              
-    mkdir -p ${CMAKE_BUILD_DIR} && \                                                                                                                                                                                                         
-    tar xf ${CMAKE_ARCHIVE} -C ${CMAKE_BUILD_DIR} --strip-components=1 && \                                                                                                                                                                  
-    mv ${CMAKE_BUILD_DIR} ${INSTALL_DIR} && \                                                                                                                                                                                                
-    rm -rf ${CMAKE_ARCHIVE} && \                                                                                                                                                                                                             
-    rm -rf ${CMAKE_BUILD_DIR}                                                                                                                                                                                                                
+RUN export CMAKE_VERSION=3.22.2 && \
+    export CMAKE_SHA256=38b3befdee8fd2bac06954e2a77cb3072e6833c69d8cc013c0a3b26f1cfdfe37 && \
+    export CMAKE_URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    export CMAKE_ARCHIVE=${ARCHIVE_DIR}/cmake.tar.gz && \
+    export CMAKE_BUILD_DIR=${BUILD_DIR}/cmake && \
+    wget --quiet ${CMAKE_URL} --output-document=${CMAKE_ARCHIVE} && \
+    echo "${CMAKE_SHA256} ${CMAKE_ARCHIVE}" | sha256sum -c && \
+    mkdir -p ${CMAKE_BUILD_DIR} && \
+    tar xf ${CMAKE_ARCHIVE} -C ${CMAKE_BUILD_DIR} --strip-components=1 && \
+    mv ${CMAKE_BUILD_DIR} ${INSTALL_DIR} && \
+    rm -rf ${CMAKE_ARCHIVE} && \
+    rm -rf ${CMAKE_BUILD_DIR}
 ENV PATH=${INSTALL_DIR}/cmake/bin:$PATH
 
 # Install UCX

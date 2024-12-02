@@ -52,7 +52,7 @@
 
 #define LOCAL_ORDINAL int64_t
 
-//#define MASK 1099511627776
+// #define MASK 1099511627776
 #define MASK 268435456
 template <class MemSpace>
 struct CrsMatrix {

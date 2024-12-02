@@ -26,7 +26,7 @@
 
 #define LDC_LEAGUE_SIZE 4096
 #define LDC_TEAM_SIZE 1
-//#define CHECK_FOR_CORRECTNESS
+// #define CHECK_FOR_CORRECTNESS
 
 using RemoteSpace_t = Kokkos::Experimental::DefaultRemoteMemorySpace;
 using RemoteView_t  = Kokkos::View<double *, RemoteSpace_t>;

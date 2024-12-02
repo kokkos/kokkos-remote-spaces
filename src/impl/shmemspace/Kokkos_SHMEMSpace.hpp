@@ -55,9 +55,9 @@ class SHMEMSpace {
   using size_type    = size_t;
 
   SHMEMSpace();
-  SHMEMSpace(SHMEMSpace &&rhs)      = default;
-  SHMEMSpace(const SHMEMSpace &rhs) = default;
-  SHMEMSpace &operator=(SHMEMSpace &&) = default;
+  SHMEMSpace(SHMEMSpace &&rhs)              = default;
+  SHMEMSpace(const SHMEMSpace &rhs)         = default;
+  SHMEMSpace &operator=(SHMEMSpace &&)      = default;
   SHMEMSpace &operator=(const SHMEMSpace &) = default;
   ~SHMEMSpace()                             = default;
 

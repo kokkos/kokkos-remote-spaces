@@ -25,7 +25,7 @@
 namespace Kokkos {
 namespace Impl {
 
-//#define KRS_USES_NBI
+// #define KRS_USES_NBI
 
 #define KOKKOS_REMOTESPACES_PUT(type, op)                                 \
   static __device__ void shmem_block_type_put(type *dst, const type *src, \

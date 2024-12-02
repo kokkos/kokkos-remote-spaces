@@ -47,9 +47,9 @@ class NVSHMEMSpace {
   using size_type    = size_t;
 
   NVSHMEMSpace();
-  NVSHMEMSpace(NVSHMEMSpace &&rhs)      = default;
-  NVSHMEMSpace(const NVSHMEMSpace &rhs) = default;
-  NVSHMEMSpace &operator=(NVSHMEMSpace &&) = default;
+  NVSHMEMSpace(NVSHMEMSpace &&rhs)              = default;
+  NVSHMEMSpace(const NVSHMEMSpace &rhs)         = default;
+  NVSHMEMSpace &operator=(NVSHMEMSpace &&)      = default;
   NVSHMEMSpace &operator=(const NVSHMEMSpace &) = default;
   ~NVSHMEMSpace()                               = default;
 

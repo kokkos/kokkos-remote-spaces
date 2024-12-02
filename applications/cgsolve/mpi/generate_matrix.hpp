@@ -29,7 +29,7 @@
 
 #define LOCAL_ORDINAL int64_t
 
-//#define MASK 1099511627776
+// #define MASK 1099511627776
 #define MASK 268435456
 template <class MemSpace>
 struct CrsMatrix {
@@ -266,7 +266,7 @@ Kokkos::View<double *, Kokkos::HostSpace> generate_miniFE_vector(int64_t nx) {
 #else
   int64_t block = (nrows + numRanks - 1) / numRanks;
   int64_t start = block * myRank;
-  int64_t end = start + block;
+  int64_t end   = start + block;
   if (end > nrows) end = nrows;
 #endif
 

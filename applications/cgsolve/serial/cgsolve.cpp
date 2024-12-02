@@ -41,8 +41,8 @@ void spmv(YType y, AType A, XType x) {
       KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
         const int64_t first_row = team.league_rank() * rows_per_team;
         const int64_t last_row  = first_row + rows_per_team < nrows
-                                     ? first_row + rows_per_team
-                                     : nrows;
+                                      ? first_row + rows_per_team
+                                      : nrows;
         Kokkos::parallel_for(Kokkos::TeamThreadRange(team, first_row, last_row),
                              [&](const int64_t row) {
                                const int64_t row_start = A.row_ptr(row);

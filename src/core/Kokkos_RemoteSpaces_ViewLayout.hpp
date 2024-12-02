@@ -36,10 +36,10 @@ struct PartitionedLayoutLeft : public PartitionedLayout {
 
   enum : bool { is_extent_constructible = true };
 
-  PartitionedLayoutLeft(PartitionedLayoutLeft const &) = default;
-  PartitionedLayoutLeft(PartitionedLayoutLeft &&)      = default;
+  PartitionedLayoutLeft(PartitionedLayoutLeft const &)            = default;
+  PartitionedLayoutLeft(PartitionedLayoutLeft &&)                 = default;
   PartitionedLayoutLeft &operator=(PartitionedLayoutLeft const &) = default;
-  PartitionedLayoutLeft &operator=(PartitionedLayoutLeft &&) = default;
+  PartitionedLayoutLeft &operator=(PartitionedLayoutLeft &&)      = default;
 
   KOKKOS_INLINE_FUNCTION
   explicit constexpr PartitionedLayoutLeft(
@@ -62,10 +62,10 @@ struct PartitionedLayoutRight : public PartitionedLayout {
 
   enum : bool { is_extent_constructible = true };
 
-  PartitionedLayoutRight(PartitionedLayoutRight const &) = default;
-  PartitionedLayoutRight(PartitionedLayoutRight &&)      = default;
+  PartitionedLayoutRight(PartitionedLayoutRight const &)            = default;
+  PartitionedLayoutRight(PartitionedLayoutRight &&)                 = default;
   PartitionedLayoutRight &operator=(PartitionedLayoutRight const &) = default;
-  PartitionedLayoutRight &operator=(PartitionedLayoutRight &&) = default;
+  PartitionedLayoutRight &operator=(PartitionedLayoutRight &&)      = default;
 
   KOKKOS_INLINE_FUNCTION
   explicit constexpr PartitionedLayoutRight(
@@ -92,10 +92,10 @@ struct PartitionedLayoutStride : public PartitionedLayout {
 
   enum : bool { is_extent_constructible = false };
 
-  PartitionedLayoutStride(PartitionedLayoutStride const &) = default;
-  PartitionedLayoutStride(PartitionedLayoutStride &&)      = default;
+  PartitionedLayoutStride(PartitionedLayoutStride const &)            = default;
+  PartitionedLayoutStride(PartitionedLayoutStride &&)                 = default;
   PartitionedLayoutStride &operator=(PartitionedLayoutStride const &) = default;
-  PartitionedLayoutStride &operator=(PartitionedLayoutStride &&) = default;
+  PartitionedLayoutStride &operator=(PartitionedLayoutStride &&)      = default;
 
   /** \brief  Compute strides from ordered dimensions.
    *
@@ -139,8 +139,8 @@ struct PartitionedLayoutStride : public PartitionedLayout {
       size_t N5 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S5 = 0,
       size_t N6 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S6 = 0,
       size_t N7 = KOKKOS_IMPL_CTOR_DEFAULT_ARG, size_t S7 = 0)
-      : dimension{N0, N1, N2, N3, N4, N5, N6, N7}, stride{S0, S1, S2, S3,
-                                                          S4, S5, S6, S7} {}
+      : dimension{N0, N1, N2, N3, N4, N5, N6, N7},
+        stride{S0, S1, S2, S3, S4, S5, S6, S7} {}
 };
 
 namespace Impl {
